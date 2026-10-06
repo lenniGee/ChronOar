@@ -125,7 +125,7 @@ Gespeichert wird auf dem Handy im Browser-Speicher unter dem Schlüssel `rudertr
 
 ## Skript (Code.gs) aktualisieren
 
-Nur nötig, wenn sich die Schnittstelle ändert (`SCRIPT_VERSION` in `Code.gs`).
+Nötig, wenn sich `Code.gs` ändert (`SCRIPT_VERSION`). Version 2 bringt das Blatt „Mannschaften“.
 
 1. **Vorlage:** Erweiterungen → Apps Script → Code ersetzen → Speichern.
 2. **Jedes bereits kopierte Sheet** (auch deins): Code ersetzen → Speichern → **Bereitstellen → Bereitstellungen verwalten → Stift → Version: „Neue Version“ → Bereitstellen.** Ohne neue Version läuft unter der Adresse weiter der alte Code. Die Adresse und der QR-Code bleiben gleich.
@@ -162,6 +162,19 @@ Bestehende Kopien aktualisieren sich **nicht** automatisch – Trainer müssen i
 | Sportler-ID | Verknüpfung zum Blatt Sportler |
 
 Tipp für Auswertungen: eigene Blätter mit `FILTER`, `QUERY` oder Pivot-Tabellen auf „Ergebnisse“ anlegen – nicht in „Ergebnisse“ selbst Spalten einfügen.
+
+**Mannschaften** – eine Zeile pro Boot und Belastung, wird vom Skript automatisch aus den Ergebnissen gebildet
+
+| Spalte | Inhalt |
+|---|---|
+| Belastung | ID der Belastung (Verknüpfung zu „Ergebnisse“) |
+| Datum, Uhrzeit, Boot | |
+| Mannschaft | alle Ruderer in Sitzreihenfolge der Auswahl |
+| Kategorien | alle Kategorien im Boot, z. B. `JM A, JM B L` (Mixed-Boote erkennbar) |
+| Steuerperson | falls vorhanden |
+| Strecke, Zeit, Zeit (s), m/s, /500 m, Relation, Prozent, Ø SF, Splits | wie in „Ergebnisse“ |
+
+Wird eine Belastung in der App zurückgenommen, verschwindet ihre Zeile auch hier. Fehlt das Blatt oder passt es nicht mehr zu den Ergebnissen (z. B. nach Löschen von Hand): **ChronOar → Mannschaften neu aufbauen**.
 
 **Relationen** – Spalte A Boot-Kürzel, Spalte B m/s.
 

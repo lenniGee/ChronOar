@@ -399,7 +399,8 @@ let toastT;function toast(msg){let t=$(".toast");if(!t){t=document.createElement
 let sortMode=false;
 function watchState(w){return w.stop!=null?"done":w.start!=null?"running":"idle"}
 /* finished boats move to the bottom; the rest keep their (sortable) order */
-function ordered(){return [...S.watches.filter(w=>w.stop==null),...S.watches.filter(w=>w.stop!=null)]}
+/* Uhren bleiben immer in der eingestellten Reihenfolge, auch nach dem Stoppen (sonst verrutscht im Ziel alles) */
+function ordered(){return S.watches}
 function watchCard(w){
   const st=watchState(w), s=stats(w);
   const crew=w.crewSnap.map(c=>esc(c.last)).join(" · ")+(w.cox?" · St: "+esc(w.cox.last):"");
@@ -458,12 +459,12 @@ function renderWatches(){
   $("#btn-selall").textContent=n&&sel.length===n?"Keine":"Alle";
   updateWake();
   if(!n){list.innerHTML='<div class="empty">Noch keine Stoppuhr. Mit „+ Uhr“ legst du Strecke, Boot und Mannschaft fest.</div>';return}
-  const ord=ordered(), firstDone=ord.findIndex(w=>w.stop!=null);
-  list.innerHTML=ord.map((w,i)=>(i===firstDone&&i>0?'<div class="done-sep">Fertig</div>':"")+watchCard(w)).join("");
+  const ord=ordered();
+  list.innerHTML=ord.map(watchCard).join("");
 }
 function watchById(id){return S.watches.find(w=>w.id===id)}
 function move(w,dir){
-  const ord=ordered(), grp=ord.filter(x=>(x.stop!=null)===(w.stop!=null)), i=grp.indexOf(w), other=grp[i+dir];
+  const i=S.watches.indexOf(w), other=S.watches[i+dir];
   if(!other)return;
   const a=S.watches.indexOf(w), b=S.watches.indexOf(other);
   [S.watches[a],S.watches[b]]=[S.watches[b],S.watches[a]];

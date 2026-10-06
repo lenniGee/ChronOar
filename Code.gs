@@ -9,6 +9,7 @@
  * Blätter (werden von "ChronOar → Einrichten" angelegt):
  *   Sportler    ID | Vorname | Nachname | Geschlecht | Altersklasse | Gewichtsklasse
  *   Ergebnisse  eine Zeile pro Sportler und Belastung (wird nur von der App beschrieben)
+ *   Mannschaften eine Zeile pro Boot und Belastung (wird automatisch aus den Ergebnissen gebildet)
  *   Relationen  Boot | m/s   (Relationsgeschwindigkeiten; öffentlich lesbar)
  *
  * Schnittstelle (alle Antworten JSON: {ok:true,...} oder {ok:false,error:"..."}):
@@ -30,9 +31,11 @@
  * unter der Web-App-Adresse weiter die alte Version. Die Adresse bleibt gleich.
  */
 
-var SCRIPT_VERSION = 1;
+var SCRIPT_VERSION = 2;
 var CODE_PREFIX = 'CHRONOAR1:';
-var SH_ATH = 'Sportler', SH_RES = 'Ergebnisse', SH_REL = 'Relationen';
+var SH_ATH = 'Sportler', SH_RES = 'Ergebnisse', SH_REL = 'Relationen', SH_TEAM = 'Mannschaften';
+var TEAM_HEAD = ['Belastung', 'Datum', 'Uhrzeit', 'Boot', 'Mannschaft', 'Kategorien', 'Steuerperson', 'Strecke (m)', 'Zeit',
+  'Zeit (s)', 'm/s', '/500 m', 'Relation (m/s)', 'Prozent', 'Ø SF', 'Splits'];
 var ATH_HEAD = ['ID', 'Vorname', 'Nachname', 'Geschlecht', 'Altersklasse', 'Gewichtsklasse'];
 var RES_HEAD = ['ID', 'Belastung', 'Datum', 'Uhrzeit', 'Vorname', 'Nachname', 'Kategorie', 'Rolle', 'Boot',
   'Strecke (m)', 'Zeit', 'Zeit (s)', 'm/s', '/500 m', 'Relation (m/s)', 'Prozent', 'Ø SF', 'Splits',
@@ -48,6 +51,7 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('ChronOar')
     .addItem('1. Einrichten', 'setup')
     .addItem('2. Mit Handy verbinden (QR-Code)', 'showConnect')
+    .addItem('Mannschaften neu aufbauen', 'rebuildTeams')
     .addSeparator()
     .addItem('Neuen Schlüssel erzeugen (alte Handys trennen)', 'resetKey')
     .addToUi();
@@ -58,7 +62,9 @@ function setup() {
   var ss = SpreadsheetApp.getActive();
   var ath = ensureSheet_(ss, SH_ATH, ATH_HEAD);
   var res = ensureSheet_(ss, SH_RES, RES_HEAD);
+  var team = teamSheet_();
   var rel = ensureSheet_(ss, SH_REL, ['Boot', 'm/s']);
+  if (team.getLastRow() < 2 && res.getLastRow() > 1) rebuildTeams_();
 
   // Auswahllisten für die Sportler-Spalten D–F
   var dv = function (list) { return SpreadsheetApp.newDataValidation().requireValueInList(list, true).setAllowInvalid(false).build(); };
@@ -270,6 +276,7 @@ function appendResults_(rows) {
       r.pace, num_(r.rel), r.role === 'Steuerperson' ? '' : num_(r.pct), num_(r.avgRate), r.splits || '', r.crew || '', r.ath || '']);
   });
   if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, RES_HEAD.length).setValues(add);
+  appendTeams_(add);
 }
 function num_(x) { return (x === null || x === undefined || x === '' || !isFinite(x)) ? '' : Number(x); }
 
@@ -279,6 +286,77 @@ function deleteRun_(run) {
   if (n < 2) return;
   var runs = sh.getRange(2, 2, n - 1, 1).getValues();
   for (var i = runs.length - 1; i >= 0; i--) if (String(runs[i][0]) === String(run)) sh.deleteRow(i + 2);
+  var t = teamSheet_(), tn = t.getLastRow();
+  if (tn < 2) return;
+  var truns = t.getRange(2, 1, tn - 1, 1).getValues();
+  for (var j = truns.length - 1; j >= 0; j--) if (String(truns[j][0]) === String(run)) t.deleteRow(j + 2);
+}
+
+/* ------------------------------------------------------------------ Mannschaften */
+
+/** Blatt "Mannschaften" holen bzw. anlegen (auch in älteren Sheets ohne erneutes "Einrichten"). */
+function teamSheet_() {
+  var ss = SpreadsheetApp.getActive(), had = !!ss.getSheetByName(SH_TEAM);
+  var t = ensureSheet_(ss, SH_TEAM, TEAM_HEAD);
+  if (!had) {
+    t.getRange('A:A').setFontColor('#999999');
+    t.getRange('B:B').setNumberFormat('dd.MM.yyyy');
+    t.getRange('C:C').setNumberFormat('HH:mm');
+    t.getRange('I:I').setNumberFormat('@');
+    t.getRange('L:L').setNumberFormat('@');
+    t.getRange('J:J').setNumberFormat('0.00');
+    t.getRange('K:K').setNumberFormat('0.00');
+    t.getRange('M:M').setNumberFormat('0.000000');
+    t.getRange('N:N').setNumberFormat('0.00');
+    t.getRange('O:O').setNumberFormat('0.0');
+  }
+  return t;
+}
+
+/** Fasst Ergebniszeilen (Format wie Blatt "Ergebnisse") zu einer Zeile pro Belastung zusammen. */
+function teamRows_(resRows) {
+  var by = {}, order = [];
+  resRows.forEach(function (r) {
+    var run = String(r[1]);
+    if (!run) return;
+    if (!by[run]) { by[run] = { rowers: [], cox: [] }; order.push(run); }
+    (r[7] === 'Steuerperson' ? by[run].cox : by[run].rowers).push(r);
+  });
+  var out = [];
+  order.forEach(function (run) {
+    var g = by[run], f = g.rowers[0];
+    if (!f) return; // nur Steuerperson: keine Bootszeile
+    var cats = [];
+    g.rowers.forEach(function (r) { if (cats.indexOf(r[6]) < 0) cats.push(r[6]); });
+    var crew = f[18] || g.rowers.map(function (r) { return r[4] + ' ' + r[5]; }).join(', ');
+    var cox = g.cox.map(function (r) { return r[4] + ' ' + r[5]; }).join(', ');
+    out.push([run, f[2], f[3], f[8], crew, cats.join(', '), cox, f[9], f[10], f[11], f[12], f[13], f[14], f[15], f[16], f[17]]);
+  });
+  return out;
+}
+
+/** Neue Ergebniszeilen → fehlende Bootszeilen anhängen. */
+function appendTeams_(resRows) {
+  var rows = teamRows_(resRows);
+  if (!rows.length) return;
+  var t = teamSheet_(), n = t.getLastRow(), have = {};
+  if (n > 1) t.getRange(2, 1, n - 1, 1).getValues().forEach(function (r) { have[String(r[0])] = true; });
+  rows = rows.filter(function (r) { return !have[String(r[0])]; });
+  if (rows.length) t.getRange(t.getLastRow() + 1, 1, rows.length, TEAM_HEAD.length).setValues(rows);
+}
+
+/** Blatt "Mannschaften" komplett aus "Ergebnisse" neu bilden (Menü). */
+function rebuildTeams() {
+  var n = rebuildTeams_();
+  SpreadsheetApp.getUi().alert('Mannschaften neu aufgebaut: ' + n + ' Bootszeilen.');
+}
+function rebuildTeams_() {
+  var res = sheet_(SH_RES), n = res.getLastRow();
+  var data = n > 1 ? res.getRange(2, 1, n - 1, RES_HEAD.length).getValues() : [];
+  var rows = teamRows_(data), t = teamSheet_();
+  if (t.getLastRow() > 1) t.getRange(2, 1, t.getLastRow() - 1, TEAM_HEAD.length).clearContent();
+  if (rows.length) t.getRange(2, 1, rows.length, TEAM_HEAD.length).setValues(rows);
+  return rows.length;
 }
 
 /* ------------------------------------------------------------------ Dialog */
