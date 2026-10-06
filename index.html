@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Rudertrainer">
+<title>Rudertrainer</title>
+<meta name="theme-color" content="#1b1b1d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: phone-first app, one column of cards, fixed bottom tab bar; big tap targets for use in the motorboat */
+:root{
+  /* dark only: saves battery; white text on dark grey, orange = selected / pressable */
+  --bg:#1b1b1d; --surface:#262628; --ink:#ffffff; --muted:#b4b4b8; --line:#3a3a3e; --chip:#323236;
+  --accent:#ff8a1c; --accent-ink:#1b1b1d; --go:#2fb46a; --stop:#e5463d; --warn:#ffd23f; --sel:#3a2a18; --done:#202022;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:12px; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--body);font-size:16px;line-height:1.4;-webkit-tap-highlight-color:transparent}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--display);font-variant-numeric:tabular-nums}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.top-in{max-width:760px;margin:0 auto;padding:8px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.top h1{font-family:var(--display);font-size:24px;font-weight:700;letter-spacing:.02em;margin:0;text-transform:uppercase}
+.top .sub{color:var(--muted);font-size:14px;margin-left:auto}
+.top .btn{min-height:42px;padding:0 12px}
+.top-in.selbar{padding-top:0;gap:6px;flex-wrap:nowrap}
+.top-in.selbar .btn{flex:1;padding:0 8px;white-space:nowrap}
+#btn-sort[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+#btn-sort{min-width:48px;letter-spacing:-.05em}
+#hdr-tools{flex-wrap:nowrap;gap:6px}
+#hdr-tools .btn{padding:0 10px;white-space:nowrap}
+#btn-resetall{min-width:84px}
+.top-in:first-child{flex-wrap:nowrap;gap:8px}
+.top-in:first-child .sub{font-size:12px;text-align:right;line-height:1.2}
+main{max-width:760px;margin:0 auto;padding:8px 16px calc(64px + env(safe-area-inset-bottom,0px))}
+section[data-tab]{display:flex;flex-direction:column;gap:12px}
+
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs-in{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.tabs button{padding:12px 2px 14px;font-family:var(--display);font-weight:600;font-size:16px;letter-spacing:.02em;text-transform:uppercase;color:var(--muted);border-top:3px solid transparent}
+.tabs button[aria-selected="true"]{color:var(--accent);border-top-color:var(--accent)}
+
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{min-height:44px;padding:0 16px;border-radius:10px;font-weight:700;background:var(--accent);color:var(--accent-ink);display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.go{background:var(--go);color:#fff}
+.btn.stop{background:var(--stop);color:#fff}
+.btn.ghost{background:var(--accent);color:var(--accent-ink)}
+.btn.danger{background:transparent;color:var(--stop);box-shadow:inset 0 0 0 2px var(--stop)}
+.btn[disabled]{background:transparent;color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent);opacity:.7;cursor:default}
+.btn.armed{background:var(--stop);color:#fff}
+.btn.sm{min-height:36px;padding:0 12px;font-size:14px}
+
+.note{background:var(--surface);border:1px dashed var(--line);border-radius:var(--r);padding:12px 14px;color:var(--muted);font-size:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.note b{color:var(--ink)}
+.empty{padding:28px 16px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:var(--r)}
+
+/* Stopwatch cards: compact rows, about 6 per phone screen; buttons stay 52px tall */
+.wlist{display:flex;flex-direction:column;gap:6px}
+.watch{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:7px 8px;display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;column-gap:6px}
+.watch.sel{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent);background:var(--sel)}
+.watch.running{border-color:var(--go);box-shadow:inset 3px 0 0 var(--go)}
+.watch.running.sel{border-color:var(--accent)}
+.watch.done{background:var(--done)}
+.w-check{width:30px;height:30px;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;font-weight:700;color:var(--accent-ink);background:var(--surface)}
+.watch.sel .w-check{background:var(--accent);border-color:var(--accent)}
+.w-info{min-width:0;text-align:left;padding:0;display:flex;flex-direction:column;gap:0}
+.w-l1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;line-height:1.25}
+.w-l1 .boat{font-family:var(--display);font-weight:700;font-size:16px;margin-right:4px}
+.w-l2{display:flex;align-items:baseline;gap:6px;min-width:0}
+.w-time{font-family:var(--display);font-variant-numeric:tabular-nums;font-size:29px;font-weight:600;line-height:1.05}
+.w-sub{flex:none;font-size:12px;line-height:1.15;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;display:flex;flex-direction:column}
+.watch.running .w-sub{display:none}
+.w-sub b{color:var(--ink);font-family:var(--display);font-size:14px;font-weight:600}
+.w-sub .pct{color:var(--accent);font-size:20px;font-weight:700}
+.w-l3{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.w-l3 b{font-family:var(--display);font-size:15px;color:var(--ink);font-weight:600}
+.w-btns{display:flex;gap:6px}
+.w-btns .btn{min-height:52px;min-width:52px;padding:0 6px;font-family:var(--display);font-size:18px;letter-spacing:.02em;line-height:1.05;flex-direction:column;gap:0}
+.w-btns .btn small{font-size:12px;font-weight:600;opacity:.85}
+.w-btns .btn.go,.w-btns .btn.stop{min-width:76px;font-size:20px}
+.btn.rate.pending{background:var(--warn);color:#1b1b1d;animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.7}}
+@media (prefers-reduced-motion:reduce){.btn.rate.pending{animation:none}}
+.w-more{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);margin-top:7px;padding-top:7px;font-size:14px;color:var(--muted)}
+.w-more .num{font-size:16px;color:var(--ink)}
+.w-more .bar{gap:6px}
+.done-sep{font-family:var(--display);font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:6px 2px 0}
+@media (max-width:360px){.w-time{font-size:25px}.w-btns .btn{min-width:50px}.w-btns .btn.go,.w-btns .btn.stop{min-width:66px}}
+
+/* General tab */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px}
+.card h2{font-family:var(--display);font-size:18px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin:0;color:var(--muted)}
+.big{font-family:var(--display);font-variant-numeric:tabular-nums;font-weight:700;font-size:72px;line-height:1}
+.big small{font-size:22px;font-weight:600;color:var(--muted);margin-left:6px}
+.tapper{width:100%;min-height:clamp(150px,30vh,240px);touch-action:manipulation;border-radius:16px;background:var(--accent);color:var(--accent-ink);font-family:var(--display);font-size:28px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.tapper.pending{background:var(--warn);color:#1b1b1d}
+.hist{display:flex;gap:6px;flex-wrap:wrap}
+.hist span{background:var(--chip);padding:2px 10px;border-radius:99px;font-family:var(--display);font-size:17px}
+.muted{color:var(--muted);font-size:14px}
+.row{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.rowcard{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.card.rowcard{flex-direction:row;flex-wrap:nowrap}
+.hist{justify-content:flex-start;min-height:28px}
+.hist span{font-size:16px;padding:1px 8px}
+.hist span:first-child{background:var(--accent);color:var(--accent-ink)}
+#tab-general{min-height:calc(100dvh - 72px - env(safe-area-inset-bottom,0px));gap:8px}
+#tab-general .card{padding:10px 12px;gap:6px}
+.big.mid{font-size:40px}
+.big.spmv{font-size:52px}
+.spmcard{flex:1 1 auto}
+.spmcard .tapper{flex:1 1 auto;min-height:120px}
+.wake{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);font-weight:600}
+.wake .switch{width:56px;height:34px}.wake .switch span{width:26px;height:26px}.wake .switch[aria-checked="true"] span{left:26px}
+#gps-msg{flex-basis:100%}
+@media (max-height:640px){.big.mid{font-size:32px}.big.spmv{font-size:40px}#tab-general .card h2{font-size:15px}.spmcard .tapper{min-height:80px}#tab-general .btn{min-height:40px}}
+.switch{width:64px;height:38px;border-radius:99px;background:var(--line);position:relative;flex:none}
+.switch span{position:absolute;top:4px;left:4px;width:30px;height:30px;border-radius:99px;background:var(--surface);transition:left .15s}
+.switch[aria-checked="true"]{background:var(--go)}
+.switch[aria-checked="true"] span{left:30px}
+
+/* Athletes */
+.ath{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;width:100%;text-align:left}
+.ath .nm{flex:1;min-width:0;font-weight:600}
+.cat{font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.04em;background:var(--chip);padding:2px 8px;border-radius:6px;white-space:nowrap}
+.ex{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--warn);font-weight:700}
+
+/* Results */
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+td.n{font-family:var(--display);font-variant-numeric:tabular-nums;font-size:16px;text-align:right}
+tr.cox td{color:var(--muted)}
+
+/* Sheet (modal) */
+.sheet-bg{position:fixed;inset:0;background:rgb(0 0 0 / .45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:760px;max-height:92%;border-radius:16px 16px 0 0;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom,0px)}
+.sheet-h{padding:14px 16px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
+.sheet-h h3{margin:0;font-family:var(--display);font-size:22px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;flex:1}
+.steps{color:var(--muted);font-size:13px}
+.sheet-b{padding:14px 16px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;flex:1}
+.sheet-f{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--surface)}
+.sheet-f .sum{flex:1;min-width:0;font-size:14px;color:var(--muted)}
+.sheet-f .sum b{color:var(--ink);font-family:var(--display);font-size:17px}
+label.fld{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted)}
+input.txt{min-height:48px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:0 12px;font-size:18px;width:100%}
+input.dist{font-family:var(--display);font-size:34px;font-weight:600;min-height:64px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{min-height:44px;padding:0 14px;border-radius:10px;background:var(--surface);border:1px solid var(--line);font-family:var(--display);font-size:19px;font-weight:600}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.boats{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.boats .chip{min-height:60px;font-size:24px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px}
+.seg .chip{font-size:17px;padding:0 6px}
+.pick{display:flex;flex-direction:column;gap:6px}
+.pick button{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:52px;text-align:left}
+.pick button[aria-pressed="true"]{border-color:var(--accent);background:var(--sel)}
+.pick button[disabled]{opacity:.45}
+.pick .seat{width:28px;height:28px;border-radius:99px;display:grid;place-items:center;background:var(--chip);font-family:var(--display);font-weight:700;flex:none}
+.pick button[aria-pressed="true"] .seat{background:var(--accent);color:var(--accent-ink)}
+.pick .nm{flex:1;min-width:0;font-weight:600}
+.pick .why{font-size:12px;color:var(--muted)}
+.pick .why.nov{color:var(--warn)}
+
+.toast{position:fixed;left:50%;top:calc(8px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:30;font-weight:600;max-width:calc(100% - 32px)}
+textarea.copy{width:100%;min-height:120px;font-size:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+</style>
+</head>
+<body>
+
+
+<header class="top" id="hdr">
+  <div class="top-in"><h1 id="hdr-title">Rudertrainer</h1>
+    <div class="bar" id="hdr-tools">
+      <button class="btn primary" data-act="new-watch" id="btn-new">+ Uhr</button>
+      <button class="btn ghost" data-act="sel-all" id="btn-selall">Alle</button>
+      <button class="btn ghost" data-act="sort" id="btn-sort" aria-pressed="false" aria-label="Reihenfolge ändern">▲▼</button>
+      <button class="btn ghost" data-act="reset-all" id="btn-resetall" data-confirm="Sicher?" aria-label="Markierte Uhren zurücksetzen">↺ Reset</button>
+    </div>
+    <span class="sub" id="topsub"></span></div>
+  <div class="top-in selbar" id="selbar" hidden>
+    <span id="selcount" class="sub" style="margin:0"></span>
+    <button class="btn go" data-act="start-sel" id="btn-startsel">Starten</button>
+    <button class="btn ghost danger" data-act="del-sel" data-confirm="Löschen?" id="btn-delsel">Löschen</button>
+  </div>
+</header>
+
+<main>
+  <section data-tab="watches" id="tab-watches">
+<div id="watchlist" class="wlist"></div>
+  </section>
+
+  <section data-tab="general" id="tab-general" hidden>
+    <div class="card">
+      <div class="rowcard"><h2>Einheit</h2>
+        <label class="wake"><span>Display an</span><button class="switch" id="wake-btn" role="switch" aria-checked="false" aria-label="Display anlassen"><span></span></button></label></div>
+      <div class="rowcard"><span class="big mid" id="sess">0:00:00</span>
+        <div class="bar"><button class="btn ghost" id="sess-reset" data-confirm="Sicher?">Reset</button><button class="btn go" id="sess-btn">Start</button></div></div>
+    </div>
+    <div class="card">
+      <h2>Geschwindigkeit (GPS, Ø 5 s)</h2>
+      <div class="rowcard"><span class="big mid" id="gps-pace">–:–<small>/500 m</small></span><button class="btn primary" id="gps-btn">GPS starten</button></div>
+      <div class="row muted"><span id="gps-ms">– m/s</span><span id="gps-acc"></span><span id="gps-msg"></span></div>
+    </div>
+    <div class="card spmcard">
+      <div class="rowcard"><h2>Schlagzahl</h2><span class="big spmv" id="spm">–<small>SPM</small></span></div>
+      <div class="hist" id="spm-hist"></div>
+      <button class="tapper" id="spm-tap">Tippen: Start</button>
+    </div>
+  </section>
+
+  <section data-tab="athletes" id="tab-athletes" hidden>
+    <div class="bar"><button class="btn primary" data-act="new-ath">+ Sportler</button></div>
+    <div id="ex-note"></div>
+    <div id="athlist" style="display:flex;flex-direction:column;gap:6px"></div>
+  </section>
+
+  <section data-tab="results" id="tab-results" hidden>
+    <div class="bar">
+      <button class="btn primary" id="csv-btn">Als Tabelle kopieren</button>
+      <button class="btn ghost danger" id="res-clear" data-confirm="Alle Ergebnisse löschen?">Alle löschen</button>
+    </div>
+    <div class="muted">Eine Zeile pro Sportler und Belastung. Später landen diese Zeilen automatisch im Google Sheet; bis dahin kannst du sie kopieren und in eine Tabelle einfügen.</div>
+    <div id="copybox"></div>
+    <div id="reslist"></div>
+  </section>
+</main>
+
+<nav class="tabs"><div class="tabs-in" role="tablist">
+  <button role="tab" data-tabbtn="watches" aria-selected="true">Uhren</button>
+  <button role="tab" data-tabbtn="general" aria-selected="false">Allgemein</button>
+  <button role="tab" data-tabbtn="athletes" aria-selected="false">Sportler</button>
+  <button role="tab" data-tabbtn="results" aria-selected="false">Ergebnisse</button>
+</div></nav>
+
+<div id="sheet-root"></div>
+
+<script>
+"use strict";
+/* ---------- Relationsgeschwindigkeiten (m/s) ---------- */
+const REL={"JFA1x":4.4296788482834994,"JFA2-":4.612546125461255,"JFA2x":4.765308553728854,"JFA4+":4.842615012106537,"JFA4-":5.05050505050505,"JFA4x":5.221932114882507,"JFA8+":5.405405405405405,"JFAL1x":4.329004329004329,"JFAL2x":4.69593801361822,"JFAL4x":5.091649694501018,"JFB1x":4.371903235208394,"JFB2-":4.552352048558422,"JFB2x":4.703668861712136,"JFB4-":4.985044865403789,"JFB4+":4.769475357710652,"JFB4x+":5.098572399728076,"JFB4x":5.190311418685121,"JFB8+":5.334281650071124,"JFBL1x":4.283266704740148,"JFBL2x":4.587155963302752,"JFBL4x+":4.838709677419355,"JMA1x":4.93339911198816,"JMA2-":5.181347150259067,"JMA2x":5.341880341880342,"JMA4-":5.752085130859937,"JMA4+":5.47945205479452,"JMA4x":5.797101449275362,"JMA8+":6.024096385542169,"JMAL1x":4.77326968973747,"JMAL2-":5.022601707684581,"JMAL2x":5.239717055279015,"JMAL4-":5.578800557880056,"JMAL4x":5.680204487361545,"JMAL8+":5.800464037122969,"JMB1x":4.868549172346641,"JMB2-":5.114217524718718,"JMB2x":5.272407732864675,"JMB4-":5.677517032551098,"JMB4+":5.407354001441962,"JMB4x+":5.699088145896657,"JMB4x":5.72737686139748,"JMB8+":5.945303210463734,"JMBL1x":4.7095761381475665,"JMBL2x":5.126452494873547,"JMBL4x+":5.403458213256484,"JMBL4x":5.557613931085588,"SFA1x":4.676174888940847,"SFA2-":4.909180166912126,"SFA2x":5.033979360684621,"SFA4+":5.159958720330237,"SFA4-":5.343307507347047,"SFA4x":5.467468562055768,"SFA8+":5.668934240362812,"SFAL1x":4.524886877828054,"SFAL2x":4.9838026414154,"SFAL4x":5.320563979781857,"SFAL2-":4.697183098591549,"SFB1x":4.676174888940847,"SFB2-":4.909180166912126,"SFB2x":5.033979360684621,"SFB4+":4.952947003467063,"SFB4-":5.343307507347047,"SFB4x":5.477951246233908,"SFB8+":5.667327854916407,"SFBL1x":4.524886877828054,"SFBL2x":4.694835680751174,"SFBL4x":4.9838026414154,"SFBL2-":5.323224261771748,"SMA1x":5.1190171487074485,"SMA2-":5.4274084124830395,"SMA2+":5.0864699898270604,"SMA2x":5.5601890464275785,"SMA4-":5.920663114268798,"SMA4+":5.633802816901408,"SMA4x":6.024096385542169,"SMA8+":6.277463904582548,"SMAL1x":5,"SMAL2-":5.2356020942408374,"SMAL2x":5.474952094169176,"SMAL4-":5.829204313611192,"SMAL4x":5.836008170411438,"SMAL8+":6.0569351907934585,"SMB1x":5.1190171487074485,"SMB2-":5.4274084124830395,"SMB2+":5.0864699898270604,"SMB2x":5.5601890464275785,"SMB4-":5.920663114268798,"SMB4+":5.730659025787966,"SMB4x":6.024096385542169,"SMB8+":6.277463904582548,"SMBL1x":5,"SMBL2-":5.2631578947368425,"SMBL2x":5.474952094169176,"SMBL4-":5.829204313611192,"SMBL4x":5.836008170411438,"SMBL8+":6.0569351907934585,"SMBLErgo":5.6069526212503495,"SMALErgo":5.6069526212503495,"SFBLErgo":4.833252779120348,"SFALErgo":4.833252779120348,"SFAErgo":5.22466039707419,"SFBErgo":5.22466039707419,"SMBErgo":5.955926146515783,"SMAErgo":5.955926146515783,"JMAErgo":5.788712011577425,"JMALErgo":5.457025920873124,"JFAErgo":5.151983513652757,"JFALErgo":4.698144233027954,"JMBErgo":5.662514156285391,"JFBErgo":4.924895345973898,"JMBLErgo":5.347593582887701,"JFBLErgo":4.514672686230249};
+const BOATS=[{id:"1x",n:1},{id:"2x",n:2},{id:"2-",n:2},{id:"2+",n:2,cox:1},{id:"4x",n:4},{id:"4x+",n:4,cox:1},{id:"4-",n:4},{id:"4+",n:4,cox:1},{id:"8+",n:8,cox:1},{id:"Ergo",n:1}];
+const AGES=[["JB","Junior B"],["JA","Junior A"],["SB","Senior B"],["SA","Senior A"]];
+const MAX_WATCHES=20, MAX_SPLITS=3;
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+const dec=(x,d)=>x==null||!isFinite(x)?"–":x.toFixed(d).replace(".",",");
+function fmtTime(sec,withHours){
+  if(sec==null||!isFinite(sec))return "–";
+  const t=Math.floor(sec*10+1e-6), tenth=t%10, s=Math.floor(t/10)%60, m=Math.floor(t/600)%60, h=Math.floor(t/36000);
+  const ss=String(s).padStart(2,"0");
+  if(h||withHours) return h+":"+String(m).padStart(2,"0")+":"+ss+","+tenth;
+  return m+":"+ss+","+tenth;
+}
+const pace=v=>v>0?fmtTime(500/v):"–";
+const catKey=a=>a.age[0]+a.sex+a.age[1]+(a.weight==="L"?"L":"");
+const catLabel=a=>(a.age[0]==="J"?"J":"S")+(a.sex==="M"?"M":"F")+" "+a.age[1]+(a.weight==="L"?" L":"");
+const relKey=(a,boat)=>catKey(a)+boat;
+const fullName=a=>a.first+" "+a.last;
+function boatOf(id){return BOATS.find(b=>b.id===id)}
+/* Mixed crews: average the TIME each pure crew would need, i.e. harmonic mean of speeds, weighted per seat.
+   Athletes whose category has no value for this boat class are left out; only the others count. */
+function relation(athletes,boat){
+  const parts=athletes.map(a=>({key:relKey(a,boat),v:REL[relKey(a,boat)]}));
+  const ok=parts.filter(p=>p.v);
+  if(!ok.length)return {v:null,parts};
+  const v=ok.length/ok.reduce((s,p)=>s+1/p.v,0);
+  return {v,parts};
+}
+
+/* ---------- state ---------- */
+const STORE="rudertrainer.v1";
+let S;
+function defaults(){
+  const ex=[
+    ["Lena","Becker","F","JA","O"],["Mia","Hoffmann","F","JB","L"],["Jonas","Weber","M","JA","O"],
+    ["Paul","Schulz","M","JB","L"],["Tim","Krüger","M","JA","L"],["Clara","Wolf","F","SA","O"]
+  ].map(([first,last,sex,age,weight])=>({id:uid(),first,last,sex,age,weight,example:true}));
+  const crew=[ex[0],ex[3]];
+  const w=makeWatch(2000,"2x",crew,null); w.example=true;
+  return {athletes:ex,watches:[w],results:[],spmHist:[],sess:{start:null,acc:0},v:1};
+}
+function load(){try{const raw=localStorage.getItem(STORE);if(raw){S=JSON.parse(raw);S.watches.forEach(w=>{w.runId=w.runId||uid()});S.results.forEach(r=>{r.run=r.run||r.watch});return}}catch(e){} S=defaults();}
+let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(STORE,JSON.stringify(S))}catch(e){}},150)}
+
+function makeWatch(dist,boat,crew,cox){
+  const r=relation(crew,boat);
+  return {id:uid(),dist,boat,crew:crew.map(a=>a.id),
+    crewSnap:crew.map(a=>({id:a.id,first:a.first,last:a.last,cat:catLabel(a),key:relKey(a,boat)})),
+    cox:cox?{id:cox.id,first:cox.first,last:cox.last,cat:catLabel(cox)}:null,
+    rel:r.v,relParts:r.parts,start:null,splits:[],stop:null,rates:[],rateStart:null,sel:false,open:false,runId:uid()};
+}
+function stats(w){
+  if(w.start==null||w.stop==null)return null;
+  const t=(w.stop-w.start)/1000, v=w.dist/t;
+  const avgRate=w.rates.length?w.rates.reduce((a,b)=>a+b,0)/w.rates.length:null;
+  return {t,v,pace:500/v,pct:w.rel?v/w.rel*100:null,avgRate};
+}
+function splitText(w){
+  const pts=[w.start,...w.splits]; if(w.stop!=null)pts.push(w.stop);
+  const out=[];
+  for(let i=1;i<pts.length;i++){
+    const cum=(pts[i]-w.start)/1000, lap=(pts[i]-pts[i-1])/1000;
+    out.push(fmtTime(cum));
+  }
+  return out;
+}
+
+/* ---------- results log (one entry per athlete and run) ---------- */
+function recordResults(w){
+  S.results=S.results.filter(r=>r.run!==w.runId);
+  const st=stats(w); if(!st)return;
+  const d=new Date(w.stop);
+  const date=d.toLocaleDateString("de-DE"), time=d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+  const crewNames=w.crewSnap.map(c=>c.first+" "+c.last).join(", ");
+  const splits=splitText(w).join(" | ");
+  const base={watch:w.id,run:w.runId,ts:w.stop,date,time,boat:w.boat,dist:w.dist,t:st.t,v:st.v,rel:w.rel,pct:st.pct,avgRate:st.avgRate,splits,crew:crewNames};
+  w.crewSnap.forEach(c=>S.results.push({...base,id:uid(),ath:c.id,first:c.first,last:c.last,cat:c.cat,role:"Ruderer"}));
+  if(w.cox)S.results.push({...base,id:uid(),ath:w.cox.id,first:w.cox.first,last:w.cox.last,cat:w.cox.cat,role:"Steuerperson"});
+}
+function resetWatch(w){Object.assign(w,{start:null,splits:[],stop:null,rates:[],rateStart:null,open:false,runId:uid()})}
+
+/* ---------- UI: tabs ---------- */
+let tab="watches";
+function showTab(t){
+  tab=t;
+  document.querySelectorAll("[data-tabbtn]").forEach(b=>b.setAttribute("aria-selected",b.dataset.tabbtn===t));
+  document.querySelectorAll("section[data-tab]").forEach(s=>s.hidden=s.dataset.tab!==t);
+  $("#hdr").hidden=t==="general";$("#hdr-tools").hidden=t!=="watches";$("#hdr-title").hidden=t==="watches";
+  if(t!=="watches")$("#selbar").hidden=true;
+  if(t==="athletes")renderAthletes(); if(t==="results")renderResults(); if(t==="watches")renderWatches();
+  if(t==="general"){$("#topsub").textContent="";requestAnimationFrame(()=>window.scrollTo(0,document.body.scrollHeight))}
+  else window.scrollTo(0,0);
+  updateWake();
+}
+document.querySelectorAll("[data-tabbtn]").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tabbtn)));
+
+/* two-tap confirmation for destructive buttons */
+function armed(btn){
+  if(!btn.dataset.confirm)return true;
+  if(btn.classList.contains("armed")){btn.classList.remove("armed");btn.textContent=btn.dataset.label;return true}
+  btn.dataset.label=btn.textContent;btn.textContent=btn.dataset.confirm;btn.classList.add("armed");
+  setTimeout(()=>{if(btn.classList.contains("armed")){btn.classList.remove("armed");btn.textContent=btn.dataset.label}},3000);
+  return false;
+}
+let toastT;function toast(msg){let t=$(".toast");if(!t){t=document.createElement("div");t.className="toast";t.setAttribute("role","status");document.body.appendChild(t)}t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,1600)}
+
+/* ---------- UI: watches ---------- */
+let sortMode=false;
+function watchState(w){return w.stop!=null?"done":w.start!=null?"running":"idle"}
+/* finished boats move to the bottom; the rest keep their (sortable) order */
+function ordered(){return [...S.watches.filter(w=>w.stop==null),...S.watches.filter(w=>w.stop!=null)]}
+function watchCard(w){
+  const st=watchState(w), s=stats(w);
+  const crew=w.crewSnap.map(c=>esc(c.last)).join(" · ")+(w.cox?" · St: "+esc(w.cox.last):"");
+  const target=w.rel?fmtTime(w.dist/w.rel):"–";
+  const lastRate=w.rates.length?w.rates[w.rates.length-1]:null;
+  let btns="";
+  if(sortMode){
+    btns=`<button class="btn" data-act="up" data-id="${w.id}" aria-label="Nach oben">▲</button><button class="btn" data-act="down" data-id="${w.id}" aria-label="Nach unten">▼</button>`;
+  }else{
+    if(st!=="done")btns+=`<button class="btn rate${w.rateStart?" pending":""}" data-act="rate" data-id="${w.id}">${w.rateStart?"2×…":"SF"}${!w.rateStart&&lastRate?`<small>${dec(lastRate,1)}</small>`:""}</button>`;
+    if(st==="running")btns+=`<button class="btn" data-act="split" data-id="${w.id}" ${w.splits.length>=MAX_SPLITS?"disabled":""}>Split<small>${w.splits.length}/${MAX_SPLITS}</small></button>`;
+    if(st==="idle")btns+=`<button class="btn go" data-act="start" data-id="${w.id}">Start</button>`;
+    if(st==="running")btns+=`<button class="btn stop" data-act="stop" data-id="${w.id}">Stopp</button>`;
+  }
+  let l2,l3="";
+  if(s){
+    l2=`<span class="w-time">${fmtTime(s.t)}</span><span class="w-sub"><b class="pct">${dec(s.pct,1)} %</b></span>`;
+    l3=`<div class="w-l3"><b>${w.dist.toLocaleString("de-DE")}</b> m · <b>${fmtTime(s.pace)}</b>/500 · <b>${dec(s.v,2)}</b> m/s · SF <b>${s.avgRate?dec(s.avgRate,1):"–"}</b></div>`;
+  }else{
+    l2=`<span class="w-time" data-time="${w.id}">${fmtTime(w.start==null?0:(Date.now()-w.start)/1000)}</span><span class="w-sub"><span>${w.dist.toLocaleString("de-DE")} m</span><span>Ziel <b>${target}</b></span></span>`;
+  }
+  let more="";
+  if(w.open){
+    const sp=w.splits.length?splitText(w):[];
+    more=`<div class="w-more">
+      <div>${esc(w.crewSnap.map(c=>c.first+" "+c.last).join(", "))}${w.cox?" · Steuerperson "+esc(w.cox.first+" "+w.cox.last):""}${w.example?' · <span class="ex">Beispiel</span>':""}</div>
+      <div>${w.dist.toLocaleString("de-DE")} m · Relation <span class="num">${dec(w.rel,2)}</span> m/s · Ziel <span class="num">${target}</span>${w.relParts.length>1&&new Set(w.relParts.map(p=>p.key)).size>1?" · gemischt aus "+[...new Set(w.relParts.filter(p=>p.v).map(p=>p.key))].map(esc).join(", "):""}${w.relParts.some(p=>!p.v)?` · zählt ${w.relParts.filter(p=>p.v).length} von ${w.relParts.length} (ohne Wert: ${[...new Set(w.relParts.filter(p=>!p.v).map(p=>p.key))].map(esc).join(", ")})`:""}</div>
+      ${sp.length?`<div>Splits: <span class="num">${sp.join(" · ")}</span></div>`:""}
+      ${w.rates.length?`<div>Frequenzen: <span class="num">${w.rates.map(r=>dec(r,1)).join(" · ")}</span></div>`:""}
+      <div class="bar">
+        ${w.rates.length?`<button class="btn sm ghost" data-act="rate-undo" data-id="${w.id}">Letzte SF löschen</button>`:""}
+        ${st!=="idle"?`<button class="btn sm ghost" data-act="undo" data-id="${w.id}" data-confirm="Sicher?">${st==="done"?"Stopp zurücknehmen":w.splits.length?"Split zurücknehmen":"Start zurücknehmen"}</button>`:""}
+        ${st==="done"?`<button class="btn sm ghost" data-act="reset" data-id="${w.id}" data-confirm="Zurücksetzen?">Neue Belastung</button>`:""}
+        <button class="btn sm ghost danger" data-act="del" data-id="${w.id}" data-confirm="Löschen?">Uhr löschen</button>
+      </div></div>`;
+  }
+  return `<article class="watch ${st}${w.sel?" sel":""}">
+    <button class="w-check" data-act="sel" data-id="${w.id}" aria-pressed="${!!w.sel}" aria-label="Auswählen">${w.sel?"✓":""}</button>
+    <button class="w-info" data-act="open" data-id="${w.id}" aria-expanded="${!!w.open}">
+      <span class="w-l1"><span class="boat">${esc(w.boat)}</span>${crew}</span>
+      <span class="w-l2">${l2}</span>${l3}
+    </button>
+    <div class="w-btns">${btns}</div>${more}
+  </article>`;
+}
+function renderWatches(){
+  const list=$("#watchlist");
+  const n=S.watches.length, running=S.watches.filter(w=>watchState(w)==="running").length;
+  if(tab==="watches")$("#topsub").textContent=n+"/"+MAX_WATCHES+(running?" · "+running+" läuft":"");
+  $("#btn-new").disabled=n>=MAX_WATCHES;
+  $("#btn-sort").setAttribute("aria-pressed",sortMode);$("#btn-sort").textContent=sortMode?"✓":"▲▼";$("#btn-resetall").disabled=!S.watches.some(w=>w.sel&&w.start!=null);
+  const sel=S.watches.filter(w=>w.sel);
+  $("#selbar").hidden=!sel.length||tab!=="watches";
+  $("#selcount").textContent=sel.length+" ✓";
+  $("#btn-startsel").disabled=!sel.some(w=>w.start==null);
+  $("#btn-selall").textContent=n&&sel.length===n?"Keine":"Alle";
+  updateWake();
+  if(!n){list.innerHTML='<div class="empty">Noch keine Stoppuhr. Mit „+ Uhr“ legst du Strecke, Boot und Mannschaft fest.</div>';return}
+  const ord=ordered(), firstDone=ord.findIndex(w=>w.stop!=null);
+  list.innerHTML=ord.map((w,i)=>(i===firstDone&&i>0?'<div class="done-sep">Fertig</div>':"")+watchCard(w)).join("");
+}
+function watchById(id){return S.watches.find(w=>w.id===id)}
+function move(w,dir){
+  const ord=ordered(), grp=ord.filter(x=>(x.stop!=null)===(w.stop!=null)), i=grp.indexOf(w), other=grp[i+dir];
+  if(!other)return;
+  const a=S.watches.indexOf(w), b=S.watches.indexOf(other);
+  [S.watches[a],S.watches[b]]=[S.watches[b],S.watches[a]];
+}
+function onWatchClick(e){
+  const b=e.target.closest("[data-act]"); if(!b||b.disabled)return;
+  const act=b.dataset.act, w=b.dataset.id?watchById(b.dataset.id):null, now=Date.now();
+  if(!armed(b))return;
+  switch(act){
+    case "new-watch": openWatchSheet(); return;
+    case "sort": sortMode=!sortMode;break;
+    case "sel-all": {const all=S.watches.every(x=>x.sel);S.watches.forEach(x=>x.sel=!all);break}
+    case "start-sel": {let c=0;S.watches.forEach(x=>{if(x.sel&&x.start==null){x.start=now;x.sel=false;c++}});toast(c+" Uhr"+(c===1?"":"en")+" gestartet");break}
+    case "reset-all": {let c=0;S.watches.forEach(x=>{if(x.sel&&x.start!=null){resetWatch(x);c++}});toast(c+" Uhr"+(c===1?"":"en")+" zurückgesetzt");break}
+    case "reset-sel": {S.watches.forEach(x=>{if(x.sel&&x.start!=null)resetWatch(x)});toast("Bereit für neue Belastung");break}
+    case "del-sel": {const c=S.watches.filter(x=>x.sel).length;S.watches=S.watches.filter(x=>!x.sel);toast(c+" gelöscht");break}
+    case "sel": w.sel=!w.sel;break;
+    case "open": w.open=!w.open;break;
+    case "up": move(w,-1);break;
+    case "down": move(w,1);break;
+    case "start": w.start=now;break;
+    case "split": if(w.splits.length<MAX_SPLITS)w.splits.push(now);break;
+    case "stop": w.stop=now;w.rateStart=null;recordResults(w);break;
+    case "rate":
+      if(w.rateStart&&now-w.rateStart<12000){const r=120/((now-w.rateStart)/1000);w.rateStart=null;
+        if(r>=8&&r<=70){w.rates.push(r)}else toast("Ungültig, nochmal");}
+      else w.rateStart=now;
+      break;
+    case "rate-undo": w.rates.pop();break;
+    case "undo":
+      if(w.stop!=null){w.stop=null;S.results=S.results.filter(r=>r.run!==w.runId)}
+      else if(w.splits.length)w.splits.pop();
+      else {w.start=null}
+      break;
+    case "reset": resetWatch(w);break;
+    case "del": S.watches=S.watches.filter(x=>x!==w);break;
+  }
+  save();renderWatches();
+}
+$("#tab-watches").addEventListener("click",onWatchClick);
+$("#hdr").addEventListener("click",onWatchClick);
+
+/* ---------- new-watch sheet ---------- */
+let D=null;
+function openWatchSheet(){
+  if(S.watches.length>=MAX_WATCHES){toast("Maximal "+MAX_WATCHES+" Uhren");return}
+  const realW=S.watches.filter(w=>!w.example);
+  const first=(realW[0]||S.watches[0]);
+  D={step:1,dist:first?first.dist:2000,boat:null,crew:[],cox:null,filter:""};
+  renderSheet();
+}
+function closeSheet(){D=null;A=null;$("#sheet-root").innerHTML=""}
+function sheetShell(title,steps,body,foot){
+  $("#sheet-root").innerHTML=`<div class="sheet-bg" data-act="bg"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+    <div class="sheet-h"><h3>${esc(title)}</h3><span class="steps">${steps}</span><button class="btn sm ghost" data-act="close">Abbrechen</button></div>
+    <div class="sheet-b">${body}</div><div class="sheet-f">${foot}</div></div></div>`;
+}
+const athById=id=>S.athletes.find(a=>a.id===id);
+function renderSheet(){
+  const b=D.boat?boatOf(D.boat):null;
+  const nSteps=b&&b.cox?4:3;
+  const stepTxt="Schritt "+D.step+" / "+nSteps;
+  const crewA=D.crew.map(athById).filter(Boolean);
+  const r=b&&crewA.length===b.n?relation(crewA,b.id):null;
+  const sum=`<div class="sum">${D.dist.toLocaleString("de-DE")} m${b?" · "+b.id:""}${b?" · "+crewA.length+"/"+b.n:""}${r&&r.v?`<br>Relation <b>${dec(r.v,2)}</b> m/s · Ziel <b>${fmtTime(D.dist/r.v)}</b>`:""}</div>`;
+  if(D.step===1){
+    sheetShell("Strecke",stepTxt,
+      `<div class="chips">${[250,500,1000,1500,2000,3000,6000].map(m=>`<button class="chip" data-act="d-preset" data-v="${m}" aria-pressed="${D.dist===m}">${m.toLocaleString("de-DE")}</button>`).join("")}</div>
+       <label class="fld" for="d-dist">Eigene Strecke in Metern<input class="txt dist num" id="d-dist" type="text" inputmode="numeric" autocomplete="off" value="${D.dist}"></label>`,
+      sum+`<button class="btn primary" data-act="next">Weiter</button>`);
+  }else if(D.step===2){
+    sheetShell("Bootsklasse",stepTxt,
+      `<div class="boats">${BOATS.map(x=>`<button class="chip" data-act="d-boat" data-v="${x.id}" aria-pressed="${D.boat===x.id}">${x.id}</button>`).join("")}</div>`,
+      sum+`<button class="btn ghost" data-act="back">Zurück</button>`);
+  }else if(D.step===3){
+    const f=D.filter.toLowerCase();
+    const list=sortedAthletes().filter(a=>!f||fullName(a).toLowerCase().includes(f));
+    const full=D.crew.length>=b.n;
+    sheetShell("Mannschaft",stepTxt,
+      `<input class="txt" id="d-filter" placeholder="Name suchen" value="${esc(D.filter)}" aria-label="Name suchen">
+       <div class="pick">${list.map(a=>{
+          const i=D.crew.indexOf(a.id), has=REL[relKey(a,b.id)]!=null;
+          const dis=full&&i<0;
+          return `<button data-act="d-crew" data-v="${a.id}" aria-pressed="${i>=0}" ${dis&&i<0?"disabled":""}>
+            <span class="seat">${i>=0?i+1:""}</span><span class="nm">${esc(fullName(a))}${a.example?' <span class="ex">Beispiel</span>':""}${!has?'<div class="why nov">'+esc(relKey(a,b.id))+" hat keinen Wert, zählt nicht zur Relation</div>":""}</span><span class="cat">${catLabel(a)}</span></button>`}).join("")||'<div class="empty">Keine Sportler gefunden.</div>'}</div>`,
+      sum+`<button class="btn ghost" data-act="back">Zurück</button><button class="btn primary" data-act="next" ${full&&r&&r.v?"":"disabled"}>${b.cox?"Weiter":"Uhr anlegen"}</button>`);
+    const inp=$("#d-filter");inp.addEventListener("input",()=>{D.filter=inp.value;const pos=inp.selectionStart;renderSheet();const n=$("#d-filter");n.focus();n.setSelectionRange(pos,pos)});
+  }else if(D.step===4){
+    const list=sortedAthletes().filter(a=>!D.crew.includes(a.id));
+    sheetShell("Steuerperson",stepTxt,
+      `<div class="muted">Steuerleute zählen nicht zur Relation.</div>
+       <div class="pick"><button data-act="d-cox" data-v="" aria-pressed="${!D.cox}"><span class="seat">–</span><span class="nm">Ohne Steuerperson</span></button>
+       ${list.map(a=>`<button data-act="d-cox" data-v="${a.id}" aria-pressed="${D.cox===a.id}"><span class="seat">St</span><span class="nm">${esc(fullName(a))}</span><span class="cat">${catLabel(a)}</span></button>`).join("")}</div>`,
+      sum+`<button class="btn ghost" data-act="back">Zurück</button><button class="btn primary" data-act="next">Uhr anlegen</button>`);
+  }
+}
+function createFromDraft(){
+  const crew=D.crew.map(athById);
+  const w=makeWatch(D.dist,D.boat,crew,D.cox?athById(D.cox):null);
+  S.watches.push(w);save();closeSheet();renderWatches();
+  toast("Uhr angelegt · Ziel "+fmtTime(w.dist/w.rel));
+}
+$("#sheet-root").addEventListener("click",e=>{
+  if(e.target.dataset.act==="bg"){closeSheet();return}
+  const b=e.target.closest("[data-act]"); if(!b||b.disabled)return;
+  const act=b.dataset.act;
+  if(act==="close"){closeSheet();return}
+  if(A){athSheetClick(act,b);return}
+  if(!D)return;
+  const boat=D.boat?boatOf(D.boat):null;
+  switch(act){
+    case "d-preset": D.dist=+b.dataset.v;D.step=2;break;
+    case "d-boat": if(D.boat!==b.dataset.v){D.crew=[];D.cox=null}D.boat=b.dataset.v;D.step=3;break;
+    case "d-crew": {const id=b.dataset.v,i=D.crew.indexOf(id);if(i>=0)D.crew.splice(i,1);else if(D.crew.length<boat.n)D.crew.push(id);break}
+    case "d-cox": D.cox=b.dataset.v||null;break;
+    case "back": D.step=D.step===4?3:D.step-1;break;
+    case "next":
+      if(D.step===1){const v=parseFloat(($("#d-dist").value||"").replace(/\./g,"").replace(",","."));if(!(v>0)){toast("Bitte Strecke eingeben");return}D.dist=Math.round(v);D.step=2}
+      else if(D.step===3){if(boat.cox)D.step=4;else{createFromDraft();return}}
+      else if(D.step===4){createFromDraft();return}
+      break;
+  }
+  renderSheet();
+});
+$("#sheet-root").addEventListener("focusin",e=>{if(e.target.id==="d-dist")setTimeout(()=>e.target.select(),0)});
+$("#sheet-root").addEventListener("input",e=>{if(D&&e.target.id==="d-dist"){const v=parseFloat(e.target.value.replace(/\./g,"").replace(",","."));if(v>0)D.dist=Math.round(v);
+  document.querySelectorAll('[data-act="d-preset"]').forEach(c=>c.setAttribute("aria-pressed",+c.dataset.v===D.dist))}});
+$("#sheet-root").addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();if(e.key==="Enter"&&D&&D.step===1){e.preventDefault();$('[data-act="next"]').click()}});
+
+/* ---------- athletes ---------- */
+function sortedAthletes(){return [...S.athletes].sort((a,b)=>(a.last+a.first).localeCompare(b.last+b.first,"de"))}
+function renderAthletes(){
+  const ex=S.athletes.some(a=>a.example);
+  $("#ex-note").innerHTML=ex?`<div class="note"><span><b>Beispiel-Sportler.</b> Lege deine eigenen an und entferne die Beispiele.</span><button class="btn sm ghost danger" data-act="del-ex" data-confirm="Beispiele löschen?">Beispiele entfernen</button></div>`:"";
+  const list=sortedAthletes();
+  $("#athlist").innerHTML=list.length?list.map(a=>`<button class="ath" data-act="edit-ath" data-id="${a.id}"><span class="nm">${esc(a.last)}, ${esc(a.first)}${a.example?' <span class="ex">Beispiel</span>':""}</span><span class="cat">${catLabel(a)}</span></button>`).join("")
+    :'<div class="empty">Noch keine Sportler angelegt.</div>';
+  $("#topsub").textContent=S.athletes.length+" Sportler";
+}
+let A=null;
+function openAthSheet(a){
+  A=a?{...a}:{id:null,first:"",last:"",sex:"F",age:"JA",weight:"O"};
+  renderAthSheet();
+}
+function renderAthSheet(){
+  const seg=(field,opts)=>`<div class="seg">${opts.map(([v,l])=>`<button class="chip" data-act="a-set" data-f="${field}" data-v="${v}" aria-pressed="${A[field]===v}">${l}</button>`).join("")}</div>`;
+  sheetShell(A.id?"Sportler bearbeiten":"Neuer Sportler","",
+    `<label class="fld" for="a-first">Vorname<input class="txt" id="a-first" value="${esc(A.first)}" autocomplete="off"></label>
+     <label class="fld" for="a-last">Nachname<input class="txt" id="a-last" value="${esc(A.last)}" autocomplete="off"></label>
+     <div class="fld">Geschlecht${seg("sex",[["F","Weiblich"],["M","Männlich"]])}</div>
+     <div class="fld">Altersklasse${seg("age",AGES)}</div>
+     <div class="fld">Gewichtsklasse${seg("weight",[["O","Offen"],["L","Leicht"]])}</div>
+     <div class="muted">Kategorie in der Relationstabelle: <b class="num" id="a-key">${catKey(A)}</b></div>`,
+    `${A.id?'<button class="btn ghost danger" data-act="a-del" data-confirm="Wirklich löschen?">Löschen</button>':""}<span class="sum"></span><button class="btn primary" data-act="a-save">Speichern</button>`);
+}
+function athSheetClick(act,b){
+  const first=$("#a-first"),last=$("#a-last");
+  if(first){A.first=first.value.trim();A.last=last.value.trim()}
+  if(act==="a-set"){A[b.dataset.f]=b.dataset.v;renderAthSheet();return}
+  if(act==="a-del"){if(!armed(b))return;S.athletes=S.athletes.filter(x=>x.id!==A.id);save();closeSheet();renderAthletes();return}
+  if(act==="a-save"){
+    if(!A.first||!A.last){toast("Vor- und Nachname fehlen");return}
+    if(A.id){const i=S.athletes.findIndex(x=>x.id===A.id);S.athletes[i]={...A,example:false}}
+    else S.athletes.push({...A,id:uid()});
+    save();closeSheet();renderAthletes();toast("Gespeichert");
+  }
+}
+$("#tab-athletes").addEventListener("click",e=>{
+  const b=e.target.closest("[data-act]");if(!b)return;
+  if(b.dataset.act==="new-ath")openAthSheet(null);
+  if(b.dataset.act==="edit-ath")openAthSheet(S.athletes.find(a=>a.id===b.dataset.id));
+  if(b.dataset.act==="del-ex"){if(!armed(b))return;S.athletes=S.athletes.filter(a=>!a.example);S.watches=S.watches.filter(w=>!w.example);save();renderAthletes()}
+});
+
+/* ---------- results ---------- */
+function renderResults(){
+  const rs=[...S.results].sort((a,b)=>b.ts-a.ts);
+  $("#topsub").textContent=rs.length+" Einträge";
+  $("#reslist").innerHTML=rs.length?`<div class="tablewrap"><table><thead><tr><th>Datum</th><th>Uhrzeit</th><th>Name</th><th>Kat.</th><th>Boot</th><th>Strecke</th><th>Zeit</th><th>/500 m</th><th>%</th><th>Ø SF</th></tr></thead><tbody>
+    ${rs.map(r=>`<tr class="${r.role==="Steuerperson"?"cox":""}"><td>${esc(r.date)}</td><td>${esc(r.time)}</td><td>${esc(r.first+" "+r.last)}${r.role==="Steuerperson"?" (St)":""}</td><td>${esc(r.cat)}</td><td>${esc(r.boat)}</td>
+      <td class="n">${r.dist}</td><td class="n">${fmtTime(r.t)}</td><td class="n">${fmtTime(500/r.v)}</td><td class="n">${r.role==="Steuerperson"?"–":dec(r.pct,1)}</td><td class="n">${r.avgRate?dec(r.avgRate,1):"–"}</td></tr>`).join("")}
+    </tbody></table></div>`:'<div class="empty">Noch keine Ergebnisse. Sobald du eine Uhr stoppst, erscheint hier eine Zeile pro Sportler.</div>';
+}
+function resultsTSV(){
+  const head=["Datum","Uhrzeit","Vorname","Nachname","Kategorie","Rolle","Boot","Strecke (m)","Zeit","Zeit (s)","m/s","/500 m","Relation (m/s)","Prozent","Ø SF","Splits","Mannschaft"];
+  const rows=[...S.results].sort((a,b)=>a.ts-b.ts).map(r=>[r.date,r.time,r.first,r.last,r.cat,r.role,r.boat,r.dist,fmtTime(r.t),dec(r.t,2),dec(r.v,6),fmtTime(500/r.v),dec(r.rel,6),r.role==="Steuerperson"?"":dec(r.pct,2),r.avgRate?dec(r.avgRate,1):"",r.splits,r.crew]);
+  return [head,...rows].map(x=>x.join("\t")).join("\n");
+}
+$("#csv-btn").addEventListener("click",()=>{
+  if(!S.results.length){toast("Keine Ergebnisse");return}
+  const txt=resultsTSV();
+  const fallback=()=>{$("#copybox").innerHTML='<textarea class="copy" id="copyta" aria-label="Ergebnisse zum Kopieren" readonly></textarea>';const ta=$("#copyta");ta.value=txt;ta.focus();ta.select();toast("Text markiert, jetzt kopieren")};
+  try{navigator.clipboard.writeText(txt).then(()=>toast("Kopiert – in Google Sheets einfügen"),fallback)}catch(e){fallback()}
+});
+$("#res-clear").addEventListener("click",e=>{if(!armed(e.currentTarget))return;S.results=[];save();renderResults()});
+
+/* ---------- general: stroke rate ---------- */
+let spmStart=null;
+$("#spm-tap").addEventListener("click",()=>{
+  const now=performance.now(), b=$("#spm-tap");
+  if(spmStart!=null&&now-spmStart<12000){
+    const r=120/((now-spmStart)/1000);spmStart=null;b.classList.remove("pending");b.textContent="Tippen: Start";
+    if(r>=8&&r<=70){$("#spm").innerHTML=dec(r,1)+"<small>SPM</small>";S.spmHist.unshift(r);S.spmHist=S.spmHist.slice(0,5);save();renderSpmHist()}
+    else toast("Ungültig, nochmal");
+  }else{spmStart=now;b.classList.add("pending");b.textContent="Nach 2 Schlägen tippen"}
+});
+function renderSpmHist(){$("#spm-hist").innerHTML=S.spmHist.slice(0,5).map(r=>`<span>${dec(r,1)}</span>`).join("")}
+
+/* ---------- general: GPS speed (avg over last 5 s) ---------- */
+let gpsWatch=null, pts=[];
+function hav(a,b){const R=6371008.8,toR=Math.PI/180,dLa=(b.lat-a.lat)*toR,dLo=(b.lon-a.lon)*toR;
+  const x=Math.sin(dLa/2)**2+Math.cos(a.lat*toR)*Math.cos(b.lat*toR)*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
+function gpsUpdate(p){
+  const c=p.coords;$("#gps-acc").textContent="Genauigkeit ±"+Math.round(c.accuracy)+" m";
+  if(c.accuracy>40){$("#gps-msg").textContent="GPS-Signal ungenau, warte auf besseren Empfang.";return}
+  $("#gps-msg").textContent="";
+  pts.push({t:p.timestamp,lat:c.latitude,lon:c.longitude});
+  const last=pts[pts.length-1].t; pts=pts.filter(q=>last-q.t<=5500);
+  let v=null;
+  if(pts.length>=2&&last-pts[0].t>=1500){let d=0;for(let i=1;i<pts.length;i++)d+=hav(pts[i-1],pts[i]);v=d/((last-pts[0].t)/1000)}
+  else if(c.speed!=null)v=c.speed;
+  if(v!=null){$("#gps-ms").textContent=dec(v,2)+" m/s";$("#gps-pace").innerHTML=(v>0.3?pace(v):"–:–")+"<small>/500 m</small>"}
+}
+$("#gps-btn").addEventListener("click",()=>{
+  const b=$("#gps-btn");
+  if(gpsWatch!=null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;pts=[];b.textContent="GPS starten";return}
+  if(!navigator.geolocation){$("#gps-msg").textContent="Dieses Gerät bietet kein GPS an.";return}
+  $("#gps-msg").textContent="Suche Signal…";
+  gpsWatch=navigator.geolocation.watchPosition(gpsUpdate,err=>{
+    $("#gps-msg").textContent=err.code===1?"Kein Standortzugriff. In dieser Testversion ist GPS gesperrt; in der eigenen Web-App-Adresse fragt das Handy nach Erlaubnis.":"GPS nicht verfügbar ("+err.message+").";
+    if(gpsWatch!=null)navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;b.textContent="GPS starten";
+  },{enableHighAccuracy:true,maximumAge:0,timeout:20000});
+  b.textContent="GPS stoppen";
+});
+
+/* ---------- general: session clock ---------- */
+function sessSec(){return (S.sess.acc+(S.sess.start?Date.now()-S.sess.start:0))/1000}
+function renderSess(){const s=Math.floor(sessSec());$("#sess").textContent=Math.floor(s/3600)+":"+String(Math.floor(s/60)%60).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+  const b=$("#sess-btn");b.textContent=S.sess.start?"Pause":sessSec()>0?"Weiter":"Start";b.className="btn "+(S.sess.start?"stop":"go")}
+$("#sess-btn").addEventListener("click",()=>{if(S.sess.start){S.sess.acc+=Date.now()-S.sess.start;S.sess.start=null}else S.sess.start=Date.now();save();renderSess()});
+$("#sess-reset").addEventListener("click",e=>{if(!armed(e.currentTarget))return;S.sess={start:null,acc:0};save();renderSess()});
+
+/* ---------- wake lock: manual switch, plus automatic whenever stopwatches are open or running ---------- */
+let wake=null,wakeBusy=false;
+function wakeNeeded(){return !!S.wakeManual||S.watches.some(w=>watchState(w)==="running")||(tab==="watches"&&S.watches.length>0)}
+async function updateWake(){
+  $("#wake-btn").setAttribute("aria-checked",!!S.wakeManual);
+  if(!("wakeLock" in navigator)||wakeBusy||document.visibilityState!=="visible")return;
+  const need=wakeNeeded();
+  if(need&&!wake){wakeBusy=true;try{wake=await navigator.wakeLock.request("screen");wake.addEventListener("release",()=>{wake=null})}catch(e){wake=null}wakeBusy=false}
+  else if(!need&&wake){const w=wake;wake=null;try{await w.release()}catch(e){}}
+}
+$("#wake-btn").addEventListener("click",()=>{S.wakeManual=!S.wakeManual;save();if(S.wakeManual&&!("wakeLock" in navigator))toast("Dieses Gerät unterstützt das nicht");updateWake()});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")updateWake()});
+
+/* ---------- ticking ---------- */
+setInterval(()=>{
+  const now=Date.now();
+  if(tab==="watches")for(const w of S.watches){if(w.start!=null&&w.stop==null){const el=document.querySelector(`[data-time="${w.id}"]`);if(el)el.textContent=fmtTime((now-w.start)/1000)}
+    if(w.rateStart&&now-w.rateStart>12000){w.rateStart=null;renderWatches()}}
+  if(tab==="general"){renderSess();if(spmStart!=null&&performance.now()-spmStart>12000){spmStart=null;const b=$("#spm-tap");b.classList.remove("pending");b.textContent="Tippen: Start"}}
+},50);
+
+if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+load();renderSpmHist();renderSess();showTab("watches");
+</script>
+
+</body>
+</html>
