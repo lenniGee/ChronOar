@@ -183,6 +183,19 @@ input.dist{font-family:var(--display);font-size:34px;font-weight:600;min-height:
 
 .toast{position:fixed;left:50%;top:calc(8px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:30;font-weight:600;max-width:calc(100% - 32px)}
 textarea.copy{width:100%;min-height:120px;font-size:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+
+/* Sheet-Verbindung */
+.syncline{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;min-height:18px}
+.dot{width:9px;height:9px;border-radius:99px;background:var(--muted);flex:none}
+.dot.ok{background:var(--go)}.dot.busy{background:var(--warn)}.dot.error,.dot.badkey{background:var(--stop)}.dot.offline{background:var(--muted)}
+.warnt{color:var(--warn);font-size:14px}
+textarea.codein{min-height:76px;padding:10px 12px;font-size:13px;font-family:ui-monospace,Menlo,monospace;resize:vertical}
+.scanbox{width:100%;aspect-ratio:1;max-width:100%;background:#000;border-radius:12px;overflow:hidden;display:grid;place-items:center}
+.scanbox video{width:100%;height:100%;object-fit:cover}
+.qrbox{background:#fff;border-radius:12px;padding:12px;width:min(100%,320px);margin:0 auto}
+.qrbox svg{display:block;width:100%;height:auto}
+.relinfo{border-top:1px solid var(--line);padding-top:10px}
+.sheet a{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -229,7 +242,8 @@ textarea.copy{width:100%;min-height:120px;font-size:12px;border:1px solid var(--
   </section>
 
   <section data-tab="athletes" id="tab-athletes" hidden>
-    <div class="bar"><button class="btn primary" data-act="new-ath">+ Sportler</button></div>
+    <div class="bar"><button class="btn primary" data-act="new-ath">+ Sportler</button><button class="btn ghost" data-act="sheet-settings">☁ Sheet</button></div>
+    <div class="syncline" id="sync-ath"></div>
     <div id="ex-note"></div>
     <div id="athlist" style="display:flex;flex-direction:column;gap:6px"></div>
   </section>
@@ -237,9 +251,11 @@ textarea.copy{width:100%;min-height:120px;font-size:12px;border:1px solid var(--
   <section data-tab="results" id="tab-results" hidden>
     <div class="bar">
       <button class="btn primary" id="csv-btn">Als Tabelle kopieren</button>
+      <button class="btn ghost" id="res-sheet">☁ Sheet</button>
       <button class="btn ghost danger" id="res-clear" data-confirm="Alle Ergebnisse löschen?">Alle löschen</button>
     </div>
-    <div class="muted">Eine Zeile pro Sportler und Belastung. Später landen diese Zeilen automatisch im Google Sheet; bis dahin kannst du sie kopieren und in eine Tabelle einfügen.</div>
+    <div class="syncline" id="sync-res"></div>
+    <div class="muted">Eine Zeile pro Sportler und Belastung. „Alle löschen“ leert nur die Liste auf diesem Handy, im Google Sheet bleibt alles erhalten.</div>
     <div id="copybox"></div>
     <div id="reslist"></div>
   </section>
@@ -257,7 +273,8 @@ textarea.copy{width:100%;min-height:120px;font-size:12px;border:1px solid var(--
 <script>
 "use strict";
 /* ---------- Relationsgeschwindigkeiten (m/s) ---------- */
-const REL={"JFA1x":4.4296788482834994,"JFA2-":4.612546125461255,"JFA2x":4.765308553728854,"JFA4+":4.842615012106537,"JFA4-":5.05050505050505,"JFA4x":5.221932114882507,"JFA8+":5.405405405405405,"JFAL1x":4.329004329004329,"JFAL2x":4.69593801361822,"JFAL4x":5.091649694501018,"JFB1x":4.371903235208394,"JFB2-":4.552352048558422,"JFB2x":4.703668861712136,"JFB4-":4.985044865403789,"JFB4+":4.769475357710652,"JFB4x+":5.098572399728076,"JFB4x":5.190311418685121,"JFB8+":5.334281650071124,"JFBL1x":4.283266704740148,"JFBL2x":4.587155963302752,"JFBL4x+":4.838709677419355,"JMA1x":4.93339911198816,"JMA2-":5.181347150259067,"JMA2x":5.341880341880342,"JMA4-":5.752085130859937,"JMA4+":5.47945205479452,"JMA4x":5.797101449275362,"JMA8+":6.024096385542169,"JMAL1x":4.77326968973747,"JMAL2-":5.022601707684581,"JMAL2x":5.239717055279015,"JMAL4-":5.578800557880056,"JMAL4x":5.680204487361545,"JMAL8+":5.800464037122969,"JMB1x":4.868549172346641,"JMB2-":5.114217524718718,"JMB2x":5.272407732864675,"JMB4-":5.677517032551098,"JMB4+":5.407354001441962,"JMB4x+":5.699088145896657,"JMB4x":5.72737686139748,"JMB8+":5.945303210463734,"JMBL1x":4.7095761381475665,"JMBL2x":5.126452494873547,"JMBL4x+":5.403458213256484,"JMBL4x":5.557613931085588,"SFA1x":4.676174888940847,"SFA2-":4.909180166912126,"SFA2x":5.033979360684621,"SFA4+":5.159958720330237,"SFA4-":5.343307507347047,"SFA4x":5.467468562055768,"SFA8+":5.668934240362812,"SFAL1x":4.524886877828054,"SFAL2x":4.9838026414154,"SFAL4x":5.320563979781857,"SFAL2-":4.697183098591549,"SFB1x":4.676174888940847,"SFB2-":4.909180166912126,"SFB2x":5.033979360684621,"SFB4+":4.952947003467063,"SFB4-":5.343307507347047,"SFB4x":5.477951246233908,"SFB8+":5.667327854916407,"SFBL1x":4.524886877828054,"SFBL2x":4.694835680751174,"SFBL4x":4.9838026414154,"SFBL2-":5.323224261771748,"SMA1x":5.1190171487074485,"SMA2-":5.4274084124830395,"SMA2+":5.0864699898270604,"SMA2x":5.5601890464275785,"SMA4-":5.920663114268798,"SMA4+":5.633802816901408,"SMA4x":6.024096385542169,"SMA8+":6.277463904582548,"SMAL1x":5,"SMAL2-":5.2356020942408374,"SMAL2x":5.474952094169176,"SMAL4-":5.829204313611192,"SMAL4x":5.836008170411438,"SMAL8+":6.0569351907934585,"SMB1x":5.1190171487074485,"SMB2-":5.4274084124830395,"SMB2+":5.0864699898270604,"SMB2x":5.5601890464275785,"SMB4-":5.920663114268798,"SMB4+":5.730659025787966,"SMB4x":6.024096385542169,"SMB8+":6.277463904582548,"SMBL1x":5,"SMBL2-":5.2631578947368425,"SMBL2x":5.474952094169176,"SMBL4-":5.829204313611192,"SMBL4x":5.836008170411438,"SMBL8+":6.0569351907934585,"SMBLErgo":5.6069526212503495,"SMALErgo":5.6069526212503495,"SFBLErgo":4.833252779120348,"SFALErgo":4.833252779120348,"SFAErgo":5.22466039707419,"SFBErgo":5.22466039707419,"SMBErgo":5.955926146515783,"SMAErgo":5.955926146515783,"JMAErgo":5.788712011577425,"JMALErgo":5.457025920873124,"JFAErgo":5.151983513652757,"JFALErgo":4.698144233027954,"JMBErgo":5.662514156285391,"JFBErgo":4.924895345973898,"JMBLErgo":5.347593582887701,"JFBLErgo":4.514672686230249};
+let REL;
+const REL_BUILTIN={"JFA1x":4.4296788482834994,"JFA2-":4.612546125461255,"JFA2x":4.765308553728854,"JFA4+":4.842615012106537,"JFA4-":5.05050505050505,"JFA4x":5.221932114882507,"JFA8+":5.405405405405405,"JFAL1x":4.329004329004329,"JFAL2x":4.69593801361822,"JFAL4x":5.091649694501018,"JFB1x":4.371903235208394,"JFB2-":4.552352048558422,"JFB2x":4.703668861712136,"JFB4-":4.985044865403789,"JFB4+":4.769475357710652,"JFB4x+":5.098572399728076,"JFB4x":5.190311418685121,"JFB8+":5.334281650071124,"JFBL1x":4.283266704740148,"JFBL2x":4.587155963302752,"JFBL4x+":4.838709677419355,"JMA1x":4.93339911198816,"JMA2-":5.181347150259067,"JMA2x":5.341880341880342,"JMA4-":5.752085130859937,"JMA4+":5.47945205479452,"JMA4x":5.797101449275362,"JMA8+":6.024096385542169,"JMAL1x":4.77326968973747,"JMAL2-":5.022601707684581,"JMAL2x":5.239717055279015,"JMAL4-":5.578800557880056,"JMAL4x":5.680204487361545,"JMAL8+":5.800464037122969,"JMB1x":4.868549172346641,"JMB2-":5.114217524718718,"JMB2x":5.272407732864675,"JMB4-":5.677517032551098,"JMB4+":5.407354001441962,"JMB4x+":5.699088145896657,"JMB4x":5.72737686139748,"JMB8+":5.945303210463734,"JMBL1x":4.7095761381475665,"JMBL2x":5.126452494873547,"JMBL4x+":5.403458213256484,"JMBL4x":5.557613931085588,"SFA1x":4.676174888940847,"SFA2-":4.909180166912126,"SFA2x":5.033979360684621,"SFA4+":5.159958720330237,"SFA4-":5.343307507347047,"SFA4x":5.467468562055768,"SFA8+":5.668934240362812,"SFAL1x":4.524886877828054,"SFAL2x":4.9838026414154,"SFAL4x":5.320563979781857,"SFAL2-":4.697183098591549,"SFB1x":4.676174888940847,"SFB2-":4.909180166912126,"SFB2x":5.033979360684621,"SFB4+":4.952947003467063,"SFB4-":5.343307507347047,"SFB4x":5.477951246233908,"SFB8+":5.667327854916407,"SFBL1x":4.524886877828054,"SFBL2x":4.694835680751174,"SFBL4x":4.9838026414154,"SFBL2-":5.323224261771748,"SMA1x":5.1190171487074485,"SMA2-":5.4274084124830395,"SMA2+":5.0864699898270604,"SMA2x":5.5601890464275785,"SMA4-":5.920663114268798,"SMA4+":5.633802816901408,"SMA4x":6.024096385542169,"SMA8+":6.277463904582548,"SMAL1x":5,"SMAL2-":5.2356020942408374,"SMAL2x":5.474952094169176,"SMAL4-":5.829204313611192,"SMAL4x":5.836008170411438,"SMAL8+":6.0569351907934585,"SMB1x":5.1190171487074485,"SMB2-":5.4274084124830395,"SMB2+":5.0864699898270604,"SMB2x":5.5601890464275785,"SMB4-":5.920663114268798,"SMB4+":5.730659025787966,"SMB4x":6.024096385542169,"SMB8+":6.277463904582548,"SMBL1x":5,"SMBL2-":5.2631578947368425,"SMBL2x":5.474952094169176,"SMBL4-":5.829204313611192,"SMBL4x":5.836008170411438,"SMBL8+":6.0569351907934585,"SMBLErgo":5.6069526212503495,"SMALErgo":5.6069526212503495,"SFBLErgo":4.833252779120348,"SFALErgo":4.833252779120348,"SFAErgo":5.22466039707419,"SFBErgo":5.22466039707419,"SMBErgo":5.955926146515783,"SMAErgo":5.955926146515783,"JMAErgo":5.788712011577425,"JMALErgo":5.457025920873124,"JFAErgo":5.151983513652757,"JFALErgo":4.698144233027954,"JMBErgo":5.662514156285391,"JFBErgo":4.924895345973898,"JMBLErgo":5.347593582887701,"JFBLErgo":4.514672686230249};
 const BOATS=[{id:"1x",n:1},{id:"2x",n:2},{id:"2-",n:2},{id:"2+",n:2,cox:1},{id:"4x",n:4},{id:"4x+",n:4,cox:1},{id:"4-",n:4},{id:"4+",n:4,cox:1},{id:"8+",n:8,cox:1},{id:"Ergo",n:1}];
 const AGES=[["JB","Junior B"],["JA","Junior A"],["SB","Senior B"],["SA","Senior A"]];
 const MAX_WATCHES=20, MAX_SPLITS=3;
@@ -300,9 +317,15 @@ function defaults(){
   ].map(([first,last,sex,age,weight])=>({id:uid(),first,last,sex,age,weight,example:true}));
   const crew=[ex[0],ex[3]];
   const w=makeWatch(2000,"2x",crew,null); w.example=true;
-  return {athletes:ex,watches:[w],results:[],spmHist:[],sess:{start:null,acc:0},v:1};
+  return {athletes:ex,watches:[w],results:[],spmHist:[],sess:{start:null,acc:0},conn:null,queue:[],rel:null,relAt:null,v:1};
 }
-function load(){try{const raw=localStorage.getItem(STORE);if(raw){S=JSON.parse(raw);S.watches.forEach(w=>{w.runId=w.runId||uid()});S.results.forEach(r=>{r.run=r.run||r.watch});return}}catch(e){} S=defaults();}
+function load(){
+  REL=REL_BUILTIN;
+  try{const raw=localStorage.getItem(STORE);if(raw){S=JSON.parse(raw);S.watches.forEach(w=>{w.runId=w.runId||uid()});S.results.forEach(r=>{r.run=r.run||r.watch})}}catch(e){S=null}
+  if(!S)S=defaults();
+  S.conn=S.conn||null;S.queue=S.queue||[];
+  REL=S.rel&&Object.keys(S.rel).length>=10?S.rel:REL_BUILTIN;
+}
 let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(STORE,JSON.stringify(S))}catch(e){}},150)}
 
 function makeWatch(dist,boat,crew,cox){
@@ -339,6 +362,10 @@ function recordResults(w){
   const base={watch:w.id,run:w.runId,ts:w.stop,date,time,boat:w.boat,dist:w.dist,t:st.t,v:st.v,rel:w.rel,pct:st.pct,avgRate:st.avgRate,splits,crew:crewNames};
   w.crewSnap.forEach(c=>S.results.push({...base,id:uid(),ath:c.id,first:c.first,last:c.last,cat:c.cat,role:"Ruderer"}));
   if(w.cox)S.results.push({...base,id:uid(),ath:w.cox.id,first:w.cox.first,last:w.cox.last,cat:w.cox.cat,role:"Steuerperson"});
+  if(!w.example)enqueue({op:"results",run:w.runId,rows:S.results.filter(r=>r.run===w.runId).map(r=>({
+    id:r.id,run:r.run,ts:r.ts,first:r.first,last:r.last,ath:r.ath,cat:r.cat,role:r.role,boat:r.boat,dist:r.dist,
+    time:fmtTime(r.t),t:+r.t.toFixed(2),v:+r.v.toFixed(6),pace:fmtTime(500/r.v),rel:r.rel==null?null:+r.rel.toFixed(6),
+    pct:r.pct==null?null:+r.pct.toFixed(2),avgRate:r.avgRate==null?null:+r.avgRate.toFixed(1),splits:r.splits,crew:r.crew}))});
 }
 function resetWatch(w){Object.assign(w,{start:null,splits:[],stop:null,rates:[],rateStart:null,open:false,runId:uid()})}
 
@@ -350,7 +377,8 @@ function showTab(t){
   document.querySelectorAll("section[data-tab]").forEach(s=>s.hidden=s.dataset.tab!==t);
   $("#hdr").hidden=t==="general";$("#hdr-tools").hidden=t!=="watches";$("#hdr-title").hidden=t==="watches";
   if(t!=="watches")$("#selbar").hidden=true;
-  if(t==="athletes")renderAthletes(); if(t==="results")renderResults(); if(t==="watches")renderWatches();
+  if(t==="athletes"){renderAthletes();if(S.conn&&Date.now()-lastPull>15000)sync({force:true})} if(t==="results")renderResults();
+  refreshSyncUI(); if(t==="watches")renderWatches();
   if(t==="general"){$("#topsub").textContent="";requestAnimationFrame(()=>window.scrollTo(0,document.body.scrollHeight))}
   else window.scrollTo(0,0);
   updateWake();
@@ -420,7 +448,7 @@ function watchCard(w){
 function renderWatches(){
   const list=$("#watchlist");
   const n=S.watches.length, running=S.watches.filter(w=>watchState(w)==="running").length;
-  if(tab==="watches")$("#topsub").textContent=n+"/"+MAX_WATCHES+(running?" · "+running+" läuft":"");
+  if(tab==="watches")$("#topsub").textContent=n+"/"+MAX_WATCHES+(running?" · "+running+" läuft":"")+(S.conn&&S.queue.length?" · ☁ "+S.queue.length:"");
   $("#btn-new").disabled=n>=MAX_WATCHES;
   $("#btn-sort").setAttribute("aria-pressed",sortMode);$("#btn-sort").textContent=sortMode?"✓":"▲▼";$("#btn-resetall").disabled=!S.watches.some(w=>w.sel&&w.start!=null);
   const sel=S.watches.filter(w=>w.sel);
@@ -466,7 +494,7 @@ function onWatchClick(e){
       break;
     case "rate-undo": w.rates.pop();break;
     case "undo":
-      if(w.stop!=null){w.stop=null;S.results=S.results.filter(r=>r.run!==w.runId)}
+      if(w.stop!=null){w.stop=null;S.results=S.results.filter(r=>r.run!==w.runId);unqueueRun(w.runId)}
       else if(w.splits.length)w.splits.pop();
       else {w.start=null}
       break;
@@ -487,7 +515,7 @@ function openWatchSheet(){
   D={step:1,dist:first?first.dist:2000,boat:null,crew:[],cox:null,filter:""};
   renderSheet();
 }
-function closeSheet(){D=null;A=null;$("#sheet-root").innerHTML=""}
+function closeSheet(){stopScan();D=null;A=null;G=null;$("#sheet-root").innerHTML=""}
 function sheetShell(title,steps,body,foot){
   $("#sheet-root").innerHTML=`<div class="sheet-bg" data-act="bg"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}">
     <div class="sheet-h"><h3>${esc(title)}</h3><span class="steps">${steps}</span><button class="btn sm ghost" data-act="close">Abbrechen</button></div>
@@ -543,6 +571,7 @@ $("#sheet-root").addEventListener("click",e=>{
   const b=e.target.closest("[data-act]"); if(!b||b.disabled)return;
   const act=b.dataset.act;
   if(act==="close"){closeSheet();return}
+  if(G){settingsClick(act,b);return}
   if(A){athSheetClick(act,b);return}
   if(!D)return;
   const boat=D.boat?boatOf(D.boat):null;
@@ -595,17 +624,20 @@ function athSheetClick(act,b){
   const first=$("#a-first"),last=$("#a-last");
   if(first){A.first=first.value.trim();A.last=last.value.trim()}
   if(act==="a-set"){A[b.dataset.f]=b.dataset.v;renderAthSheet();return}
-  if(act==="a-del"){if(!armed(b))return;S.athletes=S.athletes.filter(x=>x.id!==A.id);save();closeSheet();renderAthletes();return}
+  if(act==="a-del"){if(!armed(b))return;const wasEx=S.athletes.find(x=>x.id===A.id)?.example;S.athletes=S.athletes.filter(x=>x.id!==A.id);if(!wasEx)enqueue({op:"athleteDel",id:A.id});save();closeSheet();renderAthletes();return}
   if(act==="a-save"){
     if(!A.first||!A.last){toast("Vor- und Nachname fehlen");return}
-    if(A.id){const i=S.athletes.findIndex(x=>x.id===A.id);S.athletes[i]={...A,example:false}}
-    else S.athletes.push({...A,id:uid()});
+    let saved;
+    if(A.id){const i=S.athletes.findIndex(x=>x.id===A.id);saved=S.athletes[i]={...A,example:false}}
+    else S.athletes.push(saved={...A,id:uid()});
+    enqueue({op:"athlete",athlete:athPayload(saved)});
     save();closeSheet();renderAthletes();toast("Gespeichert");
   }
 }
 $("#tab-athletes").addEventListener("click",e=>{
   const b=e.target.closest("[data-act]");if(!b)return;
   if(b.dataset.act==="new-ath")openAthSheet(null);
+  if(b.dataset.act==="sheet-settings")openSettings();
   if(b.dataset.act==="edit-ath")openAthSheet(S.athletes.find(a=>a.id===b.dataset.id));
   if(b.dataset.act==="del-ex"){if(!armed(b))return;S.athletes=S.athletes.filter(a=>!a.example);S.watches=S.watches.filter(w=>!w.example);save();renderAthletes()}
 });
@@ -630,6 +662,7 @@ $("#csv-btn").addEventListener("click",()=>{
   const fallback=()=>{$("#copybox").innerHTML='<textarea class="copy" id="copyta" aria-label="Ergebnisse zum Kopieren" readonly></textarea>';const ta=$("#copyta");ta.value=txt;ta.focus();ta.select();toast("Text markiert, jetzt kopieren")};
   try{navigator.clipboard.writeText(txt).then(()=>toast("Kopiert – in Google Sheets einfügen"),fallback)}catch(e){fallback()}
 });
+$("#res-sheet").addEventListener("click",()=>openSettings());
 $("#res-clear").addEventListener("click",e=>{if(!armed(e.currentTarget))return;S.results=[];save();renderResults()});
 
 /* ---------- general: stroke rate ---------- */
@@ -698,6 +731,213 @@ async function updateWake(){
 $("#wake-btn").addEventListener("click",()=>{S.wakeManual=!S.wakeManual;save();if(S.wakeManual&&!("wakeLock" in navigator))toast("Dieses Gerät unterstützt das nicht");updateWake()});
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")updateWake()});
 
+/* ==========================================================================
+   Google-Sheet-Verbindung
+   - Jeder Trainer verbindet die App mit SEINEM Sheet (Verbindungscode / QR-Code
+     aus dem Sheet-Menü "ChronOar → Mit Handy verbinden").
+   - Alle Änderungen (Ergebnisse, Sportler) landen zuerst in einer Warteschlange
+     auf dem Handy (S.queue) und werden hochgeladen, sobald Netz da ist.
+   - Die Sportlerliste kommt aus dem Sheet (das Sheet ist führend).
+   - Die Relationsgeschwindigkeiten kommen zentral aus config.json → relationsUrl.
+   Schnittstelle des Sheets: siehe Kopf von Code.gs.
+   ========================================================================== */
+const CODE_PREFIX="CHRONOAR1:";
+let syncing=false, syncState="idle", syncErr="", lastPull=0, G=null, scan=null;
+
+function athPayload(a){return {id:a.id,first:a.first,last:a.last,sex:a.sex,age:a.age,weight:a.weight}}
+function enqueue(op){
+  op.qid=uid();S.queue.push(op);
+  if(S.queue.length>5000)S.queue.splice(0,S.queue.length-5000);
+  save();scheduleSync();refreshSyncUI();
+}
+/* Stopp zurückgenommen: noch nicht gesendete Zeilen verwerfen, bereits gesendete im Sheet löschen lassen */
+function unqueueRun(run){
+  const before=S.queue.length;
+  S.queue=S.queue.filter(o=>!(o.op==="results"&&o.run===run));
+  if(S.queue.length===before)enqueue({op:"resultsDel",run});else{save();refreshSyncUI()}
+}
+let syncT;function scheduleSync(ms=800){if(!S.conn)return;clearTimeout(syncT);syncT=setTimeout(()=>sync(),ms)}
+
+class ApiError extends Error{constructor(code){super(code);this.code=code}}
+async function apiGet(params){
+  const r=await fetch(S.conn.url+"?"+new URLSearchParams({...params,key:S.conn.key}),{cache:"no-store"});
+  const j=await r.json(); if(!j.ok)throw new ApiError(j.error); return j;
+}
+async function apiPost(body){
+  /* text/plain vermeidet die CORS-Vorabanfrage, die Google Apps Script nicht beantwortet */
+  const r=await fetch(S.conn.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({...body,key:S.conn.key})});
+  const j=await r.json(); if(!j.ok)throw new ApiError(j.error); return j;
+}
+async function sync(opts={}){
+  if(!S.conn||syncing)return;
+  if(!navigator.onLine){syncState="offline";refreshSyncUI();return}
+  syncing=true;syncState="busy";refreshSyncUI();
+  try{
+    while(S.queue.length){
+      const batch=S.queue.slice(0,40);
+      const res=await apiPost({action:"batch",ops:batch});
+      const done=new Set(res.done||[]);
+      if(!done.size)throw new ApiError("no_progress");
+      S.queue=S.queue.filter(o=>!done.has(o.qid));save();
+    }
+    if(opts.force||Date.now()-lastPull>120000){
+      const j=await apiGet({action:"athletes"});
+      applyAthletes(j.athletes||[]);lastPull=Date.now();
+    }
+    S.lastSync=Date.now();syncState="ok";syncErr="";
+  }catch(e){
+    syncState=e.code==="bad_key"?"badkey":"error";
+    syncErr=e.code==="bad_key"?"Der Verbindungscode passt nicht mehr zum Sheet. Bitte neu verbinden."
+      :e instanceof TypeError?"Sheet gerade nicht erreichbar. Neuer Versuch folgt automatisch.":"Fehler vom Sheet: "+(e.code||e.message);
+  }finally{syncing=false;save();refreshSyncUI()}
+}
+/* Sheet ist führend. Lokale Änderungen, die noch in der Warteschlange stehen, bleiben erhalten. */
+function applyAthletes(list){
+  const pend=new Map(), del=new Set();
+  S.queue.forEach(o=>{if(o.op==="athlete")pend.set(o.athlete.id,o.athlete);if(o.op==="athleteDel")del.add(o.id)});
+  const out=list.filter(a=>!del.has(a.id)).map(a=>pend.get(a.id)||a);
+  pend.forEach((a,id)=>{if(!out.some(x=>x.id===id))out.push(a)});
+  S.athletes=out.map(a=>({...a,example:false}));
+  if(tab==="athletes")renderAthletes();
+}
+async function connectWith(code){
+  code=String(code||"").trim();
+  const m=code.startsWith(CODE_PREFIX)?code.slice(CODE_PREFIX.length).split("|"):[];
+  if(m.length!==2||!/^https:\/\/script\.google\.com\/.+\/exec$/.test(m[0])||!m[1]){toast("Das ist kein ChronOar-Code");return}
+  const conn={url:m[0],key:m[1]};
+  toast("Verbinde…");
+  try{
+    const old=S.conn;S.conn=conn;
+    const j=await apiGet({action:"ping"}).catch(e=>{S.conn=old;throw e});
+    conn.name=j.name;
+    const wasNew=!old||old.url!==conn.url;
+    S.conn=conn;
+    if(wasNew){
+      S.athletes=S.athletes.filter(a=>!a.example);S.watches=S.watches.filter(w=>!w.example);
+      /* eigene, schon angelegte Sportler einmalig ins Sheet übernehmen */
+      S.athletes.forEach(a=>{if(!S.queue.some(o=>o.op==="athlete"&&o.athlete.id===a.id))S.queue.push({op:"athlete",athlete:athPayload(a),qid:uid()})});
+    }
+    save();toast("Verbunden mit „"+j.name+"“");
+    await sync({force:true});
+    if(G)renderSettings();
+  }catch(e){toast(e.code==="bad_key"?"Code passt nicht zum Sheet":"Sheet nicht erreichbar – Code und Internet prüfen")}
+}
+function refreshSyncUI(){
+  let t="";
+  if(S.conn){
+    const q=S.queue.length;
+    const st={busy:"gleicht ab…",offline:"offline",error:"Problem",badkey:"getrennt",ok:"aktuell",idle:"verbunden"}[syncState];
+    t=`<span class="dot ${syncState}"></span>„${esc(S.conn.name||"Sheet")}“ · ${st}${q?` · ${q} Änderung${q===1?"":"en"} warten`:""}`;
+  }else if(S.queue.length)t=`<span class="dot idle"></span>Nicht mit einem Sheet verbunden · ${S.queue.length} Änderungen warten`;
+  else t=`<span class="dot idle"></span>Nicht mit einem Sheet verbunden`;
+  ["#sync-ath","#sync-res"].forEach(id=>{const el=$(id);if(el)el.innerHTML=t});
+  if(tab==="watches"&&$("#watchlist"))renderTopsub();
+  if(G&&G.view==="main")renderSettings();
+}
+function renderTopsub(){
+  const n=S.watches.length, running=S.watches.filter(w=>watchState(w)==="running").length;
+  $("#topsub").textContent=n+"/"+MAX_WATCHES+(running?" · "+running+" läuft":"")+(S.conn&&S.queue.length?" · ☁ "+S.queue.length:"");
+}
+window.addEventListener("online",()=>sync());
+setInterval(()=>{if(S.conn&&(S.queue.length||Date.now()-lastPull>300000))sync()},45000);
+
+/* ---------- zentrale Relationen (Variante B) ---------- */
+async function loadCentralRel(){
+  try{
+    const r=await fetch("config.json",{cache:"no-store"}); if(!r.ok)return;
+    const cfg=await r.json(); if(!cfg.relationsUrl)return;
+    const j=await (await fetch(cfg.relationsUrl+(cfg.relationsUrl.includes("?")?"&":"?")+"action=relations",{cache:"no-store"})).json();
+    if(!j.ok||!j.relations)return;
+    const good={},bad=[];
+    Object.entries(j.relations).forEach(([k,v])=>{if(typeof v==="number"&&v>2&&v<8)good[k]=v;else bad.push(k)});
+    if(Object.keys(good).length<10)return;
+    S.rel=good;S.relAt=Date.now();S.relBad=bad;REL=good;save();
+  }catch(e){/* offline oder nicht eingerichtet: letzte bekannte bzw. eingebaute Werte bleiben */}
+}
+
+/* ---------- Einstellungen: Sheet verbinden ---------- */
+function openSettings(){G={view:"main"};renderSettings()}
+const fmtDT=ts=>ts?new Date(ts).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}):"–";
+function renderSettings(){
+  const q=S.queue.length;
+  const rel=S.rel?`zentral, Stand ${fmtDT(S.relAt)} (${Object.keys(S.rel).length} Bootsklassen)${S.relBad&&S.relBad.length?` · <span class="warnt">ungültige Werte übersprungen: ${S.relBad.map(esc).join(", ")}</span>`:""}`:"eingebaute Tabelle";
+  let body;
+  if(G.view==="scan"){
+    body=`<div class="muted">Halte die Kamera auf den QR-Code im Sheet („ChronOar → Mit Handy verbinden“).</div><div id="scanbox" class="scanbox"></div><div class="muted" id="scanmsg"></div>`;
+  }else if(G.view==="share"){
+    body=`<div class="muted">Auf dem zweiten Handy: ChronOar öffnen → Sportler → ☁ Sheet → <b>QR-Code scannen</b>. Danach landen auch dessen Ergebnisse in „${esc(S.conn.name||"deinem Sheet")}“.</div>
+      <div class="qrbox" id="qrbox"></div><div class="muted">Der Code ist wie ein Passwort. Zeig ihn nur Leuten, die in dein Sheet schreiben dürfen.</div>`;
+  }else if(S.conn){
+    body=`<div class="card"><h2>Verbunden</h2>
+        <div><b>„${esc(S.conn.name||"Sheet")}“</b></div>
+        <div class="muted">${syncState==="busy"?"Gleicht gerade ab…":q?`${q} Änderung${q===1?"":"en"} warten auf Upload`:"Alles hochgeladen"} · zuletzt abgeglichen ${fmtDT(S.lastSync)}</div>
+        ${syncErr?`<div class="warnt">${esc(syncErr)}</div>`:""}
+        <div class="bar"><button class="btn" data-act="g-sync">Jetzt abgleichen</button><button class="btn" data-act="g-share">Weiteres Handy verbinden</button></div>
+      </div>
+      <div class="muted">Ergebnisse werden nach jedem Stopp automatisch ins Sheet geschrieben, ohne Netz später. Die Sportlerliste kommt aus dem Sheet; was du hier änderst, landet auch dort.</div>
+      <div class="bar">${q?`<button class="btn sm ghost danger" data-act="g-drop" data-confirm="${q} Änderungen verwerfen?">Wartende verwerfen</button>`:""}
+        <button class="btn sm ghost danger" data-act="g-off" data-confirm="${q?"Trotz offener Änderungen trennen?":"Wirklich trennen?"}">Verbindung trennen</button></div>`;
+  }else{
+    body=`<div class="muted">Verbinde ChronOar mit deinem eigenen Google Sheet. Dann landen alle Ergebnisse automatisch dort, und die Sportlerliste kommt aus dem Sheet.</div>
+      <div class="bar"><button class="btn" data-act="g-scan">QR-Code scannen</button></div>
+      <label class="fld" for="g-code">Oder Verbindungscode einfügen<textarea class="txt codein" id="g-code" placeholder="CHRONOAR1:https://script.google.com/…" autocomplete="off" spellcheck="false"></textarea></label>
+      <div class="bar"><button class="btn" data-act="g-connect">Verbinden</button></div>
+      ${q?`<div class="muted">${q} Änderungen von diesem Handy warten und werden nach dem Verbinden hochgeladen. <button class="btn sm ghost danger" data-act="g-drop" data-confirm="Verwerfen?">Verwerfen</button></div>`:""}
+      <div class="muted">Noch kein Sheet? <a href="anleitung.html" target="_blank" rel="noopener">Anleitung: Sheet in 5 Minuten einrichten</a></div>`;
+  }
+  sheetShell(G.view==="scan"?"QR-Code scannen":G.view==="share"?"Weiteres Handy":"Google Sheet","",
+    body+(G.view==="main"?`<div class="muted relinfo">Relationsgeschwindigkeiten: ${rel}</div>`:""),
+    G.view==="main"?`<span class="sum"></span><button class="btn" data-act="close">Fertig</button>`:`<span class="sum"></span><button class="btn" data-act="g-back">Zurück</button>`);
+  if(G.view==="share")showShareQR();
+}
+async function settingsClick(act,b){
+  if(!armed(b))return;
+  switch(act){
+    case "g-scan": G.view="scan";renderSettings();startScan();break;
+    case "g-back": stopScan();G.view="main";renderSettings();break;
+    case "g-connect": connectWith($("#g-code").value);break;
+    case "g-sync": sync({force:true});break;
+    case "g-share": G.view="share";renderSettings();break;
+    case "g-drop": S.queue=[];save();renderSettings();refreshSyncUI();break;
+    case "g-off": S.conn=null;S.queue=[];syncState="idle";syncErr="";save();renderSettings();refreshSyncUI();toast("Verbindung getrennt");break;
+  }
+}
+const loaded={};
+function loadScript(src){return loaded[src]||(loaded[src]=new Promise((ok,no)=>{const sc=document.createElement("script");sc.src=src;sc.onload=ok;sc.onerror=()=>{delete loaded[src];no()};document.head.appendChild(sc)}))}
+async function showShareQR(){
+  const box=$("#qrbox");if(!box)return;
+  try{await loadScript("qrcode.min.js")}catch(e){box.textContent="QR-Code nicht verfügbar.";return}
+  const q=qrcode(0,"M");q.addData(CODE_PREFIX+S.conn.url+"|"+S.conn.key);q.make();
+  box.innerHTML=q.createSvgTag({cellSize:6,margin:3,scalable:true});
+}
+async function startScan(){
+  const box=$("#scanbox"),msg=t=>{const m=$("#scanmsg");if(m)m.textContent=t};
+  try{await loadScript("jsqr.min.js")}catch(e){msg("Scanner nicht verfügbar. Bitte den Code einfügen.");return}
+  let stream;
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false})}
+  catch(e){msg("Kein Kamerazugriff. Erlaube die Kamera für ChronOar in den Einstellungen des Handys oder füge den Code ein.");return}
+  if(!G||G.view!=="scan"){stream.getTracks().forEach(t=>t.stop());return}
+  const v=document.createElement("video");v.setAttribute("playsinline","");v.muted=true;v.srcObject=stream;box.appendChild(v);
+  try{await v.play()}catch(e){}
+  const c=document.createElement("canvas"),ctx=c.getContext("2d",{willReadFrequently:true});
+  scan={stream,raf:0};
+  const tick=()=>{
+    if(!scan)return;
+    if(v.readyState>=2&&v.videoWidth){
+      const k=Math.min(1,720/Math.max(v.videoWidth,v.videoHeight));c.width=v.videoWidth*k|0;c.height=v.videoHeight*k|0;
+      ctx.drawImage(v,0,0,c.width,c.height);
+      const img=ctx.getImageData(0,0,c.width,c.height),hit=jsQR(img.data,img.width,img.height,{inversionAttempts:"dontInvert"});
+      if(hit&&hit.data){
+        if(hit.data.startsWith(CODE_PREFIX)){stopScan();G.view="main";renderSettings();connectWith(hit.data);return}
+        msg("Das ist kein ChronOar-QR-Code.");
+      }
+    }
+    scan.raf=requestAnimationFrame(tick);
+  };
+  tick();
+}
+function stopScan(){if(scan){cancelAnimationFrame(scan.raf);scan.stream.getTracks().forEach(t=>t.stop());scan=null}}
+
 /* ---------- ticking ---------- */
 setInterval(()=>{
   const now=Date.now();
@@ -708,6 +948,7 @@ setInterval(()=>{
 
 if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(()=>{})}
 load();renderSpmHist();renderSess();showTab("watches");
+loadCentralRel();if(S.conn)sync({force:true});
 </script>
 
 </body>

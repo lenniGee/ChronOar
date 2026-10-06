@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ChronOar einrichten</title>
+<meta name="theme-color" content="#1b1b1d">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#1b1b1d;--surface:#262628;--ink:#fff;--muted:#b4b4b8;--line:#3a3a3e;--accent:#ff8a1c;--accent-ink:#1b1b1d;--warn:#ffd23f;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;--body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55}
+main{max-width:720px;margin:0 auto;padding:24px 16px 64px}
+h1{font-family:var(--display);font-size:40px;line-height:1.05;margin:0 0 6px;text-transform:uppercase;letter-spacing:.02em}
+h1 span{color:var(--accent)}
+.lead{color:var(--muted);margin:0 0 24px}
+h2{font-family:var(--display);font-size:26px;margin:36px 0 10px;text-transform:uppercase;letter-spacing:.03em;display:flex;gap:10px;align-items:baseline;text-wrap:balance}
+h2 .n{color:var(--accent-ink);background:var(--accent);border-radius:8px;padding:0 9px;font-size:22px}
+h3{font-size:18px;margin:20px 0 6px}
+ol,ul{padding-left:22px;margin:8px 0}
+li{margin:5px 0}
+b,strong{font-weight:700}
+.k{font-weight:700;color:var(--accent)}
+code{font-family:ui-monospace,Menlo,monospace;font-size:14px;background:var(--surface);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:14px 0}
+.box.warn{border-color:var(--warn)}
+.box.warn b:first-child{color:var(--warn)}
+.cta{display:inline-block;background:var(--accent);color:var(--accent-ink);font-weight:700;text-decoration:none;border-radius:10px;padding:10px 16px;margin:6px 0}
+a{color:var(--accent)}
+table{border-collapse:collapse;width:100%;font-size:15px}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:10px 0}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+nav.toc{background:var(--surface);border-radius:12px;padding:10px 16px}
+nav.toc a{text-decoration:none}
+.muted{color:var(--muted);font-size:15px}
+</style>
+</head>
+<body>
+<main>
+<h1>Chron<span>Oar</span> einrichten</h1>
+<p class="lead">Stoppuhren mit Relationsgeschwindigkeiten für Rudertrainer. Diese Anleitung führt dich in etwa 10 Minuten von null bis zum ersten Ergebnis in deinem eigenen Google Sheet.</p>
+
+<nav class="toc"><ol>
+  <li><a href="#app">App aufs Handy holen</a></li>
+  <li><a href="#sheet">Eigenes Google Sheet anlegen</a></li>
+  <li><a href="#deploy">Sheet für die App freigeben</a></li>
+  <li><a href="#connect">Handy verbinden</a></li>
+  <li><a href="#athletes">Sportler pflegen</a></li>
+  <li><a href="#second">Zweites Handy (Helfer)</a></li>
+  <li><a href="#data">Was wird wo gespeichert?</a></li>
+  <li><a href="#help">Wenn etwas nicht klappt</a></li>
+</ol></nav>
+
+<h2 id="app"><span class="n">1</span>App aufs Handy holen</h2>
+<p>ChronOar ist eine Web-App: kein App Store, kostenlos, für iPhone und Android.</p>
+<h3>iPhone</h3>
+<ol>
+  <li>Diese Seite bzw. die App-Adresse <b>in Safari</b> öffnen (nicht aus WhatsApp oder Mail heraus – dort fehlt die Option).</li>
+  <li>Unten auf das <span class="k">Teilen-Symbol</span> (Quadrat mit Pfeil) tippen.</li>
+  <li><span class="k">Zum Home-Bildschirm</span> wählen → <span class="k">Hinzufügen</span>.</li>
+  <li>ChronOar ab jetzt immer über das Symbol auf dem Home-Bildschirm öffnen.</li>
+</ol>
+<h3>Android</h3>
+<ol>
+  <li>App-Adresse in <b>Chrome</b> öffnen.</li>
+  <li>Oben rechts <span class="k">⋮</span> → <span class="k">App installieren</span> (oder „Zum Startbildschirm hinzufügen“).</li>
+</ol>
+<p class="muted">Die App funktioniert danach auch ohne Netz. Ergebnisse werden nachgeschickt, sobald wieder Empfang da ist.</p>
+
+<h2 id="sheet"><span class="n">2</span>Eigenes Google Sheet anlegen</h2>
+<p>Jeder Trainer hat sein eigenes Sheet in seinem eigenen Google Drive. Niemand sonst sieht deine Daten.</p>
+<p>Am Computer geht es am einfachsten (Google Sheets auf dem Handy kann keine Skripte einrichten).</p>
+<ol>
+  <li>Bei Google anmelden und die Vorlage öffnen:<br>
+    <a class="cta" id="tpl" href="#" hidden>Vorlage kopieren</a>
+    <span id="tpl-missing" class="muted">Den Link zur Vorlage bekommst du von der Person, die dir ChronOar empfohlen hat.</span></li>
+  <li>Google fragt <span class="k">Kopie erstellen?</span> → bestätigen. Die Kopie liegt jetzt in deinem Drive. Gib ihr gern einen eigenen Namen, z. B. „ChronOar Ruderverein XY“.</li>
+  <li>Kurz warten, bis oben in der Menüleiste <span class="k">ChronOar</span> erscheint (ggf. Seite neu laden).</li>
+  <li><span class="k">ChronOar → 1. Einrichten</span> wählen. Beim ersten Mal fragt Google nach einer Berechtigung – siehe Kasten unten.</li>
+</ol>
+<div class="box warn"><b>„Google hat diese App nicht überprüft“</b><br>
+Diese Warnung ist normal: Das Skript in deinem Sheet stammt nicht aus einem geprüften Store. So geht's weiter:
+<ol>
+  <li><span class="k">Berechtigungen prüfen</span> → dein Google-Konto wählen.</li>
+  <li>Unten links auf <span class="k">Erweitert</span> tippen.</li>
+  <li><span class="k">Zu ChronOar (unsicher) wechseln</span> → <span class="k">Zulassen</span>.</li>
+</ol>
+Das Skript darf danach nur auf <b>dieses eine Sheet</b> zugreifen und läuft unter deinem Konto.</div>
+
+<h2 id="deploy"><span class="n">3</span>Sheet für die App freigeben</h2>
+<p>Damit die App ins Sheet schreiben kann, bekommt das Skript eine eigene Internetadresse („Web-App“).</p>
+<ol>
+  <li>Im Sheet: <span class="k">Erweiterungen → Apps Script</span>. Ein neuer Tab öffnet sich.</li>
+  <li>Oben rechts <span class="k">Bereitstellen → Neue Bereitstellung</span>.</li>
+  <li>Links neben „Typ auswählen“ auf das <span class="k">Zahnrad</span> → <span class="k">Web-App</span>.</li>
+  <li>Einstellen:
+    <ul>
+      <li>Beschreibung: <code>ChronOar</code></li>
+      <li>Ausführen als: <span class="k">Ich</span> (deine E-Mail-Adresse)</li>
+      <li>Wer hat Zugriff: <span class="k">Jeder</span></li>
+    </ul></li>
+  <li><span class="k">Bereitstellen</span> → falls gefragt, wieder Zugriff erlauben (wie im Kasten oben).</li>
+  <li>Die angezeigte <b>Web-App-URL</b> kopieren. Sie beginnt mit <code>https://script.google.com/macros/s/</code> und endet auf <code>/exec</code>.</li>
+</ol>
+<div class="box"><b>Warum „Jeder“?</b> So erreicht die App das Skript, ohne dass du dich auf dem Handy bei Google anmeldest. Lesen und Schreiben ist trotzdem nur mit deinem persönlichen Schlüssel möglich, der im QR-Code steckt. Ohne Schlüssel liefert das Skript nur die öffentliche Relationstabelle.</div>
+
+<h2 id="connect"><span class="n">4</span>Handy verbinden</h2>
+<ol>
+  <li>Zurück im Sheet: <span class="k">ChronOar → 2. Mit Handy verbinden (QR-Code)</span>.</li>
+  <li>Die kopierte Web-App-URL einfügen → <span class="k">QR-Code anzeigen</span>.</li>
+  <li>In ChronOar auf dem Handy: <span class="k">Sportler → ☁ Sheet → QR-Code scannen</span> und die Kamera auf den Bildschirm halten.<br>
+    <span class="muted">Ohne Kamera: im Dialog den Code kopieren, dir selbst schicken und in der App bei „Verbindungscode einfügen“ einsetzen.</span></li>
+  <li>Die App meldet <b>„Verbunden mit …“</b>. Fertig.</li>
+</ol>
+<p>Ab jetzt landet jede gestoppte Belastung automatisch im Blatt <b>Ergebnisse</b> – eine Zeile pro Sportler. Der grüne Punkt unter „Sportler“ und „Ergebnisse“ zeigt: alles hochgeladen. Eine Zahl wie „☁ 3“ oben bei den Uhren bedeutet: 3 Änderungen warten noch auf Netz.</p>
+
+<h2 id="athletes"><span class="n">5</span>Sportler pflegen</h2>
+<p>Die Sportlerliste kommt aus dem Blatt <b>Sportler</b>. Du kannst Sportler im Sheet <i>oder</i> in der App anlegen und ändern – beides wird abgeglichen. Bei Unterschieden gilt das Sheet.</p>
+<div class="tw"><table>
+  <thead><tr><th>Spalte</th><th>Inhalt</th></tr></thead>
+  <tbody>
+    <tr><td>ID</td><td>leer lassen – wird automatisch vergeben</td></tr>
+    <tr><td>Vorname, Nachname</td><td>frei</td></tr>
+    <tr><td>Geschlecht</td><td><code>m</code> oder <code>w</code></td></tr>
+    <tr><td>Altersklasse</td><td><code>Junior B</code>, <code>Junior A</code>, <code>Senior B</code>, <code>Senior A</code></td></tr>
+    <tr><td>Gewichtsklasse</td><td><code>Offen</code> oder <code>Leicht</code></td></tr>
+  </tbody>
+</table></div>
+<p class="muted">Zeilen mit fehlenden oder ungültigen Angaben übernimmt die App nicht. Zum Saisonwechsel einfach die Altersklasse im Sheet ändern. Die App holt die Liste beim Öffnen des Tabs „Sportler“ neu.</p>
+
+<h2 id="second"><span class="n">6</span>Zweites Handy (Helfer)</h2>
+<p>Stoppt jemand am Ziel mit, sollen dessen Ergebnisse auch in <i>dein</i> Sheet:</p>
+<ol>
+  <li>Auf deinem Handy: <span class="k">Sportler → ☁ Sheet → Weiteres Handy verbinden</span>.</li>
+  <li>Auf dem zweiten Handy: ChronOar installieren (Schritt 1) → <span class="k">Sportler → ☁ Sheet → QR-Code scannen</span>.</li>
+</ol>
+<p class="muted">Der QR-Code ist wie ein Passwort. Brauchst du ein Handy nicht mehr, erzeugst du im Sheet über <span class="k">ChronOar → Neuen Schlüssel erzeugen</span> einen neuen Code – dann sind alle alten Handys getrennt und du verbindest nur die gewünschten neu.</p>
+
+<h2 id="data"><span class="n">7</span>Was wird wo gespeichert?</h2>
+<ul>
+  <li><b>Im Google Sheet (dein Drive):</b> Sportler und alle Ergebnisse. Das ist dein dauerhaftes Archiv.</li>
+  <li><b>Auf dem Handy:</b> Uhren, eine Kopie der Sportler, die letzten Ergebnisse und wartende Uploads.</li>
+  <li><b>„Ergebnisse → Alle löschen“</b> leert nur die Liste auf dem Handy. Im Sheet bleibt alles.</li>
+  <li><b>„Stopp zurücknehmen“</b> an einer Uhr löscht die Zeilen dieser Belastung auch im Sheet – damit dort keine Fehlstopps stehen bleiben.</li>
+  <li><b>Relationsgeschwindigkeiten</b> pflegt zentral der Betreiber von ChronOar. Neue Werte kommen beim nächsten Öffnen mit Netz automatisch. Bereits gespeicherte Ergebnisse ändern sich dadurch nicht.</li>
+</ul>
+
+<h2 id="help"><span class="n">8</span>Wenn etwas nicht klappt</h2>
+<div class="tw"><table>
+  <thead><tr><th>Meldung</th><th>Lösung</th></tr></thead>
+  <tbody>
+    <tr><td>„Das ist kein ChronOar-Code“</td><td>Den ganzen Code kopieren, er beginnt mit <code>CHRONOAR1:</code>.</td></tr>
+    <tr><td>„Sheet nicht erreichbar“</td><td>Internet prüfen. Bei der Bereitstellung muss „Wer hat Zugriff: <b>Jeder</b>“ gewählt sein.</td></tr>
+    <tr><td>„Code passt nicht zum Sheet“ / Status „getrennt“</td><td>Im Sheet wurde ein neuer Schlüssel erzeugt. QR-Code neu anzeigen und neu scannen.</td></tr>
+    <tr><td>Kamera geht nicht</td><td>In den Handy-Einstellungen die Kamera für Safari bzw. Chrome erlauben – oder den Code einfügen.</td></tr>
+    <tr><td>Menü „ChronOar“ fehlt im Sheet</td><td>Seite neu laden. Auf dem Handy gibt es das Menü nicht – Einrichtung am Computer machen.</td></tr>
+    <tr><td>„☁ 5“ verschwindet nicht</td><td>Unter <span class="k">☁ Sheet</span> steht der Grund. <span class="k">Jetzt abgleichen</span> versucht es sofort erneut.</td></tr>
+  </tbody>
+</table></div>
+</main>
+<script>
+fetch("config.json",{cache:"no-store"}).then(r=>r.json()).then(c=>{
+  if(c.templateUrl){const a=document.getElementById("tpl");a.href=c.templateUrl;a.hidden=false;document.getElementById("tpl-missing").hidden=true}
+}).catch(()=>{});
+</script>
+</body>
+</html>
