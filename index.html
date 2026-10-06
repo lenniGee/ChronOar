@@ -52,7 +52,7 @@ section[data-tab]{display:flex;flex-direction:column;gap:12px}
 
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
 .tabs-in{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
-.tabs button{padding:12px 2px 14px;font-family:var(--display);font-weight:600;font-size:16px;letter-spacing:.02em;text-transform:uppercase;color:var(--muted);border-top:3px solid transparent}
+.tabs button{padding:12px 2px 14px;font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.01em;color:var(--muted);border-top:3px solid transparent}
 .tabs button[aria-selected="true"]{color:var(--accent);border-top-color:var(--accent)}
 
 .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -120,7 +120,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--surf
 .hist span{font-size:16px;padding:1px 8px}
 .hist span:first-child{background:var(--accent);color:var(--accent-ink)}
 #tab-general{min-height:calc(100dvh - 72px - env(safe-area-inset-bottom,0px));gap:8px}
-#tab-general .card{padding:10px 12px;gap:6px}
+#tab-general .card{padding:8px 12px;gap:4px}
 .big.mid{font-size:40px}
 .big.spmv{font-size:52px}
 .spmcard{flex:1 1 auto}
@@ -128,6 +128,9 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--surf
 .wake{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);font-weight:600}
 .wake .switch{width:56px;height:34px}.wake .switch span{width:26px;height:26px}.wake .switch[aria-checked="true"] span{left:26px}
 #gps-msg{flex-basis:100%}
+.rowcard.nw{flex-wrap:nowrap}
+#gps-pace small,#gps-km small{font-size:17px;margin-left:3px}
+#gps-btn{min-height:38px;white-space:nowrap}
 @media (max-height:640px){.big.mid{font-size:32px}.big.spmv{font-size:40px}#tab-general .card h2{font-size:15px}.spmcard .tapper{min-height:80px}#tab-general .btn{min-height:40px}}
 .switch{width:64px;height:38px;border-radius:99px;background:var(--line);position:relative;flex:none}
 .switch span{position:absolute;top:4px;left:4px;width:30px;height:30px;border-radius:99px;background:var(--surface);transition:left .15s}
@@ -214,8 +217,8 @@ textarea.copy{width:100%;min-height:120px;font-size:12px;border:1px solid var(--
         <div class="bar"><button class="btn ghost" id="sess-reset" data-confirm="Sicher?">Reset</button><button class="btn go" id="sess-btn">Start</button></div></div>
     </div>
     <div class="card">
-      <h2>Geschwindigkeit (GPS, Ø 5 s)</h2>
-      <div class="rowcard"><span class="big mid" id="gps-pace">–:–<small>/500 m</small></span><button class="btn primary" id="gps-btn">GPS starten</button></div>
+      <div class="rowcard nw"><h2>GPS</h2><button class="btn primary" id="gps-btn">GPS starten</button></div>
+      <div class="rowcard nw"><span class="big mid" id="gps-pace">–:–<small>/500 m</small></span><span class="big mid" id="gps-km">0,00<small>km</small></span></div>
       <div class="row muted"><span id="gps-ms">– m/s</span><span id="gps-acc"></span><span id="gps-msg"></span></div>
     </div>
     <div class="card spmcard">
@@ -243,8 +246,8 @@ textarea.copy{width:100%;min-height:120px;font-size:12px;border:1px solid var(--
 </main>
 
 <nav class="tabs"><div class="tabs-in" role="tablist">
-  <button role="tab" data-tabbtn="watches" aria-selected="true">Uhren</button>
-  <button role="tab" data-tabbtn="general" aria-selected="false">Allgemein</button>
+  <button role="tab" data-tabbtn="general" aria-selected="false">StrokeCoach</button>
+  <button role="tab" data-tabbtn="watches" aria-selected="true">ChronOar</button>
   <button role="tab" data-tabbtn="athletes" aria-selected="false">Sportler</button>
   <button role="tab" data-tabbtn="results" aria-selected="false">Ergebnisse</button>
 </div></nav>
@@ -642,13 +645,18 @@ $("#spm-tap").addEventListener("click",()=>{
 function renderSpmHist(){$("#spm-hist").innerHTML=S.spmHist.slice(0,5).map(r=>`<span>${dec(r,1)}</span>`).join("")}
 
 /* ---------- general: GPS speed (avg over last 5 s) ---------- */
-let gpsWatch=null, pts=[];
+let gpsWatch=null, pts=[], kmLast=null, kmDist=0;
+function renderKm(){$("#gps-km").innerHTML=dec(kmDist/1000,2)+"<small>km</small>"}
 function hav(a,b){const R=6371008.8,toR=Math.PI/180,dLa=(b.lat-a.lat)*toR,dLo=(b.lon-a.lon)*toR;
   const x=Math.sin(dLa/2)**2+Math.cos(a.lat*toR)*Math.cos(b.lat*toR)*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
 function gpsUpdate(p){
   const c=p.coords;$("#gps-acc").textContent="Genauigkeit ±"+Math.round(c.accuracy)+" m";
   if(c.accuracy>40){$("#gps-msg").textContent="GPS-Signal ungenau, warte auf besseren Empfang.";return}
   $("#gps-msg").textContent="";
+  /* distance counter: only count moves larger than the GPS noise, so drifting while standing still adds nothing */
+  const here={lat:c.latitude,lon:c.longitude};
+  if(!kmLast)kmLast=here;
+  else{const d=hav(kmLast,here);if(d>=Math.max(4,c.accuracy*0.6)&&d<200){kmDist+=d;kmLast=here;renderKm()}}
   pts.push({t:p.timestamp,lat:c.latitude,lon:c.longitude});
   const last=pts[pts.length-1].t; pts=pts.filter(q=>last-q.t<=5500);
   let v=null;
@@ -658,14 +666,16 @@ function gpsUpdate(p){
 }
 $("#gps-btn").addEventListener("click",()=>{
   const b=$("#gps-btn");
-  if(gpsWatch!=null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;pts=[];b.textContent="GPS starten";return}
+  if(gpsWatch!=null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;pts=[];b.textContent="GPS starten";updateWake();return}
   if(!navigator.geolocation){$("#gps-msg").textContent="Dieses Gerät bietet kein GPS an.";return}
-  $("#gps-msg").textContent="Suche Signal…";
+  $("#gps-msg").textContent="Suche Signal…";kmDist=0;kmLast=null;renderKm();
   gpsWatch=navigator.geolocation.watchPosition(gpsUpdate,err=>{
-    $("#gps-msg").textContent=err.code===1?"Kein Standortzugriff. In dieser Testversion ist GPS gesperrt; in der eigenen Web-App-Adresse fragt das Handy nach Erlaubnis.":"GPS nicht verfügbar ("+err.message+").";
-    if(gpsWatch!=null)navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;b.textContent="GPS starten";
-  },{enableHighAccuracy:true,maximumAge:0,timeout:20000});
-  b.textContent="GPS stoppen";
+    if(err.code===1){
+      $("#gps-msg").textContent="Kein Standortzugriff. Bitte in den Einstellungen des Handys den Standort für diese App erlauben.";
+      if(gpsWatch!=null)navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;b.textContent="GPS starten";updateWake();
+    }else $("#gps-msg").textContent="GPS-Signal kurz weg, suche weiter…"; /* keep watching: short signal losses on the water are normal */
+  },{enableHighAccuracy:true,maximumAge:0});
+  b.textContent="GPS stoppen";updateWake();
 });
 
 /* ---------- general: session clock ---------- */
@@ -677,7 +687,7 @@ $("#sess-reset").addEventListener("click",e=>{if(!armed(e.currentTarget))return;
 
 /* ---------- wake lock: manual switch, plus automatic whenever stopwatches are open or running ---------- */
 let wake=null,wakeBusy=false;
-function wakeNeeded(){return !!S.wakeManual||S.watches.some(w=>watchState(w)==="running")||(tab==="watches"&&S.watches.length>0)}
+function wakeNeeded(){return !!S.wakeManual||gpsWatch!=null||S.watches.some(w=>watchState(w)==="running")||(tab==="watches"&&S.watches.length>0)}
 async function updateWake(){
   $("#wake-btn").setAttribute("aria-checked",!!S.wakeManual);
   if(!("wakeLock" in navigator)||wakeBusy||document.visibilityState!=="visible")return;
