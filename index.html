@@ -51,8 +51,15 @@ main{max-width:760px;margin:0 auto;padding:8px 16px calc(64px + env(safe-area-in
 section[data-tab]{display:flex;flex-direction:column;gap:12px}
 
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
-.tabs-in{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
-.tabs button{padding:12px 2px 14px;font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.01em;color:var(--muted);border-top:3px solid transparent}
+.tabs-in{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+.tabs button{padding:5px 0 7px;font-family:var(--display);font-weight:600;font-size:12px;letter-spacing:.02em;line-height:1.1;color:var(--muted);border-top:3px solid transparent;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.tabs button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.ti .tf{fill:currentColor;stroke:none}.ti .tl{stroke-width:1.1}
+.ti{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.help{position:fixed;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.help-h{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--line)}
+.help-h h3{margin:0;flex:1;font-family:var(--display);font-size:22px;text-transform:uppercase;letter-spacing:.03em}
+.help iframe{flex:1;width:100%;border:0;background:var(--bg)}
 .tabs button[aria-selected="true"]{color:var(--accent);border-top-color:var(--accent)}
 
 .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -262,11 +269,13 @@ textarea.codein{min-height:76px;padding:10px 12px;font-size:13px;font-family:ui-
 </main>
 
 <nav class="tabs"><div class="tabs-in" role="tablist">
-  <button role="tab" data-tabbtn="general" aria-selected="false">StrokeCoach</button>
-  <button role="tab" data-tabbtn="watches" aria-selected="true">ChronOar</button>
-  <button role="tab" data-tabbtn="athletes" aria-selected="false">Sportler</button>
-  <button role="tab" data-tabbtn="results" aria-selected="false">Ergebnisse</button>
+  <button data-act="open-help" aria-label="Anleitung"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5C4.7 20 4 19.3 4 18.5z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg><span>Anleitung</span></button>
+  <button role="tab" data-tabbtn="general" aria-selected="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 17a8.5 8.5 0 1 1 17 0"/><path d="M12 17l4.5-6"/><circle cx="12" cy="17" r="1.6"/><path d="M6.5 13.5l1 .6M17.5 13.5l-1 .6M12 8.5v1.2"/></svg><span>StrokeCoach</span></button>
+  <button role="tab" data-tabbtn="watches" aria-selected="true"><svg class="ti ti-oar" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.48 15.94A8 8 0 1 1 19.52 15.94"/><path d="M18.13 18.34A8 8 0 0 1 5.87 18.34"/><path class="tl" d="M13.06 13.76L21.71 18.36"/><path class="tl" d="M10.94 13.76L2.29 18.36"/><g class="tf"><rect x="10" y="2.4" width="4" height="2.2" rx=".3"/><rect x="4.28" y="5.39" width="3" height="1.8" rx=".3" transform="rotate(-42 5.78 6.29)"/><rect x="16.72" y="5.39" width="3" height="1.8" rx=".3" transform="rotate(42 18.22 6.29)"/><path d="M12 6.3L12.9 11.6L11.1 11.6Z"/><path d="M11.1 14.8L12.9 14.8L12 20.2Z"/></g></svg><span>ChronOar</span></button>
+  <button role="tab" data-tabbtn="athletes" aria-selected="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.6 2.7-6 6-6s6 2.4 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 14.3c3 .1 5.5 2.3 5.5 5.7"/></svg><span>Sportler</span></button>
+  <button role="tab" data-tabbtn="results" aria-selected="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 20v-6M12 20V8M17 20v-9"/></svg><span>Ergebnisse</span></button>
 </div></nav>
+<div class="help" id="help" hidden><div class="help-h"><h3>Anleitung</h3><button class="btn" id="help-close">Schließen</button></div><iframe id="help-frame" title="Anleitung"></iframe></div>
 
 <div id="sheet-root"></div>
 
@@ -739,7 +748,7 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
    - Alle Änderungen (Ergebnisse, Sportler) landen zuerst in einer Warteschlange
      auf dem Handy (S.queue) und werden hochgeladen, sobald Netz da ist.
    - Die Sportlerliste kommt aus dem Sheet (das Sheet ist führend).
-   - Die Relationsgeschwindigkeiten kommen zentral aus config.json → relationsUrl.
+   - Die Relationsgeschwindigkeiten kommen zentral aus relationen.csv im GitHub-Repository.
    Schnittstelle des Sheets: siehe Kopf von Code.gs.
    ========================================================================== */
 const CODE_PREFIX="CHRONOAR1:";
@@ -844,18 +853,30 @@ function renderTopsub(){
 window.addEventListener("online",()=>sync());
 setInterval(()=>{if(S.conn&&(S.queue.length||Date.now()-lastPull>300000))sync()},45000);
 
-/* ---------- zentrale Relationen (Variante B) ---------- */
+/* ---------- zentrale Relationen: Datei relationen.csv im GitHub-Repository ----------
+   Format: eine Zeile pro Bootsklasse, "Boot;m/s" (Dezimalkomma) – oder "Boot,m/s" mit Dezimalpunkt.
+   Kopfzeile und Leerzeilen werden ignoriert. Werte außerhalb 2–8 m/s werden übersprungen. */
+function parseRelCsv(txt){
+  const good={},bad=[];
+  txt.replace(/^\uFEFF/,"").split(/\r?\n/).forEach(line=>{
+    line=line.trim(); if(!line)return;
+    const sep=line.includes(";")?";":line.includes("\t")?"\t":",";
+    let [k,v]=line.split(sep).map(x=>(x||"").trim().replace(/^"|"$/g,""));
+    if(!k||!v)return;
+    if(v.includes(","))v=v.replace(/\./g,"").replace(",",".");   /* 5,341880 → 5.341880 */
+    const n=Number(v);
+    if(!isFinite(n)){ if(!/^boot/i.test(k))bad.push(k); return; }   /* Kopfzeile "Boot;m/s" */
+    if(n>2&&n<8)good[k]=n;else bad.push(k);
+  });
+  return {good,bad};
+}
 async function loadCentralRel(){
   try{
-    const r=await fetch("config.json",{cache:"no-store"}); if(!r.ok)return;
-    const cfg=await r.json(); if(!cfg.relationsUrl)return;
-    const j=await (await fetch(cfg.relationsUrl+(cfg.relationsUrl.includes("?")?"&":"?")+"action=relations",{cache:"no-store"})).json();
-    if(!j.ok||!j.relations)return;
-    const good={},bad=[];
-    Object.entries(j.relations).forEach(([k,v])=>{if(typeof v==="number"&&v>2&&v<8)good[k]=v;else bad.push(k)});
+    const r=await fetch("relationen.csv",{cache:"no-store"}); if(!r.ok)return;
+    const {good,bad}=parseRelCsv(await r.text());
     if(Object.keys(good).length<10)return;
     S.rel=good;S.relAt=Date.now();S.relBad=bad;REL=good;save();
-  }catch(e){/* offline oder nicht eingerichtet: letzte bekannte bzw. eingebaute Werte bleiben */}
+  }catch(e){/* offline: letzte bekannte bzw. eingebaute Werte bleiben */}
 }
 
 /* ---------- Einstellungen: Sheet verbinden ---------- */
@@ -863,7 +884,7 @@ function openSettings(){G={view:"main"};renderSettings()}
 const fmtDT=ts=>ts?new Date(ts).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}):"–";
 function renderSettings(){
   const q=S.queue.length;
-  const rel=S.rel?`zentral, Stand ${fmtDT(S.relAt)} (${Object.keys(S.rel).length} Bootsklassen)${S.relBad&&S.relBad.length?` · <span class="warnt">ungültige Werte übersprungen: ${S.relBad.map(esc).join(", ")}</span>`:""}`:"eingebaute Tabelle";
+  const rel=S.rel?`zentral (relationen.csv), geladen ${fmtDT(S.relAt)} (${Object.keys(S.rel).length} Bootsklassen)${S.relBad&&S.relBad.length?` · <span class="warnt">ungültige Werte übersprungen: ${S.relBad.map(esc).join(", ")}</span>`:""}`:"eingebaute Tabelle";
   let body;
   if(G.view==="scan"){
     body=`<div class="muted">Halte die Kamera auf den QR-Code im Sheet („ChronOar → Mit Handy verbinden“).</div><div id="scanbox" class="scanbox"></div><div class="muted" id="scanmsg"></div>`;
@@ -888,7 +909,7 @@ function renderSettings(){
       <label class="fld" for="g-code">Oder Verbindungscode einfügen<textarea class="txt codein" id="g-code" placeholder="CHRONOAR1:https://script.google.com/…" autocomplete="off" spellcheck="false"></textarea></label>
       <div class="bar"><button class="btn" data-act="g-connect">Verbinden</button></div>
       ${q?`<div class="muted">${q} Änderungen von diesem Handy warten und werden nach dem Verbinden hochgeladen. <button class="btn sm ghost danger" data-act="g-drop" data-confirm="Verwerfen?">Verwerfen</button></div>`:""}
-      <div class="muted">Noch kein Sheet? <a href="anleitung.html" target="_blank" rel="noopener">Anleitung: Sheet in 5 Minuten einrichten</a></div>`;
+      <div class="muted">Noch kein Sheet? <a href="#" data-act="open-help">Anleitung: Sheet in 5 Minuten einrichten</a></div>`;
   }
   sheetShell(G.view==="scan"?"QR-Code scannen":G.view==="share"?"Weiteres Handy":"Google Sheet","",
     body+(G.view==="main"?`<div class="muted relinfo">Relationsgeschwindigkeiten: ${rel}</div>`:""),
@@ -943,6 +964,11 @@ async function startScan(){
 }
 function stopScan(){if(scan){cancelAnimationFrame(scan.raf);scan.stream.getTracks().forEach(t=>t.stop());scan=null}}
 
+
+/* ---------- Anleitung: in der App anzeigen (ein Link würde die installierte App ohne Zurück-Taste verlassen) ---------- */
+function openHelp(){const f=$("#help-frame");if(!f.src)f.src="anleitung.html";$("#help").hidden=false}
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act="open-help"]');if(b){e.preventDefault();openHelp()}});
+$("#help-close").addEventListener("click",()=>{$("#help").hidden=true});
 /* ---------- ticking ---------- */
 setInterval(()=>{
   const now=Date.now();

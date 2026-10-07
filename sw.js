@@ -1,16 +1,16 @@
 /* ChronOar – Service Worker (Offline-Speicher)
  *
  * - App-Dateien werden beim Installieren gecacht, damit die App ohne Netz startet.
- * - index.html und config.json: online immer frisch (Updates kommen sofort an), offline aus dem Cache.
+ * - index.html, config.json, relationen.csv, anleitung.html: online immer frisch (Updates kommen sofort an), offline aus dem Cache.
  * - Anfragen an andere Server (Google-Sheet-Skript) laufen NIE über den Cache,
- *   damit Sportlerliste und Relationen immer aktuell sind.
+ *   damit die Sportlerliste immer aktuell ist.
  *
  * Nach Änderungen an Dateien in FILES: CACHE-Version hochzählen.
  */
-const CACHE = "chronoar-v6";
+const CACHE = "chronoar-v7";
 const FILES = ["./", "./index.html", "./config.json", "./manifest.webmanifest", "./jsqr.min.js", "./qrcode.min.js",
-  "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./anleitung.html"];
-const FRESH = ["/", "/index.html", "/config.json", "/anleitung.html"];
+  "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./anleitung.html", "./relationen.csv"];
+const FRESH = ["/", "/index.html", "/config.json", "/anleitung.html", "/relationen.csv"];
 
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener("activate", e => {

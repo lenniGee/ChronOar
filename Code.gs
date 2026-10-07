@@ -12,10 +12,10 @@
  *   Ergebnis Mannschaft  eine Zeile pro Boot und Belastung (wird automatisch aus „Ergebnis Sportler“ gebildet:
  *                        bei jedem Upload und zusätzlich bei jedem Öffnen des Sheets)
  *   (bis Version 2 hießen die beiden Blätter „Ergebnisse“ und „Mannschaften“ – sie werden automatisch umbenannt)
- *   Relationen  Boot | m/s   (Relationsgeschwindigkeiten; öffentlich lesbar)
+ * Die Relationsgeschwindigkeiten stehen NICHT im Sheet, sondern zentral in relationen.csv im
+ * GitHub-Repository der App (ab Version 4). Ein altes Blatt „Relationen“ wird nicht mehr benutzt.
  *
  * Schnittstelle (alle Antworten JSON: {ok:true,...} oder {ok:false,error:"..."}):
- *   GET  ?action=relations                 öffentlich: Relationstabelle {Boot: m/s}
  *   GET  ?action=ping&key=…                Verbindung prüfen, liefert Sheet-Name
  *   GET  ?action=athletes&key=…            Sportlerliste
  *   POST {key, action:"batch", ops:[…]}    Änderungen der App in Reihenfolge anwenden:
@@ -24,7 +24,7 @@
  *        {op:"athlete",    athlete:{…}}    Sportler anlegen oder ändern
  *        {op:"athleteDel", id:"…"}         Sportler löschen
  *
- * Sicherheit: Alles außer "relations" braucht den Schlüssel. Er wird pro Sheet
+ * Sicherheit: Jeder Aufruf braucht den Schlüssel. Er wird pro Sheet
  * zufällig erzeugt und steckt im Verbindungscode / QR-Code. Eine Kopie des
  * Sheets bekommt automatisch einen neuen Schlüssel.
  *
@@ -33,9 +33,9 @@
  * unter der Web-App-Adresse weiter die alte Version. Die Adresse bleibt gleich.
  */
 
-var SCRIPT_VERSION = 3;
+var SCRIPT_VERSION = 4;
 var CODE_PREFIX = 'CHRONOAR1:';
-var SH_ATH = 'Sportler', SH_RES = 'Ergebnis Sportler', SH_REL = 'Relationen', SH_TEAM = 'Ergebnis Mannschaft';
+var SH_ATH = 'Sportler', SH_RES = 'Ergebnis Sportler', SH_TEAM = 'Ergebnis Mannschaft';
 var OLD_NAMES = { 'Ergebnis Sportler': 'Ergebnisse', 'Ergebnis Mannschaft': 'Mannschaften' };
 var TEAM_HEAD = ['Belastung', 'Datum', 'Uhrzeit', 'Boot', 'Mannschaft', 'Kategorien', 'Steuerperson', 'Strecke (m)', 'Zeit',
   'Zeit (s)', 'm/s', '/500 m', 'Relation (m/s)', 'Prozent', 'Ø SF', 'Splits'];
@@ -45,8 +45,6 @@ var RES_HEAD = ['ID', 'Belastung', 'Datum', 'Uhrzeit', 'Vorname', 'Nachname', 'K
   'Mannschaft', 'Sportler-ID'];
 var AGE_TXT = { JB: 'Junior B', JA: 'Junior A', SB: 'Senior B', SA: 'Senior A' };
 
-/* Standard-Relationsgeschwindigkeiten (m/s); werden beim Einrichten ins Blatt "Relationen" geschrieben. */
-var DEFAULT_REL = {"JFA1x":4.4296788482834994,"JFA2-":4.612546125461255,"JFA2x":4.765308553728854,"JFA4+":4.842615012106537,"JFA4-":5.05050505050505,"JFA4x":5.221932114882507,"JFA8+":5.405405405405405,"JFAL1x":4.329004329004329,"JFAL2x":4.69593801361822,"JFAL4x":5.091649694501018,"JFB1x":4.371903235208394,"JFB2-":4.552352048558422,"JFB2x":4.703668861712136,"JFB4-":4.985044865403789,"JFB4+":4.769475357710652,"JFB4x+":5.098572399728076,"JFB4x":5.190311418685121,"JFB8+":5.334281650071124,"JFBL1x":4.283266704740148,"JFBL2x":4.587155963302752,"JFBL4x+":4.838709677419355,"JMA1x":4.93339911198816,"JMA2-":5.181347150259067,"JMA2x":5.341880341880342,"JMA4-":5.752085130859937,"JMA4+":5.47945205479452,"JMA4x":5.797101449275362,"JMA8+":6.024096385542169,"JMAL1x":4.77326968973747,"JMAL2-":5.022601707684581,"JMAL2x":5.239717055279015,"JMAL4-":5.578800557880056,"JMAL4x":5.680204487361545,"JMAL8+":5.800464037122969,"JMB1x":4.868549172346641,"JMB2-":5.114217524718718,"JMB2x":5.272407732864675,"JMB4-":5.677517032551098,"JMB4+":5.407354001441962,"JMB4x+":5.699088145896657,"JMB4x":5.72737686139748,"JMB8+":5.945303210463734,"JMBL1x":4.7095761381475665,"JMBL2x":5.126452494873547,"JMBL4x+":5.403458213256484,"JMBL4x":5.557613931085588,"SFA1x":4.676174888940847,"SFA2-":4.909180166912126,"SFA2x":5.033979360684621,"SFA4+":5.159958720330237,"SFA4-":5.343307507347047,"SFA4x":5.467468562055768,"SFA8+":5.668934240362812,"SFAL1x":4.524886877828054,"SFAL2x":4.9838026414154,"SFAL4x":5.320563979781857,"SFAL2-":4.697183098591549,"SFB1x":4.676174888940847,"SFB2-":4.909180166912126,"SFB2x":5.033979360684621,"SFB4+":4.952947003467063,"SFB4-":5.343307507347047,"SFB4x":5.477951246233908,"SFB8+":5.667327854916407,"SFBL1x":4.524886877828054,"SFBL2x":4.694835680751174,"SFBL4x":4.9838026414154,"SFBL2-":5.323224261771748,"SMA1x":5.1190171487074485,"SMA2-":5.4274084124830395,"SMA2+":5.0864699898270604,"SMA2x":5.5601890464275785,"SMA4-":5.920663114268798,"SMA4+":5.633802816901408,"SMA4x":6.024096385542169,"SMA8+":6.277463904582548,"SMAL1x":5,"SMAL2-":5.2356020942408374,"SMAL2x":5.474952094169176,"SMAL4-":5.829204313611192,"SMAL4x":5.836008170411438,"SMAL8+":6.0569351907934585,"SMB1x":5.1190171487074485,"SMB2-":5.4274084124830395,"SMB2+":5.0864699898270604,"SMB2x":5.5601890464275785,"SMB4-":5.920663114268798,"SMB4+":5.730659025787966,"SMB4x":6.024096385542169,"SMB8+":6.277463904582548,"SMBL1x":5,"SMBL2-":5.2631578947368425,"SMBL2x":5.474952094169176,"SMBL4-":5.829204313611192,"SMBL4x":5.836008170411438,"SMBL8+":6.0569351907934585,"SMBLErgo":5.6069526212503495,"SMALErgo":5.6069526212503495,"SFBLErgo":4.833252779120348,"SFALErgo":4.833252779120348,"SFAErgo":5.22466039707419,"SFBErgo":5.22466039707419,"SMBErgo":5.955926146515783,"SMAErgo":5.955926146515783,"JMAErgo":5.788712011577425,"JMALErgo":5.457025920873124,"JFAErgo":5.151983513652757,"JFALErgo":4.698144233027954,"JMBErgo":5.662514156285391,"JFBErgo":4.924895345973898,"JMBLErgo":5.347593582887701,"JFBLErgo":4.514672686230249};
 
 /* ------------------------------------------------------------------ Menü */
 
@@ -69,7 +67,6 @@ function setup() {
   var ath = ensureSheet_(ss, SH_ATH, ATH_HEAD);
   var res = ensureSheet_(ss, SH_RES, RES_HEAD);
   var team = teamSheet_();
-  var rel = ensureSheet_(ss, SH_REL, ['Boot', 'm/s']);
   if (team.getLastRow() < 2 && res.getLastRow() > 1) rebuildTeams_();
 
   // Auswahllisten für die Sportler-Spalten D–F
@@ -91,12 +88,6 @@ function setup() {
   res.getRange('P:P').setNumberFormat('0.00');
   res.getRange('Q:Q').setNumberFormat('0.0');
   res.getRange('A:B').setFontColor('#999999');
-
-  if (rel.getLastRow() < 2) {
-    var rows = Object.keys(DEFAULT_REL).map(function (k) { return [k, DEFAULT_REL[k]]; });
-    rel.getRange(2, 1, rows.length, 2).setValues(rows);
-  }
-  rel.getRange('B:B').setNumberFormat('0.000000');
 
   ['Sheet1', 'Tabellenblatt1', 'Tabellenblatt 1'].forEach(function (n) {
     var s = ss.getSheetByName(n);
@@ -162,7 +153,6 @@ function getKey_() {
 function doGet(e) {
   return handle_(function () {
     var p = (e && e.parameter) || {};
-    if (p.action === 'relations') return { relations: readRelations_() };
     checkKey_(p.key);
     if (p.action === 'ping') return { name: SpreadsheetApp.getActive().getName(), version: SCRIPT_VERSION };
     if (p.action === 'athletes') return { athletes: readAthletes_(), version: SCRIPT_VERSION };
@@ -217,15 +207,6 @@ function sheet_(name) {
   var sh = SpreadsheetApp.getActive().getSheetByName(name);
   if (!sh) throw new Error('missing_sheet:' + name);
   return sh;
-}
-
-function readRelations_() {
-  var v = sheet_(SH_REL).getDataRange().getValues(), out = {};
-  for (var i = 1; i < v.length; i++) {
-    var k = String(v[i][0]).trim(), n = Number(String(v[i][1]).replace(',', '.'));
-    if (k && n > 0) out[k] = n;
-  }
-  return out;
 }
 
 /** Sportler lesen. Zeilen ohne ID bekommen eine. Unvollständige Zeilen werden übersprungen. */
