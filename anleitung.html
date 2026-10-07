@@ -75,8 +75,7 @@ nav.toc a{text-decoration:none}
 <p>Am Computer geht es am einfachsten (Google Sheets auf dem Handy kann keine Skripte einrichten).</p>
 <ol>
   <li>Bei Google anmelden und die Vorlage öffnen:<br>
-    <a class="cta" id="tpl" href="#" target="_blank" rel="noopener" hidden>Vorlage kopieren</a>
-    <span id="tpl-missing" class="muted">Den Link zur Vorlage bekommst du von der Person, die dir ChronOar empfohlen hat.</span></li>
+    <a class="cta" id="tpl" href="https://docs.google.com/spreadsheets/d/1cvO-qIhe3zOAq9YAVsM8863idswO59TLl_5yTVL8ebI/copy" target="_blank" rel="noopener">Vorlage kopieren</a></li>
   <li>Google fragt <span class="k">Kopie erstellen?</span> → bestätigen. Die Kopie liegt jetzt in deinem Drive. Gib ihr gern einen eigenen Namen, z. B. „ChronOar Ruderverein XY“.</li>
   <li>Kurz warten, bis oben in der Menüleiste <span class="k">ChronOar</span> erscheint (ggf. Seite neu laden).</li>
   <li><span class="k">ChronOar → 1. Einrichten</span> wählen. Beim ersten Mal fragt Google nach einer Berechtigung – siehe Kasten unten.</li>
@@ -163,7 +162,7 @@ Das Skript darf danach nur auf <b>dieses eine Sheet</b> zugreifen und läuft unt
 </main>
 <script>
 fetch("config.json",{cache:"no-store"}).then(r=>r.json()).then(c=>{
-  if(c.templateUrl){const a=document.getElementById("tpl");a.href=c.templateUrl;a.hidden=false;document.getElementById("tpl-missing").hidden=true}
+  if(c.templateUrl)document.getElementById("tpl").href=c.templateUrl;  /* config.json überschreibt den eingebauten Link */
 }).catch(()=>{});
 </script>
 </body>
