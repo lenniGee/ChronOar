@@ -33,7 +33,7 @@
  * unter der Web-App-Adresse weiter die alte Version. Die Adresse bleibt gleich.
  */
 
-var SCRIPT_VERSION = 7;
+var SCRIPT_VERSION = 8;
 var CODE_PREFIX = 'CHRONOAR1:';
 var SH_ATH = 'Sportler', SH_RES = 'Ergebnis Sportler', SH_TEAM = 'Ergebnis Mannschaft';
 var OLD_NAMES = { 'Ergebnis Sportler': 'Ergebnisse', 'Ergebnis Mannschaft': 'Mannschaften' };
@@ -112,22 +112,49 @@ function ensureSheet_(ss, name, head) {
 /** Dialog: Web-App-Adresse eintragen, Verbindungscode + QR-Code anzeigen. */
 function showConnect() {
   getKey_();
-  var props = PropertiesService.getScriptProperties();
-  var url = props.getProperty('WEBAPP_URL') || '';
-  if (!url) { try { url = ScriptApp.getService().getUrl() || ''; } catch (e) { url = ''; } }
-  if (url && !/\/exec$/.test(url)) url = '';
+  // Adresse automatisch finden: gespeicherte oder von Google gemeldete – aber nur, wenn sie nachweislich zu DIESEM Sheet gehört.
+  var props = PropertiesService.getScriptProperties(), found = null, cands = [];
+  cands.push(props.getProperty('WEBAPP_URL'));
+  try { cands.push(ScriptApp.getService().getUrl()); } catch (e) { }
+  for (var i = 0; i < cands.length && !found; i++) {
+    var u = String(cands[i] || '').replace(/\/dev$/, '/exec');
+    if (/^https:\/\/script\.google\.com\/.+\/exec$/.test(u)) {
+      var r = checkUrl_(u);
+      if (r.ok) found = { url: u, code: CODE_PREFIX + u + '|' + getKey_(), warn: r.warn };
+    }
+  }
+  if (found) props.setProperty('WEBAPP_URL', found.url); else props.deleteProperty('WEBAPP_URL');
   var t = HtmlService.createTemplate(CONNECT_HTML);
-  t.url = url;
+  t.found = JSON.stringify(found);
   t.lib = QR_LIB;
-  SpreadsheetApp.getUi().showModalDialog(t.evaluate().setWidth(420).setHeight(560), 'ChronOar mit Handy verbinden');
+  SpreadsheetApp.getUi().showModalDialog(t.evaluate().setWidth(420).setHeight(600), 'ChronOar mit Handy verbinden');
 }
 
-/** Wird vom Dialog aufgerufen: speichert die Adresse und liefert den Verbindungscode. */
+/** Ruft die Web-App-Adresse testweise auf und prüft, ob sie zu diesem Sheet gehört. */
+function checkUrl_(url) {
+  try {
+    var res = UrlFetchApp.fetch(url + '?action=ping&key=' + encodeURIComponent(getKey_()), { muteHttpExceptions: true, followRedirects: true });
+    var j = JSON.parse(res.getContentText());
+    if (!j.ok) return { ok: false, why: j.error === 'bad_key' ? 'other' : 'error' };
+    var ss = SpreadsheetApp.getActive();
+    if (j.id ? j.id !== ss.getId() : j.name !== ss.getName()) return { ok: false, why: 'other' };
+    return { ok: true, warn: (j.version || 0) < SCRIPT_VERSION
+      ? 'Unter dieser Adresse läuft noch Skript-Version ' + (j.version || 1) + '. Bitte: Bereitstellen → Bereitstellungen verwalten → Stift → Version „Neue Version“ → Bereitstellen.' : '' };
+  } catch (e) {
+    return { ok: false, why: 'unreachable' };
+  }
+}
+
+/** Wird vom Dialog aufgerufen: prüft die eingegebene Adresse, speichert sie und liefert den Verbindungscode. */
 function saveUrl(url) {
   url = String(url || '').trim();
   if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(url)) throw new Error('Das ist keine Web-App-Adresse. Sie beginnt mit https://script.google.com/ und endet mit /exec.');
+  var r = checkUrl_(url);
+  if (!r.ok) throw new Error(r.why === 'other'
+    ? 'Diese Adresse gehört zu einem anderen Sheet. Nimm die Web-App-URL aus DIESEM Sheet (Erweiterungen → Apps Script → Bereitstellen → Bereitstellungen verwalten).'
+    : 'Die Adresse antwortet nicht. Prüfe bei der Bereitstellung „Wer hat Zugriff: Jeder“.');
   PropertiesService.getScriptProperties().setProperty('WEBAPP_URL', url);
-  return CODE_PREFIX + url + '|' + getKey_();
+  return { url: url, code: CODE_PREFIX + url + '|' + getKey_(), warn: r.warn };
 }
 
 function resetKey() {
@@ -158,7 +185,7 @@ function doGet(e) {
   return handle_(function () {
     var p = (e && e.parameter) || {};
     checkKey_(p.key);
-    if (p.action === 'ping') return { name: SpreadsheetApp.getActive().getName(), version: SCRIPT_VERSION };
+    if (p.action === 'ping') return { name: SpreadsheetApp.getActive().getName(), id: SpreadsheetApp.getActive().getId(), version: SCRIPT_VERSION };
     if (p.action === 'athletes') return { athletes: readAthletes_(), version: SCRIPT_VERSION };
     throw new Error('unknown_action');
   });
@@ -456,19 +483,26 @@ var CONNECT_HTML = '<!doctype html><html><head><base target="_top"><style>' +
   'input{width:100%;box-sizing:border-box;padding:8px;font-size:13px;border:1px solid #bbb;border-radius:6px}' +
   'button{background:#ff8a1c;border:0;border-radius:6px;padding:9px 14px;font-weight:bold;font-size:14px;cursor:pointer;margin-top:8px}' +
   '#qr{display:flex;justify-content:center;margin:10px 0}#qr img,#qr svg{width:300px;height:300px}' +
-  '#code{width:100%;box-sizing:border-box;font-size:11px;height:58px}.err{color:#c00}.muted{color:#666;font-size:12px}' +
+  '#code{width:100%;box-sizing:border-box;font-size:11px;height:58px}.err{color:#c00}.warn{color:#a35a00;font-weight:bold}.muted{color:#666;font-size:12px}a{color:#c45f00}' +
   '</style><script><?!= lib ?></script></head><body>' +
-  '<div id="step1"><p><b>Web-App-Adresse</b> (aus "Bereitstellen → Neue Bereitstellung", endet auf <code>/exec</code>):</p>' +
-  '<input id="url" value="<?= url ?>" placeholder="https://script.google.com/macros/s/…/exec">' +
-  '<button onclick="go()">QR-Code anzeigen</button><p id="msg" class="err"></p></div>' +
+  '<div id="step1" style="display:none"><p><b>Web-App-Adresse</b> dieses Sheets einfügen.</p>' +
+  '<p class="muted">Zu finden unter Erweiterungen → Apps Script → Bereitstellen → Bereitstellungen verwalten → Web-App-URL kopieren. Sie endet auf <code>/exec</code>.</p>' +
+  '<input id="url" value="" placeholder="https://script.google.com/macros/s/…/exec">' +
+  '<button id="go" onclick="go()">Prüfen und QR-Code anzeigen</button><p id="msg" class="err"></p></div>' +
   '<div id="step2" style="display:none"><p>In ChronOar auf dem Handy: <b>Sportler → ☁ Sheet → QR-Code scannen</b>.</p>' +
-  '<div id="qr"></div><p class="muted">Oder den Code kopieren und in der App unter „Code einfügen“ einsetzen:</p>' +
+  '<p id="warn" class="warn"></p><div id="qr"></div>' +
+  '<p class="muted">Oder den Code kopieren und in der App unter „Code einfügen“ einsetzen:</p>' +
   '<textarea id="code" readonly onclick="this.select()"></textarea>' +
-  '<p class="muted">Der Code ist wie ein Passwort: Wer ihn hat, kann in dieses Sheet schreiben.</p></div>' +
-  '<script>function go(){var u=document.getElementById("url").value;document.getElementById("msg").textContent="";' +
-  'google.script.run.withSuccessHandler(show).withFailureHandler(function(e){document.getElementById("msg").textContent=e.message}).saveUrl(u)}' +
-  'function show(c){var q=qrcode(0,"M");q.addData(c);q.make();document.getElementById("qr").innerHTML=q.createSvgTag({cellSize:6,margin:2,scalable:true});' +
-  'document.getElementById("code").value=c;document.getElementById("step1").style.display="none";document.getElementById("step2").style.display="block"}' +
+  '<p class="muted">Der Code ist wie ein Passwort: Wer ihn hat, kann in dieses Sheet schreiben. ' +
+  '<a href="#" onclick="other();return false">Andere Adresse eingeben</a></p></div>' +
+  '<script>var found=<?!= found ?>;' +
+  'function $(i){return document.getElementById(i)}' +
+  'function go(){$("msg").textContent="";$("go").disabled=true;$("go").textContent="Prüfe…";' +
+  'google.script.run.withSuccessHandler(show).withFailureHandler(function(e){$("msg").textContent=e.message;$("go").disabled=false;$("go").textContent="Prüfen und QR-Code anzeigen"}).saveUrl($("url").value)}' +
+  'function show(f){var q=qrcode(0,"M");q.addData(f.code);q.make();$("qr").innerHTML=q.createSvgTag({cellSize:6,margin:2,scalable:true});' +
+  '$("code").value=f.code;$("warn").textContent=f.warn||"";$("step1").style.display="none";$("step2").style.display="block"}' +
+  'function other(){$("step2").style.display="none";$("step1").style.display="block";$("go").disabled=false;$("go").textContent="Prüfen und QR-Code anzeigen"}' +
+  'if(found)show(found);else other();' +
   '</script></body></html>';
 
 /* qrcode-generator 1.4.4 (MIT, Kazuhiko Arase) – erzeugt den QR-Code im Dialog. */
