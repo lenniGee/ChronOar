@@ -673,14 +673,14 @@ $("#tab-athletes").addEventListener("click",e=>{
 function renderResults(){
   const rs=[...S.results].sort((a,b)=>b.ts-a.ts);
   $("#topsub").textContent=rs.length+" Einträge";
-  $("#reslist").innerHTML=rs.length?`<div class="tablewrap"><table><thead><tr><th>Datum</th><th>Uhrzeit</th><th>Name</th><th>Kat.</th><th>Boot</th><th>Strecke</th><th>Zeit</th><th>/500 m</th><th>%</th><th>Ø SF</th></tr></thead><tbody>
+  $("#reslist").innerHTML=rs.length?`<div class="tablewrap"><table><thead><tr><th>Datum</th><th>Uhrzeit</th><th>Name</th><th>Kat.</th><th>Boot</th><th>Strecke</th><th>Zeit</th><th>Ziel</th><th>/500 m</th><th>%</th><th>Ø SF</th></tr></thead><tbody>
     ${rs.map(r=>`<tr class="${r.role==="Steuerperson"?"cox":""}"><td>${esc(r.date)}</td><td>${esc(r.time)}</td><td>${esc(r.first+" "+r.last)}${r.role==="Steuerperson"?" (St)":""}</td><td>${esc(r.cat)}</td><td>${esc(r.boat)}</td>
-      <td class="n">${r.dist}</td><td class="n">${fmtTime(r.t)}</td><td class="n">${fmtTime(500/r.v)}</td><td class="n">${r.role==="Steuerperson"?"–":dec(r.pct,1)}</td><td class="n">${r.avgRate?dec(r.avgRate,1):"–"}</td></tr>`).join("")}
+      <td class="n">${r.dist}</td><td class="n">${fmtTime(r.t)}</td><td class="n">${r.rel?fmtTime(r.dist/r.rel):"–"}</td><td class="n">${fmtTime(500/r.v)}</td><td class="n">${r.role==="Steuerperson"?"–":dec(r.pct,1)}</td><td class="n">${r.avgRate?dec(r.avgRate,1):"–"}</td></tr>`).join("")}
     </tbody></table></div>`:'<div class="empty">Noch keine Ergebnisse. Sobald du eine Uhr stoppst, erscheint hier eine Zeile pro Sportler.</div>';
 }
 function resultsTSV(){
-  const head=["Datum","Uhrzeit","Vorname","Nachname","Kategorie","Rolle","Boot","Strecke (m)","Zeit","Zeit (s)","m/s","/500 m","Relation (m/s)","Prozent","Ø SF","Splits","Mannschaft"];
-  const rows=[...S.results].sort((a,b)=>a.ts-b.ts).map(r=>[r.date,r.time,r.first,r.last,r.cat,r.role,r.boat,r.dist,fmtTime(r.t),dec(r.t,2),dec(r.v,6),fmtTime(500/r.v),dec(r.rel,6),r.role==="Steuerperson"?"":dec(r.pct/100,4),r.avgRate?dec(r.avgRate,1):"",r.splits,r.crew]);
+  const head=["Datum","Uhrzeit","Vorname","Nachname","Kategorie","Rolle","Boot","Strecke (m)","Zeit","Zeit (s)","m/s","/500 m","Relation (m/s)","Prozent","Ø SF","Splits","Mannschaft","Zielzeit","Zielzeit (s)"];
+  const rows=[...S.results].sort((a,b)=>a.ts-b.ts).map(r=>[r.date,r.time,r.first,r.last,r.cat,r.role,r.boat,r.dist,fmtTime(r.t),dec(r.t,2),dec(r.v,6),fmtTime(500/r.v),dec(r.rel,6),r.role==="Steuerperson"?"":dec(r.pct/100,4),r.avgRate?dec(r.avgRate,1):"",r.splits,r.crew,r.rel?fmtTime(r.dist/r.rel):"",r.rel?dec(r.dist/r.rel,1):""]);
   return [head,...rows].map(x=>x.join("\t")).join("\n");
 }
 $("#csv-btn").addEventListener("click",()=>{

@@ -33,16 +33,16 @@
  * unter der Web-App-Adresse weiter die alte Version. Die Adresse bleibt gleich.
  */
 
-var SCRIPT_VERSION = 5;
+var SCRIPT_VERSION = 6;
 var CODE_PREFIX = 'CHRONOAR1:';
 var SH_ATH = 'Sportler', SH_RES = 'Ergebnis Sportler', SH_TEAM = 'Ergebnis Mannschaft';
 var OLD_NAMES = { 'Ergebnis Sportler': 'Ergebnisse', 'Ergebnis Mannschaft': 'Mannschaften' };
 var TEAM_HEAD = ['Belastung', 'Datum', 'Uhrzeit', 'Boot', 'Mannschaft', 'Kategorien', 'Steuerperson', 'Strecke (m)', 'Zeit',
-  'Zeit (s)', 'm/s', '/500 m', 'Relation (m/s)', 'Prozent', 'Ø SF', 'Splits'];
+  'Zeit (s)', 'm/s', '/500 m', 'Relation (m/s)', 'Prozent', 'Ø SF', 'Splits', 'Zielzeit', 'Zielzeit (s)'];
 var ATH_HEAD = ['ID', 'Vorname', 'Nachname', 'Geschlecht', 'Altersklasse', 'Gewichtsklasse'];
 var RES_HEAD = ['ID', 'Belastung', 'Datum', 'Uhrzeit', 'Vorname', 'Nachname', 'Kategorie', 'Rolle', 'Boot',
   'Strecke (m)', 'Zeit', 'Zeit (s)', 'm/s', '/500 m', 'Relation (m/s)', 'Prozent', 'Ø SF', 'Splits',
-  'Mannschaft', 'Sportler-ID'];
+  'Mannschaft', 'Sportler-ID', 'Zielzeit', 'Zielzeit (s)'];
 var AGE_TXT = { JB: 'Junior B', JA: 'Junior A', SB: 'Senior B', SA: 'Senior A' };
 
 
@@ -50,7 +50,7 @@ var AGE_TXT = { JB: 'Junior B', JA: 'Junior A', SB: 'Senior B', SA: 'Senior A' }
 
 function onOpen() {
   // Sicherheitsnetz: läuft immer mit dem zuletzt gespeicherten Code, unabhängig von der Bereitstellung.
-  try { renameOld_(); if (SpreadsheetApp.getActive().getSheetByName(SH_RES)) { fixPercent_(); syncTeams_(); } } catch (e) { }
+  try { renameOld_(); if (SpreadsheetApp.getActive().getSheetByName(SH_RES)) { fixPercent_(); fixHeaders_(); fixTargets_(); syncTeams_(); } } catch (e) { }
   SpreadsheetApp.getUi().createMenu('ChronOar')
     .addItem('1. Einrichten', 'setup')
     .addItem('2. Mit Handy verbinden (QR-Code)', 'showConnect')
@@ -88,6 +88,8 @@ function setup() {
   res.getRange('P:P').setNumberFormat('0.0000');
   res.getRange('Q:Q').setNumberFormat('0.0');
   res.getRange('A:B').setFontColor('#999999');
+  res.getRange('U:U').setNumberFormat('@');
+  res.getRange('V:V').setNumberFormat('0.0');
 
   ['Sheet1', 'Tabellenblatt1', 'Tabellenblatt 1'].forEach(function (n) {
     var s = ss.getSheetByName(n);
@@ -262,6 +264,7 @@ function findRow_(sh, id) {
 }
 
 function appendResults_(rows) {
+  fixHeaders_();
   var sh = sheet_(SH_RES), n = sh.getLastRow(), have = {};
   if (n > 1) sh.getRange(2, 1, n - 1, 1).getValues().forEach(function (r) { have[String(r[0])] = true; });
   var add = [];
@@ -270,7 +273,7 @@ function appendResults_(rows) {
     have[r.id] = true;
     var d = new Date(r.ts);
     add.push([r.id, r.run, d, d, r.first, r.last, r.cat, r.role, r.boat, r.dist, r.time, num_(r.t), num_(r.v),
-      r.pace, num_(r.rel), r.role === 'Steuerperson' ? '' : pct_(r.pct), num_(r.avgRate), r.splits || '', r.crew || '', r.ath || '']);
+      r.pace, num_(r.rel), r.role === 'Steuerperson' ? '' : pct_(r.pct), num_(r.avgRate), r.splits || '', r.crew || '', r.ath || ''].concat(target_(r.dist, r.rel)));
   });
   if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, RES_HEAD.length).setValues(add);
   appendTeams_(add);
@@ -309,6 +312,8 @@ function teamSheet_() {
     t.getRange('M:M').setNumberFormat('0.000000');
     t.getRange('N:N').setNumberFormat('0.0000');
     t.getRange('O:O').setNumberFormat('0.0');
+    t.getRange('Q:Q').setNumberFormat('@');
+    t.getRange('R:R').setNumberFormat('0.0');
   }
   return t;
 }
@@ -330,7 +335,7 @@ function teamRows_(resRows) {
     g.rowers.forEach(function (r) { if (cats.indexOf(r[6]) < 0) cats.push(r[6]); });
     var crew = f[18] || g.rowers.map(function (r) { return r[4] + ' ' + r[5]; }).join(', ');
     var cox = g.cox.map(function (r) { return r[4] + ' ' + r[5]; }).join(', ');
-    out.push([run, f[2], f[3], f[8], crew, cats.join(', '), cox, f[9], f[10], f[11], f[12], f[13], f[14], f[15], f[16], f[17]]);
+    out.push([run, f[2], f[3], f[8], crew, cats.join(', '), cox, f[9], f[10], f[11], f[12], f[13], f[14], f[15], f[16], f[17]].concat(target_(f[9], f[14])));
   });
   return out;
 }
@@ -349,6 +354,43 @@ function appendTeams_(resRows) {
 function rebuildTeams() {
   var n = rebuildTeams_();
   SpreadsheetApp.getUi().alert('Ergebnis Mannschaft neu aufgebaut: ' + n + ' Bootszeilen.');
+}
+
+/** Zielzeit des Bootes = Strecke / Relationsgeschwindigkeit → ['6:45,3', 405.3] (Zehntel abgeschnitten wie in der App). */
+function target_(dist, rel) {
+  dist = Number(dist); rel = Number(rel);
+  if (!(dist > 0) || !(rel > 0)) return ['', ''];
+  var sec = dist / rel, t = Math.floor(sec * 10 + 1e-6), m = Math.floor(t / 600), s = Math.floor(t / 10) % 60;
+  var txt = (m >= 60 ? Math.floor(m / 60) + ':' + ('0' + m % 60).slice(-2) : m) + ':' + ('0' + s).slice(-2) + ',' + (t % 10);
+  return [txt, Math.round(sec * 10) / 10];
+}
+
+/** Überschriften älterer Blätter um neue Spalten (z. B. Zielzeit) ergänzen. */
+function fixHeaders_() {
+  [[SH_RES, RES_HEAD], [SH_TEAM, TEAM_HEAD]].forEach(function (x) {
+    var sh = SpreadsheetApp.getActive().getSheetByName(x[0]);
+    if (!sh) return;
+    var cur = sh.getRange(1, 1, 1, x[1].length).getValues()[0];
+    if (cur.some(function (c, i) { return String(c) !== x[1][i]; })) {
+      var hr = sh.getRange(1, 1, 1, x[1].length);
+      hr.setValues([x[1]]);
+      hr.setFontWeight('bold');
+    }
+  });
+}
+
+/** Fehlende Zielzeiten in alten Zeilen nachtragen (aus Strecke und Relation). */
+function fixTargets_() {
+  // [Blatt, Spalte Strecke, Spalte Relation, Spalte Zielzeit] (1-basiert)
+  [[SH_RES, 10, 15, 21], [SH_TEAM, 8, 13, 17]].forEach(function (x) {
+    var sh = SpreadsheetApp.getActive().getSheetByName(x[0]);
+    if (!sh || sh.getLastRow() < 2) return;
+    var n = sh.getLastRow() - 1;
+    var dist = sh.getRange(2, x[1], n, 1).getValues(), rel = sh.getRange(2, x[2], n, 1).getValues();
+    var tg = sh.getRange(2, x[3], n, 2), v = tg.getValues(), changed = false;
+    v.forEach(function (r, i) { if (r[0] === '' && dist[i][0] !== '') { var t = target_(dist[i][0], rel[i][0]); if (t[0]) { v[i] = t; changed = true; } } });
+    if (changed) tg.setValues(v);
+  });
 }
 
 /** Alte Prozentwerte (108) in Anteile (1,08) umrechnen. Ein Anteil ist nie > 3, ein Prozentwert nie < 3 → eindeutig. */
