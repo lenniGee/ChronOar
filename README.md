@@ -30,7 +30,8 @@ Stoppuhren mit Relationsgeschwindigkeiten für Rudertrainer – als Web-App (PWA
  │ Uhren, StrokeCoach         │   Sportler        │ Sheet von Trainer X          │
  │ Warteschlange (offline)    │ ───────────────▶ │  + Skript (Code.gs, Web-App) │
  │                            │ ◀─────────────── │  Blätter: Sportler,          │
- │                            │   Sportlerliste   │  Ergebnisse, Relationen      │
+ │                            │   Sportlerliste   │  Ergebnis Sportler/Mannsch., │
+ │                            │                   │  Relationen                  │
  │                            │                   └──────────────────────────────┘
  │                            │   Relationen      ┌──────────────────────────────┐
  │                            │ ◀─────────────── │ Sheet des Betreibers         │
@@ -125,7 +126,9 @@ Gespeichert wird auf dem Handy im Browser-Speicher unter dem Schlüssel `rudertr
 
 ## Skript (Code.gs) aktualisieren
 
-Nötig, wenn sich `Code.gs` ändert (`SCRIPT_VERSION`). Version 2 bringt das Blatt „Mannschaften“.
+Nötig, wenn sich `Code.gs` ändert (`SCRIPT_VERSION`). Version 2 brachte das Mannschaftsblatt, Version 3 die Blattnamen „Ergebnis Sportler“ / „Ergebnis Mannschaft“ (alte Blätter werden automatisch umbenannt) und die Versionsanzeige in der App.
+
+**Kontrolle:** In der App unter *Sportler → ☁ Sheet* steht „Sheet-Skript: Version 3“. Steht dort ein Hinweis „veraltet“, läuft unter der Web-App-Adresse noch der alte Code – dann fehlt Schritt 2 (neue Version in der bestehenden Bereitstellung).
 
 1. **Vorlage:** Erweiterungen → Apps Script → Code ersetzen → Speichern.
 2. **Jedes bereits kopierte Sheet** (auch deins): Code ersetzen → Speichern → **Bereitstellen → Bereitstellungen verwalten → Stift → Version: „Neue Version“ → Bereitstellen.** Ohne neue Version läuft unter der Adresse weiter der alte Code. Die Adresse und der QR-Code bleiben gleich.
@@ -144,7 +147,7 @@ Bestehende Kopien aktualisieren sich **nicht** automatisch – Trainer müssen i
 | Altersklasse | `Junior B`, `Junior A`, `Senior B`, `Senior A` (auch `JB`, `JA`, … werden akzeptiert) |
 | Gewichtsklasse | `Offen` / `Leicht` |
 
-**Ergebnisse** – eine Zeile pro Sportler und Belastung, wird nur von der App geschrieben
+**Ergebnis Sportler** – eine Zeile pro Sportler und Belastung, wird nur von der App geschrieben
 
 | Spalte | Inhalt |
 |---|---|
@@ -161,20 +164,20 @@ Bestehende Kopien aktualisieren sich **nicht** automatisch – Trainer müssen i
 | Mannschaft | alle Ruderer des Bootes |
 | Sportler-ID | Verknüpfung zum Blatt Sportler |
 
-Tipp für Auswertungen: eigene Blätter mit `FILTER`, `QUERY` oder Pivot-Tabellen auf „Ergebnisse“ anlegen – nicht in „Ergebnisse“ selbst Spalten einfügen.
+Tipp für Auswertungen: eigene Blätter mit `FILTER`, `QUERY` oder Pivot-Tabellen auf „Ergebnis Sportler“ bzw. „Ergebnis Mannschaft“ anlegen – nicht in diesen Blättern selbst Spalten einfügen.
 
-**Mannschaften** – eine Zeile pro Boot und Belastung, wird vom Skript automatisch aus den Ergebnissen gebildet
+**Ergebnis Mannschaft** – eine Zeile pro Boot und Belastung, wird vom Skript automatisch aus „Ergebnis Sportler“ gebildet: bei jedem Upload aus der App und zusätzlich bei jedem Öffnen des Sheets (fehlende Zeilen werden ergänzt, verwaiste entfernt)
 
 | Spalte | Inhalt |
 |---|---|
-| Belastung | ID der Belastung (Verknüpfung zu „Ergebnisse“) |
+| Belastung | ID der Belastung (Verknüpfung zu „Ergebnis Sportler“) |
 | Datum, Uhrzeit, Boot | |
 | Mannschaft | alle Ruderer in Sitzreihenfolge der Auswahl |
 | Kategorien | alle Kategorien im Boot, z. B. `JM A, JM B L` (Mixed-Boote erkennbar) |
 | Steuerperson | falls vorhanden |
-| Strecke, Zeit, Zeit (s), m/s, /500 m, Relation, Prozent, Ø SF, Splits | wie in „Ergebnisse“ |
+| Strecke, Zeit, Zeit (s), m/s, /500 m, Relation, Prozent, Ø SF, Splits | wie in „Ergebnis Sportler“ |
 
-Wird eine Belastung in der App zurückgenommen, verschwindet ihre Zeile auch hier. Fehlt das Blatt oder passt es nicht mehr zu den Ergebnissen (z. B. nach Löschen von Hand): **ChronOar → Mannschaften neu aufbauen**.
+Wird eine Belastung in der App zurückgenommen, verschwindet ihre Zeile auch hier. Fehlt das Blatt oder passt es nicht mehr zu den Ergebnissen (z. B. nach Löschen von Hand): **ChronOar → Ergebnis Mannschaft neu aufbauen**.
 
 **Relationen** – Spalte A Boot-Kürzel, Spalte B m/s.
 

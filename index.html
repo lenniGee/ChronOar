@@ -743,6 +743,7 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
    Schnittstelle des Sheets: siehe Kopf von Code.gs.
    ========================================================================== */
 const CODE_PREFIX="CHRONOAR1:";
+const NEED_SCRIPT=3; /* Mindestversion von Code.gs im Sheet (SCRIPT_VERSION) */
 let syncing=false, syncState="idle", syncErr="", lastPull=0, G=null, scan=null;
 
 function athPayload(a){return {id:a.id,first:a.first,last:a.last,sex:a.sex,age:a.age,weight:a.weight}}
@@ -784,6 +785,7 @@ async function sync(opts={}){
     if(opts.force||Date.now()-lastPull>120000){
       const j=await apiGet({action:"athletes"});
       applyAthletes(j.athletes||[]);lastPull=Date.now();
+      S.conn.version=j.version||0; /* ältere Skripte melden ihre Version hier nicht */
     }
     S.lastSync=Date.now();syncState="ok";syncErr="";
   }catch(e){
@@ -810,7 +812,7 @@ async function connectWith(code){
   try{
     const old=S.conn;S.conn=conn;
     const j=await apiGet({action:"ping"}).catch(e=>{S.conn=old;throw e});
-    conn.name=j.name;
+    conn.name=j.name;conn.version=j.version||0;
     const wasNew=!old||old.url!==conn.url;
     S.conn=conn;
     if(wasNew){
@@ -873,6 +875,8 @@ function renderSettings(){
         <div><b>„${esc(S.conn.name||"Sheet")}“</b></div>
         <div class="muted">${syncState==="busy"?"Gleicht gerade ab…":q?`${q} Änderung${q===1?"":"en"} warten auf Upload`:"Alles hochgeladen"} · zuletzt abgeglichen ${fmtDT(S.lastSync)}</div>
         ${syncErr?`<div class="warnt">${esc(syncErr)}</div>`:""}
+        ${S.conn.version>=NEED_SCRIPT?`<div class="muted">Sheet-Skript: Version ${S.conn.version}</div>`
+          :`<div class="warnt">Das Skript in diesem Sheet ist veraltet${S.conn.version?` (Version ${S.conn.version})`:""}. Im Sheet: Erweiterungen → Apps Script → neuen Code einfügen → Bereitstellen → Bereitstellungen verwalten → Stift → Version „Neue Version“ → Bereitstellen.</div>`}
         <div class="bar"><button class="btn" data-act="g-sync">Jetzt abgleichen</button><button class="btn" data-act="g-share">Weiteres Handy verbinden</button></div>
       </div>
       <div class="muted">Ergebnisse werden nach jedem Stopp automatisch ins Sheet geschrieben, ohne Netz später. Die Sportlerliste kommt aus dem Sheet; was du hier änderst, landet auch dort.</div>

@@ -8,8 +8,10 @@
  *
  * Blätter (werden von "ChronOar → Einrichten" angelegt):
  *   Sportler    ID | Vorname | Nachname | Geschlecht | Altersklasse | Gewichtsklasse
- *   Ergebnisse  eine Zeile pro Sportler und Belastung (wird nur von der App beschrieben)
- *   Mannschaften eine Zeile pro Boot und Belastung (wird automatisch aus den Ergebnissen gebildet)
+ *   Ergebnis Sportler    eine Zeile pro Sportler und Belastung (wird nur von der App beschrieben)
+ *   Ergebnis Mannschaft  eine Zeile pro Boot und Belastung (wird automatisch aus „Ergebnis Sportler“ gebildet:
+ *                        bei jedem Upload und zusätzlich bei jedem Öffnen des Sheets)
+ *   (bis Version 2 hießen die beiden Blätter „Ergebnisse“ und „Mannschaften“ – sie werden automatisch umbenannt)
  *   Relationen  Boot | m/s   (Relationsgeschwindigkeiten; öffentlich lesbar)
  *
  * Schnittstelle (alle Antworten JSON: {ok:true,...} oder {ok:false,error:"..."}):
@@ -31,9 +33,10 @@
  * unter der Web-App-Adresse weiter die alte Version. Die Adresse bleibt gleich.
  */
 
-var SCRIPT_VERSION = 2;
+var SCRIPT_VERSION = 3;
 var CODE_PREFIX = 'CHRONOAR1:';
-var SH_ATH = 'Sportler', SH_RES = 'Ergebnisse', SH_REL = 'Relationen', SH_TEAM = 'Mannschaften';
+var SH_ATH = 'Sportler', SH_RES = 'Ergebnis Sportler', SH_REL = 'Relationen', SH_TEAM = 'Ergebnis Mannschaft';
+var OLD_NAMES = { 'Ergebnis Sportler': 'Ergebnisse', 'Ergebnis Mannschaft': 'Mannschaften' };
 var TEAM_HEAD = ['Belastung', 'Datum', 'Uhrzeit', 'Boot', 'Mannschaft', 'Kategorien', 'Steuerperson', 'Strecke (m)', 'Zeit',
   'Zeit (s)', 'm/s', '/500 m', 'Relation (m/s)', 'Prozent', 'Ø SF', 'Splits'];
 var ATH_HEAD = ['ID', 'Vorname', 'Nachname', 'Geschlecht', 'Altersklasse', 'Gewichtsklasse'];
@@ -48,10 +51,12 @@ var DEFAULT_REL = {"JFA1x":4.4296788482834994,"JFA2-":4.612546125461255,"JFA2x":
 /* ------------------------------------------------------------------ Menü */
 
 function onOpen() {
+  // Sicherheitsnetz: läuft immer mit dem zuletzt gespeicherten Code, unabhängig von der Bereitstellung.
+  try { renameOld_(); if (SpreadsheetApp.getActive().getSheetByName(SH_RES)) syncTeams_(); } catch (e) { }
   SpreadsheetApp.getUi().createMenu('ChronOar')
     .addItem('1. Einrichten', 'setup')
     .addItem('2. Mit Handy verbinden (QR-Code)', 'showConnect')
-    .addItem('Mannschaften neu aufbauen', 'rebuildTeams')
+    .addItem('Ergebnis Mannschaft neu aufbauen', 'rebuildTeams')
     .addSeparator()
     .addItem('Neuen Schlüssel erzeugen (alte Handys trennen)', 'resetKey')
     .addToUi();
@@ -60,6 +65,7 @@ function onOpen() {
 /** Legt fehlende Blätter an, formatiert sie und erzeugt den Schlüssel. Bestehende Daten bleiben unangetastet. */
 function setup() {
   var ss = SpreadsheetApp.getActive();
+  renameOld_();
   var ath = ensureSheet_(ss, SH_ATH, ATH_HEAD);
   var res = ensureSheet_(ss, SH_RES, RES_HEAD);
   var team = teamSheet_();
@@ -159,7 +165,7 @@ function doGet(e) {
     if (p.action === 'relations') return { relations: readRelations_() };
     checkKey_(p.key);
     if (p.action === 'ping') return { name: SpreadsheetApp.getActive().getName(), version: SCRIPT_VERSION };
-    if (p.action === 'athletes') return { athletes: readAthletes_() };
+    if (p.action === 'athletes') return { athletes: readAthletes_(), version: SCRIPT_VERSION };
     throw new Error('unknown_action');
   });
 }
@@ -197,7 +203,17 @@ function checkKey_(k) { if (!k || k !== getKey_()) throw new Error('bad_key'); }
 
 /* ------------------------------------------------------------------ Daten */
 
+/** Blätter aus Version 1/2 („Ergebnisse“, „Mannschaften“) auf die neuen Namen umbenennen. */
+function renameOld_() {
+  var ss = SpreadsheetApp.getActive();
+  Object.keys(OLD_NAMES).forEach(function (neu) {
+    var old = ss.getSheetByName(OLD_NAMES[neu]);
+    if (old && !ss.getSheetByName(neu)) old.setName(neu);
+  });
+}
+
 function sheet_(name) {
+  if (OLD_NAMES[name]) renameOld_();
   var sh = SpreadsheetApp.getActive().getSheetByName(name);
   if (!sh) throw new Error('missing_sheet:' + name);
   return sh;
@@ -294,8 +310,9 @@ function deleteRun_(run) {
 
 /* ------------------------------------------------------------------ Mannschaften */
 
-/** Blatt "Mannschaften" holen bzw. anlegen (auch in älteren Sheets ohne erneutes "Einrichten"). */
+/** Blatt „Ergebnis Mannschaft“ holen bzw. anlegen (auch in älteren Sheets ohne erneutes "Einrichten"). */
 function teamSheet_() {
+  renameOld_();
   var ss = SpreadsheetApp.getActive(), had = !!ss.getSheetByName(SH_TEAM);
   var t = ensureSheet_(ss, SH_TEAM, TEAM_HEAD);
   if (!had) {
@@ -313,7 +330,7 @@ function teamSheet_() {
   return t;
 }
 
-/** Fasst Ergebniszeilen (Format wie Blatt "Ergebnisse") zu einer Zeile pro Belastung zusammen. */
+/** Fasst Ergebniszeilen (Format wie Blatt „Ergebnis Sportler“) zu einer Zeile pro Belastung zusammen. */
 function teamRows_(resRows) {
   var by = {}, order = [];
   resRows.forEach(function (r) {
@@ -345,10 +362,26 @@ function appendTeams_(resRows) {
   if (rows.length) t.getRange(t.getLastRow() + 1, 1, rows.length, TEAM_HEAD.length).setValues(rows);
 }
 
-/** Blatt "Mannschaften" komplett aus "Ergebnisse" neu bilden (Menü). */
+/** Blatt „Ergebnis Mannschaft“ komplett aus „Ergebnis Sportler“ neu bilden (Menü). */
 function rebuildTeams() {
   var n = rebuildTeams_();
-  SpreadsheetApp.getUi().alert('Mannschaften neu aufgebaut: ' + n + ' Bootszeilen.');
+  SpreadsheetApp.getUi().alert('Ergebnis Mannschaft neu aufgebaut: ' + n + ' Bootszeilen.');
+}
+
+/** Abgleich ohne Neuaufbau: fehlende Bootszeilen anhängen, verwaiste entfernen. Gibt die Zahl neuer Zeilen zurück. */
+function syncTeams_() {
+  var res = sheet_(SH_RES), n = res.getLastRow();
+  var want = teamRows_(n > 1 ? res.getRange(2, 1, n - 1, RES_HEAD.length).getValues() : []);
+  var t = teamSheet_(), tn = t.getLastRow();
+  var have = tn > 1 ? t.getRange(2, 1, tn - 1, 1).getValues().map(function (r) { return String(r[0]); }) : [];
+  var wantSet = {}, haveSet = {};
+  want.forEach(function (r) { wantSet[String(r[0])] = true; });
+  for (var i = have.length - 1; i >= 0; i--) {
+    if (have[i] && !wantSet[have[i]]) t.deleteRow(i + 2); else haveSet[have[i]] = true;
+  }
+  var add = want.filter(function (r) { return !haveSet[String(r[0])]; });
+  if (add.length) t.getRange(t.getLastRow() + 1, 1, add.length, TEAM_HEAD.length).setValues(add);
+  return add.length;
 }
 function rebuildTeams_() {
   var res = sheet_(SH_RES), n = res.getLastRow();
