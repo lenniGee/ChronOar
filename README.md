@@ -129,9 +129,9 @@ Gespeichert wird auf dem Handy im Browser-Speicher unter dem Schlüssel `rudertr
 
 ## Skript (Code.gs) aktualisieren
 
-Nötig, wenn sich `Code.gs` ändert (`SCRIPT_VERSION`). Version 2 brachte das Mannschaftsblatt, Version 3 die Blattnamen „Ergebnis Sportler“ / „Ergebnis Mannschaft“ (alte Blätter werden automatisch umbenannt) und die Versionsanzeige in der App, Version 4 entfernt das Blatt „Relationen“ (Relationen kommen aus `relationen.csv`; ein vorhandenes Blatt „Relationen“ kann gelöscht werden). Version 5 speichert Prozent als Anteil (1,08 statt 108) und rechnet alte Werte beim Öffnen des Sheets automatisch um. Version 6 ergänzt die Spalten „Zielzeit“ und „Zielzeit (s)“ und trägt sie für alte Zeilen beim Öffnen nach.
+Nötig, wenn sich `Code.gs` ändert (`SCRIPT_VERSION`). Version 2 brachte das Mannschaftsblatt, Version 3 die Blattnamen „Ergebnis Sportler“ / „Ergebnis Mannschaft“ (alte Blätter werden automatisch umbenannt) und die Versionsanzeige in der App, Version 4 entfernt das Blatt „Relationen“ (Relationen kommen aus `relationen.csv`; ein vorhandenes Blatt „Relationen“ kann gelöscht werden). Version 5 speichert Prozent als Anteil (1,08 statt 108) und rechnet alte Werte beim Öffnen des Sheets automatisch um. Version 6 ergänzt die Spalten „Zielzeit“ und „Zielzeit (s)“ und trägt sie für alte Zeilen beim Öffnen nach. Version 7 ändert die Spaltenreihenfolge in „Ergebnis Mannschaft“ (das Blatt wird automatisch neu aufgebaut).
 
-**Kontrolle:** In der App unter *Sportler → ☁ Sheet* steht „Sheet-Skript: Version 3“ oder höher (aktuell 6). Steht dort ein Hinweis „veraltet“, läuft unter der Web-App-Adresse noch der alte Code – dann fehlt Schritt 2 (neue Version in der bestehenden Bereitstellung).
+**Kontrolle:** In der App unter *Sportler → ☁ Sheet* steht „Sheet-Skript: Version 3“ oder höher (aktuell 7). Steht dort ein Hinweis „veraltet“, läuft unter der Web-App-Adresse noch der alte Code – dann fehlt Schritt 2 (neue Version in der bestehenden Bereitstellung).
 
 1. **Vorlage:** Erweiterungen → Apps Script → Code ersetzen → Speichern.
 2. **Jedes bereits kopierte Sheet** (auch deins): Code ersetzen → Speichern → **Bereitstellen → Bereitstellungen verwalten → Stift → Version: „Neue Version“ → Bereitstellen.** Ohne neue Version läuft unter der Adresse weiter der alte Code. Die Adresse und der QR-Code bleiben gleich.
@@ -175,11 +175,17 @@ Tipp für Auswertungen: eigene Blätter mit `FILTER`, `QUERY` oder Pivot-Tabelle
 | Spalte | Inhalt |
 |---|---|
 | Belastung | ID der Belastung (Verknüpfung zu „Ergebnis Sportler“) |
-| Datum, Uhrzeit, Boot | |
+| Datum, Uhrzeit | Zeitpunkt des Stopps |
+| Strecke (m) | |
 | Mannschaft | alle Ruderer in Sitzreihenfolge der Auswahl |
-| Kategorien | alle Kategorien im Boot, z. B. `JM A, JM B L` (Mixed-Boote erkennbar) |
 | Steuerperson | falls vorhanden |
-| Strecke, Zeit, Zeit (s), m/s, /500 m, Relation, Prozent, Ø SF, Splits, Zielzeit, Zielzeit (s) | wie in „Ergebnis Sportler“ |
+| Kategorien | alle Kategorien im Boot, z. B. `JM A, JM B L` (Mixed-Boote erkennbar) |
+| Boot | |
+| Zeit, Zeit (s), /500 m, m/s, Ø SF, Splits | wie in „Ergebnis Sportler“ |
+| Relation (m/s), Zielzeit, Zielzeit (s) | Relationsgeschwindigkeit des Bootes und daraus errechnete Zielzeit |
+| Prozent | erreichter Anteil der Relation, z. B. `1,0812` |
+
+Die Spaltenreihenfolge ist im Skript festgelegt (`TEAM_HEAD`). Bitte nicht von Hand umsortieren – passt die Kopfzeile nicht mehr, baut das Skript das Blatt beim nächsten Öffnen bzw. Upload in der festgelegten Reihenfolge neu auf. Eigene Ansichten am besten in einem eigenen Blatt per `QUERY`.
 
 Wird eine Belastung in der App zurückgenommen, verschwindet ihre Zeile auch hier. Fehlt das Blatt oder passt es nicht mehr zu den Ergebnissen (z. B. nach Löschen von Hand): **ChronOar → Ergebnis Mannschaft neu aufbauen**.
 

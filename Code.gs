@@ -33,12 +33,14 @@
  * unter der Web-App-Adresse weiter die alte Version. Die Adresse bleibt gleich.
  */
 
-var SCRIPT_VERSION = 6;
+var SCRIPT_VERSION = 7;
 var CODE_PREFIX = 'CHRONOAR1:';
 var SH_ATH = 'Sportler', SH_RES = 'Ergebnis Sportler', SH_TEAM = 'Ergebnis Mannschaft';
 var OLD_NAMES = { 'Ergebnis Sportler': 'Ergebnisse', 'Ergebnis Mannschaft': 'Mannschaften' };
-var TEAM_HEAD = ['Belastung', 'Datum', 'Uhrzeit', 'Boot', 'Mannschaft', 'Kategorien', 'Steuerperson', 'Strecke (m)', 'Zeit',
-  'Zeit (s)', 'm/s', '/500 m', 'Relation (m/s)', 'Prozent', 'Ø SF', 'Splits', 'Zielzeit', 'Zielzeit (s)'];
+var TEAM_HEAD = ['Belastung', 'Datum', 'Uhrzeit', 'Strecke (m)', 'Mannschaft', 'Steuerperson', 'Kategorien', 'Boot',
+  'Zeit', 'Zeit (s)', '/500 m', 'm/s', 'Ø SF', 'Splits', 'Relation (m/s)', 'Zielzeit', 'Zielzeit (s)', 'Prozent'];
+/* Spaltennummern (1-basiert) in „Ergebnis Mannschaft“, die das Skript direkt anspricht */
+var TEAM_COL = { dist: 4, rel: 15, target: 16, pct: 18 };
 var ATH_HEAD = ['ID', 'Vorname', 'Nachname', 'Geschlecht', 'Altersklasse', 'Gewichtsklasse'];
 var RES_HEAD = ['ID', 'Belastung', 'Datum', 'Uhrzeit', 'Vorname', 'Nachname', 'Kategorie', 'Rolle', 'Boot',
   'Strecke (m)', 'Zeit', 'Zeit (s)', 'm/s', '/500 m', 'Relation (m/s)', 'Prozent', 'Ø SF', 'Splits',
@@ -50,7 +52,7 @@ var AGE_TXT = { JB: 'Junior B', JA: 'Junior A', SB: 'Senior B', SA: 'Senior A' }
 
 function onOpen() {
   // Sicherheitsnetz: läuft immer mit dem zuletzt gespeicherten Code, unabhängig von der Bereitstellung.
-  try { renameOld_(); if (SpreadsheetApp.getActive().getSheetByName(SH_RES)) { fixPercent_(); fixHeaders_(); fixTargets_(); syncTeams_(); } } catch (e) { }
+  try { renameOld_(); if (SpreadsheetApp.getActive().getSheetByName(SH_RES)) { fixHeaders_(); fixPercent_(); fixTargets_(); syncTeams_(); } } catch (e) { }
   SpreadsheetApp.getUi().createMenu('ChronOar')
     .addItem('1. Einrichten', 'setup')
     .addItem('2. Mit Handy verbinden (QR-Code)', 'showConnect')
@@ -301,21 +303,35 @@ function teamSheet_() {
   renameOld_();
   var ss = SpreadsheetApp.getActive(), had = !!ss.getSheetByName(SH_TEAM);
   var t = ensureSheet_(ss, SH_TEAM, TEAM_HEAD);
-  if (!had) {
-    t.getRange('A:A').setFontColor('#999999');
-    t.getRange('B:B').setNumberFormat('dd.MM.yyyy');
-    t.getRange('C:C').setNumberFormat('HH:mm');
-    t.getRange('I:I').setNumberFormat('@');
-    t.getRange('L:L').setNumberFormat('@');
-    t.getRange('J:J').setNumberFormat('0.00');
-    t.getRange('K:K').setNumberFormat('0.00');
-    t.getRange('M:M').setNumberFormat('0.000000');
-    t.getRange('N:N').setNumberFormat('0.0000');
-    t.getRange('O:O').setNumberFormat('0.0');
-    t.getRange('Q:Q').setNumberFormat('@');
-    t.getRange('R:R').setNumberFormat('0.0');
-  }
+  if (!had) formatTeam_(t);
   return t;
+}
+
+/** Spaltenformate für „Ergebnis Mannschaft“ (Reihenfolge siehe TEAM_HEAD). */
+function formatTeam_(t) {
+  t.getRange('A:A').setFontColor('#999999');
+  t.getRange('B:B').setNumberFormat('dd.MM.yyyy');
+  t.getRange('C:C').setNumberFormat('HH:mm');
+  t.getRange('I:I').setNumberFormat('@');          // Zeit
+  t.getRange('J:J').setNumberFormat('0.00');       // Zeit (s)
+  t.getRange('K:K').setNumberFormat('@');          // /500 m
+  t.getRange('L:L').setNumberFormat('0.00');       // m/s
+  t.getRange('M:M').setNumberFormat('0.0');        // Ø SF
+  t.getRange('O:O').setNumberFormat('0.000000');   // Relation
+  t.getRange('P:P').setNumberFormat('@');          // Zielzeit
+  t.getRange('Q:Q').setNumberFormat('0.0');        // Zielzeit (s)
+  t.getRange('R:R').setNumberFormat('0.0000');     // Prozent (Anteil)
+}
+
+/** „Ergebnis Mannschaft“ mit neuer Spaltenreihenfolge komplett neu anlegen (Inhalt kommt aus „Ergebnis Sportler“). */
+function resetTeamSheet_() {
+  var t = teamSheet_();
+  t.clear();
+  t.getRange(1, 1, 1, TEAM_HEAD.length).setValues([TEAM_HEAD]);
+  t.getRange(1, 1, 1, TEAM_HEAD.length).setFontWeight('bold');
+  t.setFrozenRows(1);
+  formatTeam_(t);
+  rebuildTeams_();
 }
 
 /** Fasst Ergebniszeilen (Format wie Blatt „Ergebnis Sportler“) zu einer Zeile pro Belastung zusammen. */
@@ -335,7 +351,9 @@ function teamRows_(resRows) {
     g.rowers.forEach(function (r) { if (cats.indexOf(r[6]) < 0) cats.push(r[6]); });
     var crew = f[18] || g.rowers.map(function (r) { return r[4] + ' ' + r[5]; }).join(', ');
     var cox = g.cox.map(function (r) { return r[4] + ' ' + r[5]; }).join(', ');
-    out.push([run, f[2], f[3], f[8], crew, cats.join(', '), cox, f[9], f[10], f[11], f[12], f[13], f[14], f[15], f[16], f[17]].concat(target_(f[9], f[14])));
+    var tg = target_(f[9], f[14]);
+    // Reihenfolge = TEAM_HEAD
+    out.push([run, f[2], f[3], f[9], crew, cox, cats.join(', '), f[8], f[10], f[11], f[13], f[12], f[16], f[17], f[14], tg[0], tg[1], f[15]]);
   });
   return out;
 }
@@ -367,22 +385,25 @@ function target_(dist, rel) {
 
 /** Überschriften älterer Blätter um neue Spalten (z. B. Zielzeit) ergänzen. */
 function fixHeaders_() {
-  [[SH_RES, RES_HEAD], [SH_TEAM, TEAM_HEAD]].forEach(function (x) {
-    var sh = SpreadsheetApp.getActive().getSheetByName(x[0]);
-    if (!sh) return;
-    var cur = sh.getRange(1, 1, 1, x[1].length).getValues()[0];
-    if (cur.some(function (c, i) { return String(c) !== x[1][i]; })) {
-      var hr = sh.getRange(1, 1, 1, x[1].length);
-      hr.setValues([x[1]]);
-      hr.setFontWeight('bold');
-    }
-  });
+  var ss = SpreadsheetApp.getActive();
+  var same = function (sh, head) {
+    var cur = sh.getRange(1, 1, 1, head.length).getValues()[0];
+    return !cur.some(function (c, i) { return String(c) !== head[i]; });
+  };
+  var res = ss.getSheetByName(SH_RES);
+  if (res && !same(res, RES_HEAD)) {           // „Ergebnis Sportler“: nur fehlende Überschriften ergänzen
+    var hr = res.getRange(1, 1, 1, RES_HEAD.length);
+    hr.setValues([RES_HEAD]);
+    hr.setFontWeight('bold');
+  }
+  var team = ss.getSheetByName(SH_TEAM);       // „Ergebnis Mannschaft“: alte Spaltenreihenfolge → neu aufbauen
+  if (team && !same(team, TEAM_HEAD)) resetTeamSheet_();
 }
 
 /** Fehlende Zielzeiten in alten Zeilen nachtragen (aus Strecke und Relation). */
 function fixTargets_() {
   // [Blatt, Spalte Strecke, Spalte Relation, Spalte Zielzeit] (1-basiert)
-  [[SH_RES, 10, 15, 21], [SH_TEAM, 8, 13, 17]].forEach(function (x) {
+  [[SH_RES, 10, 15, 21], [SH_TEAM, TEAM_COL.dist, TEAM_COL.rel, TEAM_COL.target]].forEach(function (x) {
     var sh = SpreadsheetApp.getActive().getSheetByName(x[0]);
     if (!sh || sh.getLastRow() < 2) return;
     var n = sh.getLastRow() - 1;
@@ -395,7 +416,7 @@ function fixTargets_() {
 
 /** Alte Prozentwerte (108) in Anteile (1,08) umrechnen. Ein Anteil ist nie > 3, ein Prozentwert nie < 3 → eindeutig. */
 function fixPercent_() {
-  [[SH_RES, 16], [SH_TEAM, 14]].forEach(function (x) {
+  [[SH_RES, 16], [SH_TEAM, TEAM_COL.pct]].forEach(function (x) {
     var sh = SpreadsheetApp.getActive().getSheetByName(x[0]);
     if (!sh || sh.getLastRow() < 2) return;
     var rg = sh.getRange(2, x[1], sh.getLastRow() - 1, 1), v = rg.getValues(), changed = false;
