@@ -351,13 +351,11 @@ function stats(w){
   const avgRate=w.rates.length?w.rates.reduce((a,b)=>a+b,0)/w.rates.length:null;
   return {t,v,pace:500/v,pct:w.rel?v/w.rel*100:null,avgRate};
 }
+/* Splits als Abschnittszeiten: Zeit seit dem letzten Split (bzw. seit dem Start); nach dem Stopp kommt der letzte Abschnitt dazu */
 function splitText(w){
   const pts=[w.start,...w.splits]; if(w.stop!=null)pts.push(w.stop);
   const out=[];
-  for(let i=1;i<pts.length;i++){
-    const cum=(pts[i]-w.start)/1000, lap=(pts[i]-pts[i-1])/1000;
-    out.push(fmtTime(cum));
-  }
+  for(let i=1;i<pts.length;i++)out.push(fmtTime((pts[i]-pts[i-1])/1000));
   return out;
 }
 

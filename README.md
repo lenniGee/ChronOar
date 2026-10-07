@@ -129,9 +129,9 @@ Gespeichert wird auf dem Handy im Browser-Speicher unter dem Schlüssel `rudertr
 
 ## Skript (Code.gs) aktualisieren
 
-Nötig, wenn sich `Code.gs` ändert (`SCRIPT_VERSION`). Version 2 brachte das Mannschaftsblatt, Version 3 die Blattnamen „Ergebnis Sportler“ / „Ergebnis Mannschaft“ (alte Blätter werden automatisch umbenannt) und die Versionsanzeige in der App, Version 4 entfernt das Blatt „Relationen“ (Relationen kommen aus `relationen.csv`; ein vorhandenes Blatt „Relationen“ kann gelöscht werden). Version 5 speichert Prozent als Anteil (1,08 statt 108) und rechnet alte Werte beim Öffnen des Sheets automatisch um. Version 6 ergänzt die Spalten „Zielzeit“ und „Zielzeit (s)“ und trägt sie für alte Zeilen beim Öffnen nach. Version 7 ändert die Spaltenreihenfolge in „Ergebnis Mannschaft“ (das Blatt wird automatisch neu aufgebaut). Version 8 findet und prüft im Dialog „Mit Handy verbinden“ die Web-App-Adresse selbst (braucht einmalig die zusätzliche Berechtigung „Mit externem Dienst verbinden“) und warnt, wenn unter der Adresse eine ältere Skript-Version läuft.
+Nötig, wenn sich `Code.gs` ändert (`SCRIPT_VERSION`). Version 2 brachte das Mannschaftsblatt, Version 3 die Blattnamen „Ergebnis Sportler“ / „Ergebnis Mannschaft“ (alte Blätter werden automatisch umbenannt) und die Versionsanzeige in der App, Version 4 entfernt das Blatt „Relationen“ (Relationen kommen aus `relationen.csv`; ein vorhandenes Blatt „Relationen“ kann gelöscht werden). Version 5 speichert Prozent als Anteil (1,08 statt 108) und rechnet alte Werte beim Öffnen des Sheets automatisch um. Version 6 ergänzt die Spalten „Zielzeit“ und „Zielzeit (s)“ und trägt sie für alte Zeilen beim Öffnen nach. Version 7 ändert die Spaltenreihenfolge in „Ergebnis Mannschaft“ (das Blatt wird automatisch neu aufgebaut). Version 8 findet und prüft im Dialog „Mit Handy verbinden“ die Web-App-Adresse selbst (braucht einmalig die zusätzliche Berechtigung „Mit externem Dienst verbinden“) und warnt, wenn unter der Adresse eine ältere Skript-Version läuft. Version 9 ändert die Spaltenreihenfolge in „Ergebnis Sportler“ (wird beim Öffnen automatisch umsortiert) und speichert Splits als Abschnittszeiten (alte Einträge werden umgerechnet).
 
-**Kontrolle:** In der App unter *Sportler → ☁ Sheet* steht „Sheet-Skript: Version 3“ oder höher (aktuell 8). Steht dort ein Hinweis „veraltet“, läuft unter der Web-App-Adresse noch der alte Code – dann fehlt Schritt 2 (neue Version in der bestehenden Bereitstellung).
+**Kontrolle:** In der App unter *Sportler → ☁ Sheet* steht „Sheet-Skript: Version 3“ oder höher (aktuell 9). Steht dort ein Hinweis „veraltet“, läuft unter der Web-App-Adresse noch der alte Code – dann fehlt Schritt 2 (neue Version in der bestehenden Bereitstellung).
 
 1. **Vorlage:** Erweiterungen → Apps Script → Code ersetzen → Speichern.
 2. **Jedes bereits kopierte Sheet** (auch deins): Code ersetzen → Speichern → **Bereitstellen → Bereitstellungen verwalten → Stift → Version: „Neue Version“ → Bereitstellen.** Ohne neue Version läuft unter der Adresse weiter der alte Code. Die Adresse und der QR-Code bleiben gleich.
@@ -154,19 +154,21 @@ Bestehende Kopien aktualisieren sich **nicht** automatisch – Trainer müssen i
 
 | Spalte | Inhalt |
 |---|---|
-| ID | eindeutige Zeilen-ID (verhindert Doppel-Uploads) |
-| Belastung | ID der Belastung (gleich für alle Sportler eines Bootes in einer Fahrt) |
-| Datum, Uhrzeit | Zeitpunkt des Stopps |
-| Vorname, Nachname, Kategorie, Rolle | Rolle = `Ruderer` oder `Steuerperson` |
-| Boot, Strecke (m) | |
-| Zeit, Zeit (s) | `6:45,3` als Text und als Zahl (für Diagramme) |
-| m/s, /500 m | Bootsgeschwindigkeit |
-| Relation (m/s), Prozent | Relationsgeschwindigkeit des Bootes und erreichter Anteil daran, z. B. `1,0812` = 108,12 % (Steuerleute ohne Wert). Wer lieber `108,12 %` sieht: Spalte markieren → Format → Zahl → Prozent. |
-| Ø SF | durchschnittliche Schlagfrequenz |
-| Splits | Zwischenzeiten ab Start, z. B. `1:41,2 \| 3:23,0` |
 | Mannschaft | alle Ruderer des Bootes |
 | Sportler-ID | Verknüpfung zum Blatt Sportler |
-| Zielzeit, Zielzeit (s) | errechnete Zielzeit des Bootes = Strecke ÷ Relationsgeschwindigkeit, als Text `6:45,4` und in Sekunden |
+| Datum, Uhrzeit | Zeitpunkt des Stopps |
+| Strecke (m) | |
+| Vorname, Nachname, Rolle, Kategorie | Rolle = `Ruderer` oder `Steuerperson` |
+| Boot | |
+| Zeit, Zeit (s) | `6:45,3` als Text und als Zahl (für Diagramme) |
+| /500 m, m/s | Bootsgeschwindigkeit |
+| Ø SF | durchschnittliche Schlagfrequenz |
+| Splits | Abschnittszeiten, jeweils seit dem vorherigen Split, z. B. `1:41,2 \| 1:41,8 \| 1:42,0 \| 1:40,3` (der letzte Abschnitt endet mit dem Stopp) |
+| Relation (m/s), Zielzeit, Zielzeit (s) | Relationsgeschwindigkeit des Bootes und daraus errechnete Zielzeit |
+| Prozent | erreichter Anteil der Relation, z. B. `1,0812` = 108,12 % (Steuerleute ohne Wert) |
+| ID, Belastung | technische Spalten (grau): eindeutige Zeilen-ID gegen Doppel-Uploads und ID der Belastung (gleich für alle Sportler eines Bootes in einer Fahrt). Nicht löschen. |
+
+Die Spaltenreihenfolge steht im Skript (`RES_HEAD`); alle Spalten werden über ihren Namen angesprochen. Passt die Kopfzeile nicht, sortiert das Skript das Blatt beim nächsten Öffnen bzw. Upload selbst um – Daten bleiben erhalten, eigene zusätzliche Spalten werden hinten angehängt.
 
 Tipp für Auswertungen: eigene Blätter mit `FILTER`, `QUERY` oder Pivot-Tabellen auf „Ergebnis Sportler“ bzw. „Ergebnis Mannschaft“ anlegen – nicht in diesen Blättern selbst Spalten einfügen.
 

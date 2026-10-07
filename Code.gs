@@ -33,18 +33,35 @@
  * unter der Web-App-Adresse weiter die alte Version. Die Adresse bleibt gleich.
  */
 
-var SCRIPT_VERSION = 8;
+var SCRIPT_VERSION = 9;
 var CODE_PREFIX = 'CHRONOAR1:';
 var SH_ATH = 'Sportler', SH_RES = 'Ergebnis Sportler', SH_TEAM = 'Ergebnis Mannschaft';
 var OLD_NAMES = { 'Ergebnis Sportler': 'Ergebnisse', 'Ergebnis Mannschaft': 'Mannschaften' };
 var TEAM_HEAD = ['Belastung', 'Datum', 'Uhrzeit', 'Strecke (m)', 'Mannschaft', 'Steuerperson', 'Kategorien', 'Boot',
   'Zeit', 'Zeit (s)', '/500 m', 'm/s', 'Ø SF', 'Splits', 'Relation (m/s)', 'Zielzeit', 'Zielzeit (s)', 'Prozent'];
-/* Spaltennummern (1-basiert) in „Ergebnis Mannschaft“, die das Skript direkt anspricht */
-var TEAM_COL = { dist: 4, rel: 15, target: 16, pct: 18 };
 var ATH_HEAD = ['ID', 'Vorname', 'Nachname', 'Geschlecht', 'Altersklasse', 'Gewichtsklasse'];
-var RES_HEAD = ['ID', 'Belastung', 'Datum', 'Uhrzeit', 'Vorname', 'Nachname', 'Kategorie', 'Rolle', 'Boot',
-  'Strecke (m)', 'Zeit', 'Zeit (s)', 'm/s', '/500 m', 'Relation (m/s)', 'Prozent', 'Ø SF', 'Splits',
-  'Mannschaft', 'Sportler-ID', 'Zielzeit', 'Zielzeit (s)'];
+/* „Ergebnis Sportler“. ID und Belastung sind technische Spalten (Doppel-Upload-Schutz, Zurücknehmen eines Stopps). */
+var RES_HEAD = ['Mannschaft', 'Sportler-ID', 'Datum', 'Uhrzeit', 'Strecke (m)', 'Vorname', 'Nachname', 'Rolle', 'Kategorie',
+  'Boot', 'Zeit', 'Zeit (s)', '/500 m', 'm/s', 'Ø SF', 'Splits', 'Relation (m/s)', 'Zielzeit', 'Zielzeit (s)', 'Prozent',
+  'ID', 'Belastung'];
+/* Spalten werden im ganzen Skript über ihren Namen angesprochen: RC['Prozent'] = Spaltennummer (1-basiert). */
+var RC = colMap_(RES_HEAD), TC = colMap_(TEAM_HEAD);
+function colMap_(head) { var m = {}; head.forEach(function (h, i) { m[h] = i + 1; }); return m; }
+/** Zeile (Array in Kopfzeilen-Reihenfolge) aus einem Objekt {Spaltenname: Wert} bauen. */
+function rowFrom_(head, o) { return head.map(function (h) { return o.hasOwnProperty(h) ? o[h] : ''; }); }
+/** Spaltenformate nach Namen setzen. */
+function formatCols_(sh, head, fmts) {
+  Object.keys(fmts).forEach(function (name) {
+    var c = head.indexOf(name) + 1; if (!c) return;
+    var rg = sh.getRange(1, c, sh.getMaxRows(), 1);
+    if (fmts[name] === 'grey') rg.setFontColor('#999999'); else rg.setNumberFormat(fmts[name]);
+  });
+}
+var RES_FMT = { 'Datum': 'dd.MM.yyyy', 'Uhrzeit': 'HH:mm', 'Zeit': '@', 'Zeit (s)': '0.00', '/500 m': '@', 'm/s': '0.000000',
+  'Ø SF': '0.0', 'Relation (m/s)': '0.000000', 'Zielzeit': '@', 'Zielzeit (s)': '0.0', 'Prozent': '0.0000',
+  'Sportler-ID': 'grey', 'ID': 'grey', 'Belastung': 'grey' };
+var TEAM_FMT = { 'Belastung': 'grey', 'Datum': 'dd.MM.yyyy', 'Uhrzeit': 'HH:mm', 'Zeit': '@', 'Zeit (s)': '0.00', '/500 m': '@',
+  'm/s': '0.00', 'Ø SF': '0.0', 'Relation (m/s)': '0.000000', 'Zielzeit': '@', 'Zielzeit (s)': '0.0', 'Prozent': '0.0000' };
 var AGE_TXT = { JB: 'Junior B', JA: 'Junior A', SB: 'Senior B', SA: 'Senior A' };
 
 
@@ -80,18 +97,7 @@ function setup() {
   ath.getRange('A:A').setFontColor('#999999');
   ath.getRange('A1').setNote('Wird automatisch vergeben. Neue Sportler einfach ab Spalte B eintragen und ID leer lassen.');
 
-  res.getRange('C:C').setNumberFormat('dd.MM.yyyy');
-  res.getRange('D:D').setNumberFormat('HH:mm');
-  res.getRange('K:K').setNumberFormat('@');
-  res.getRange('N:N').setNumberFormat('@');
-  res.getRange('L:L').setNumberFormat('0.00');
-  res.getRange('M:M').setNumberFormat('0.000000');
-  res.getRange('O:O').setNumberFormat('0.000000');
-  res.getRange('P:P').setNumberFormat('0.0000');
-  res.getRange('Q:Q').setNumberFormat('0.0');
-  res.getRange('A:B').setFontColor('#999999');
-  res.getRange('U:U').setNumberFormat('@');
-  res.getRange('V:V').setNumberFormat('0.0');
+  formatCols_(res, RES_HEAD, RES_FMT);
 
   ['Sheet1', 'Tabellenblatt1', 'Tabellenblatt 1'].forEach(function (n) {
     var s = ss.getSheetByName(n);
@@ -295,14 +301,18 @@ function findRow_(sh, id) {
 function appendResults_(rows) {
   fixHeaders_();
   var sh = sheet_(SH_RES), n = sh.getLastRow(), have = {};
-  if (n > 1) sh.getRange(2, 1, n - 1, 1).getValues().forEach(function (r) { have[String(r[0])] = true; });
+  if (n > 1) sh.getRange(2, RC['ID'], n - 1, 1).getValues().forEach(function (r) { have[String(r[0])] = true; });
   var add = [];
   rows.forEach(function (r) {
     if (!r.id || have[r.id]) return;
     have[r.id] = true;
-    var d = new Date(r.ts);
-    add.push([r.id, r.run, d, d, r.first, r.last, r.cat, r.role, r.boat, r.dist, r.time, num_(r.t), num_(r.v),
-      r.pace, num_(r.rel), r.role === 'Steuerperson' ? '' : pct_(r.pct), num_(r.avgRate), r.splits || '', r.crew || '', r.ath || ''].concat(target_(r.dist, r.rel)));
+    var d = new Date(r.ts), tg = target_(r.dist, r.rel);
+    add.push(rowFrom_(RES_HEAD, {
+      'Mannschaft': r.crew || '', 'Sportler-ID': r.ath || '', 'Datum': d, 'Uhrzeit': d, 'Strecke (m)': r.dist,
+      'Vorname': r.first, 'Nachname': r.last, 'Rolle': r.role, 'Kategorie': r.cat, 'Boot': r.boat,
+      'Zeit': r.time, 'Zeit (s)': num_(r.t), '/500 m': r.pace, 'm/s': num_(r.v), 'Ø SF': num_(r.avgRate),
+      'Splits': lapSplits_(r.splits || '', r.time), 'Relation (m/s)': num_(r.rel), 'Zielzeit': tg[0], 'Zielzeit (s)': tg[1],
+      'Prozent': r.role === 'Steuerperson' ? '' : pct_(r.pct), 'ID': r.id, 'Belastung': r.run }));
   });
   if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, RES_HEAD.length).setValues(add);
   appendTeams_(add);
@@ -315,11 +325,11 @@ function deleteRun_(run) {
   if (!run) return;
   var sh = sheet_(SH_RES), n = sh.getLastRow();
   if (n < 2) return;
-  var runs = sh.getRange(2, 2, n - 1, 1).getValues();
+  var runs = sh.getRange(2, RC['Belastung'], n - 1, 1).getValues();
   for (var i = runs.length - 1; i >= 0; i--) if (String(runs[i][0]) === String(run)) sh.deleteRow(i + 2);
   var t = teamSheet_(), tn = t.getLastRow();
   if (tn < 2) return;
-  var truns = t.getRange(2, 1, tn - 1, 1).getValues();
+  var truns = t.getRange(2, TC['Belastung'], tn - 1, 1).getValues();
   for (var j = truns.length - 1; j >= 0; j--) if (String(truns[j][0]) === String(run)) t.deleteRow(j + 2);
 }
 
@@ -335,20 +345,7 @@ function teamSheet_() {
 }
 
 /** Spaltenformate für „Ergebnis Mannschaft“ (Reihenfolge siehe TEAM_HEAD). */
-function formatTeam_(t) {
-  t.getRange('A:A').setFontColor('#999999');
-  t.getRange('B:B').setNumberFormat('dd.MM.yyyy');
-  t.getRange('C:C').setNumberFormat('HH:mm');
-  t.getRange('I:I').setNumberFormat('@');          // Zeit
-  t.getRange('J:J').setNumberFormat('0.00');       // Zeit (s)
-  t.getRange('K:K').setNumberFormat('@');          // /500 m
-  t.getRange('L:L').setNumberFormat('0.00');       // m/s
-  t.getRange('M:M').setNumberFormat('0.0');        // Ø SF
-  t.getRange('O:O').setNumberFormat('0.000000');   // Relation
-  t.getRange('P:P').setNumberFormat('@');          // Zielzeit
-  t.getRange('Q:Q').setNumberFormat('0.0');        // Zielzeit (s)
-  t.getRange('R:R').setNumberFormat('0.0000');     // Prozent (Anteil)
-}
+function formatTeam_(t) { formatCols_(t, TEAM_HEAD, TEAM_FMT); }
 
 /** „Ergebnis Mannschaft“ mit neuer Spaltenreihenfolge komplett neu anlegen (Inhalt kommt aus „Ergebnis Sportler“). */
 function resetTeamSheet_() {
@@ -363,24 +360,28 @@ function resetTeamSheet_() {
 
 /** Fasst Ergebniszeilen (Format wie Blatt „Ergebnis Sportler“) zu einer Zeile pro Belastung zusammen. */
 function teamRows_(resRows) {
+  var v = function (r, name) { return r[RC[name] - 1]; };
   var by = {}, order = [];
   resRows.forEach(function (r) {
-    var run = String(r[1]);
+    var run = String(v(r, 'Belastung'));
     if (!run) return;
     if (!by[run]) { by[run] = { rowers: [], cox: [] }; order.push(run); }
-    (r[7] === 'Steuerperson' ? by[run].cox : by[run].rowers).push(r);
+    (v(r, 'Rolle') === 'Steuerperson' ? by[run].cox : by[run].rowers).push(r);
   });
+  var name = function (r) { return v(r, 'Vorname') + ' ' + v(r, 'Nachname'); };
   var out = [];
   order.forEach(function (run) {
     var g = by[run], f = g.rowers[0];
     if (!f) return; // nur Steuerperson: keine Bootszeile
     var cats = [];
-    g.rowers.forEach(function (r) { if (cats.indexOf(r[6]) < 0) cats.push(r[6]); });
-    var crew = f[18] || g.rowers.map(function (r) { return r[4] + ' ' + r[5]; }).join(', ');
-    var cox = g.cox.map(function (r) { return r[4] + ' ' + r[5]; }).join(', ');
-    var tg = target_(f[9], f[14]);
-    // Reihenfolge = TEAM_HEAD
-    out.push([run, f[2], f[3], f[9], crew, cox, cats.join(', '), f[8], f[10], f[11], f[13], f[12], f[16], f[17], f[14], tg[0], tg[1], f[15]]);
+    g.rowers.forEach(function (r) { if (cats.indexOf(v(r, 'Kategorie')) < 0) cats.push(v(r, 'Kategorie')); });
+    var tg = target_(v(f, 'Strecke (m)'), v(f, 'Relation (m/s)'));
+    out.push(rowFrom_(TEAM_HEAD, {
+      'Belastung': run, 'Datum': v(f, 'Datum'), 'Uhrzeit': v(f, 'Uhrzeit'), 'Strecke (m)': v(f, 'Strecke (m)'),
+      'Mannschaft': v(f, 'Mannschaft') || g.rowers.map(name).join(', '), 'Steuerperson': g.cox.map(name).join(', '),
+      'Kategorien': cats.join(', '), 'Boot': v(f, 'Boot'), 'Zeit': v(f, 'Zeit'), 'Zeit (s)': v(f, 'Zeit (s)'),
+      '/500 m': v(f, '/500 m'), 'm/s': v(f, 'm/s'), 'Ø SF': v(f, 'Ø SF'), 'Splits': v(f, 'Splits'),
+      'Relation (m/s)': v(f, 'Relation (m/s)'), 'Zielzeit': tg[0], 'Zielzeit (s)': tg[1], 'Prozent': v(f, 'Prozent') }));
   });
   return out;
 }
@@ -390,8 +391,8 @@ function appendTeams_(resRows) {
   var rows = teamRows_(resRows);
   if (!rows.length) return;
   var t = teamSheet_(), n = t.getLastRow(), have = {};
-  if (n > 1) t.getRange(2, 1, n - 1, 1).getValues().forEach(function (r) { have[String(r[0])] = true; });
-  rows = rows.filter(function (r) { return !have[String(r[0])]; });
+  if (n > 1) t.getRange(2, TC['Belastung'], n - 1, 1).getValues().forEach(function (r) { have[String(r[0])] = true; });
+  rows = rows.filter(function (r) { return !have[String(r[TC['Belastung'] - 1])]; });
   if (rows.length) t.getRange(t.getLastRow() + 1, 1, rows.length, TEAM_HEAD.length).setValues(rows);
 }
 
@@ -418,19 +419,62 @@ function fixHeaders_() {
     return !cur.some(function (c, i) { return String(c) !== head[i]; });
   };
   var res = ss.getSheetByName(SH_RES);
-  if (res && !same(res, RES_HEAD)) {           // „Ergebnis Sportler“: nur fehlende Überschriften ergänzen
-    var hr = res.getRange(1, 1, 1, RES_HEAD.length);
-    hr.setValues([RES_HEAD]);
-    hr.setFontWeight('bold');
-  }
-  var team = ss.getSheetByName(SH_TEAM);       // „Ergebnis Mannschaft“: alte Spaltenreihenfolge → neu aufbauen
+  if (res && !same(res, RES_HEAD)) migrateRes_(res);   // „Ergebnis Sportler“: Spalten nach Namen umsortieren
+  var team = ss.getSheetByName(SH_TEAM);               // „Ergebnis Mannschaft“: wird aus „Ergebnis Sportler“ neu gebildet
   if (team && !same(team, TEAM_HEAD)) resetTeamSheet_();
+}
+
+/**
+ * „Ergebnis Sportler“ in die aktuelle Spaltenreihenfolge bringen, ohne Daten zu verlieren:
+ * jede Spalte wird über ihre Überschrift zugeordnet; unbekannte eigene Spalten bleiben hinten erhalten;
+ * fehlende Spalten (z. B. Zielzeit bei alten Zeilen) bleiben leer und werden danach nachgetragen.
+ */
+function migrateRes_(sh) {
+  var data = sh.getDataRange().getValues(), oldHead = data[0].map(String), rows = data.slice(1);
+  var extra = oldHead.filter(function (h) { return h && RES_HEAD.indexOf(h) < 0; });
+  var head = RES_HEAD.concat(extra);
+  var out = rows.filter(function (r) { return r.some(function (c) { return c !== ''; }); }).map(function (r) {
+    var o = {};
+    oldHead.forEach(function (h, i) { if (h) o[h] = r[i]; });
+    if (o['Splits'] !== undefined) o['Splits'] = lapSplits_(o['Splits'], o['Zeit']);
+    return rowFrom_(head, o);
+  });
+  sh.clear();
+  formatCols_(sh, RES_HEAD, RES_FMT);
+  sh.getRange(1, 1, 1, head.length).setValues([head]);
+  sh.getRange(1, 1, 1, head.length).setFontWeight('bold');
+  sh.setFrozenRows(1);
+  if (out.length) sh.getRange(2, 1, out.length, head.length).setValues(out);
+  var team = SpreadsheetApp.getActive().getSheetByName(SH_TEAM);
+  if (team) resetTeamSheet_();
+}
+
+/** Zeittext „m:ss,t“ bzw. „h:mm:ss,t“ → Zehntelsekunden (oder null). */
+function tenths_(txt) {
+  var m = String(txt).trim().match(/^(?:(\d+):)?(\d+):(\d{2})[,.](\d)$/);
+  if (!m) return null;
+  return ((Number(m[1] || 0) * 60 + Number(m[2])) * 60 + Number(m[3])) * 10 + Number(m[4]);
+}
+function fmtTenths_(t) {
+  var m = Math.floor(t / 600), s = Math.floor(t / 10) % 60;
+  return (m >= 60 ? Math.floor(m / 60) + ':' + ('0' + m % 60).slice(-2) : m) + ':' + ('0' + s).slice(-2) + ',' + (t % 10);
+}
+/**
+ * Splits als Abschnittszeiten (Zeit seit dem letzten Split). Ältere Daten enthalten Zeiten ab Start
+ * („1:00 | 2:00“); erkennbar daran, dass der letzte Wert der Endzeit entspricht → umrechnen in „1:00 | 1:00“.
+ */
+function lapSplits_(splits, zeit) {
+  var parts = String(splits || '').split('|').map(function (x) { return x.trim(); }).filter(String);
+  if (parts.length < 2) return String(splits || '');
+  var t = parts.map(tenths_), total = tenths_(zeit);
+  if (t.some(function (x) { return x === null; }) || total === null || t[t.length - 1] !== total) return String(splits);
+  return t.map(function (x, i) { return fmtTenths_(i ? x - t[i - 1] : x); }).join(' | ');
 }
 
 /** Fehlende Zielzeiten in alten Zeilen nachtragen (aus Strecke und Relation). */
 function fixTargets_() {
-  // [Blatt, Spalte Strecke, Spalte Relation, Spalte Zielzeit] (1-basiert)
-  [[SH_RES, 10, 15, 21], [SH_TEAM, TEAM_COL.dist, TEAM_COL.rel, TEAM_COL.target]].forEach(function (x) {
+  // [Blatt, Spalte Strecke, Spalte Relation, Spalte Zielzeit (Zielzeit (s) steht direkt rechts daneben)]
+  [[SH_RES, RC['Strecke (m)'], RC['Relation (m/s)'], RC['Zielzeit']], [SH_TEAM, TC['Strecke (m)'], TC['Relation (m/s)'], TC['Zielzeit']]].forEach(function (x) {
     var sh = SpreadsheetApp.getActive().getSheetByName(x[0]);
     if (!sh || sh.getLastRow() < 2) return;
     var n = sh.getLastRow() - 1;
@@ -443,7 +487,7 @@ function fixTargets_() {
 
 /** Alte Prozentwerte (108) in Anteile (1,08) umrechnen. Ein Anteil ist nie > 3, ein Prozentwert nie < 3 → eindeutig. */
 function fixPercent_() {
-  [[SH_RES, 16], [SH_TEAM, TEAM_COL.pct]].forEach(function (x) {
+  [[SH_RES, RC['Prozent']], [SH_TEAM, TC['Prozent']]].forEach(function (x) {
     var sh = SpreadsheetApp.getActive().getSheetByName(x[0]);
     if (!sh || sh.getLastRow() < 2) return;
     var rg = sh.getRange(2, x[1], sh.getLastRow() - 1, 1), v = rg.getValues(), changed = false;
