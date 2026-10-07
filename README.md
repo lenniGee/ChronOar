@@ -129,9 +129,9 @@ Gespeichert wird auf dem Handy im Browser-Speicher unter dem Schlüssel `rudertr
 
 ## Skript (Code.gs) aktualisieren
 
-Nötig, wenn sich `Code.gs` ändert (`SCRIPT_VERSION`). Version 2 brachte das Mannschaftsblatt, Version 3 die Blattnamen „Ergebnis Sportler“ / „Ergebnis Mannschaft“ (alte Blätter werden automatisch umbenannt) und die Versionsanzeige in der App, Version 4 entfernt das Blatt „Relationen“ (Relationen kommen aus `relationen.csv`; ein vorhandenes Blatt „Relationen“ kann gelöscht werden).
+Nötig, wenn sich `Code.gs` ändert (`SCRIPT_VERSION`). Version 2 brachte das Mannschaftsblatt, Version 3 die Blattnamen „Ergebnis Sportler“ / „Ergebnis Mannschaft“ (alte Blätter werden automatisch umbenannt) und die Versionsanzeige in der App, Version 4 entfernt das Blatt „Relationen“ (Relationen kommen aus `relationen.csv`; ein vorhandenes Blatt „Relationen“ kann gelöscht werden). Version 5 speichert Prozent als Anteil (1,08 statt 108) und rechnet alte Werte beim Öffnen des Sheets automatisch um.
 
-**Kontrolle:** In der App unter *Sportler → ☁ Sheet* steht „Sheet-Skript: Version 3“ oder höher (aktuell 4). Steht dort ein Hinweis „veraltet“, läuft unter der Web-App-Adresse noch der alte Code – dann fehlt Schritt 2 (neue Version in der bestehenden Bereitstellung).
+**Kontrolle:** In der App unter *Sportler → ☁ Sheet* steht „Sheet-Skript: Version 3“ oder höher (aktuell 5). Steht dort ein Hinweis „veraltet“, läuft unter der Web-App-Adresse noch der alte Code – dann fehlt Schritt 2 (neue Version in der bestehenden Bereitstellung).
 
 1. **Vorlage:** Erweiterungen → Apps Script → Code ersetzen → Speichern.
 2. **Jedes bereits kopierte Sheet** (auch deins): Code ersetzen → Speichern → **Bereitstellen → Bereitstellungen verwalten → Stift → Version: „Neue Version“ → Bereitstellen.** Ohne neue Version läuft unter der Adresse weiter der alte Code. Die Adresse und der QR-Code bleiben gleich.
@@ -161,7 +161,7 @@ Bestehende Kopien aktualisieren sich **nicht** automatisch – Trainer müssen i
 | Boot, Strecke (m) | |
 | Zeit, Zeit (s) | `6:45,3` als Text und als Zahl (für Diagramme) |
 | m/s, /500 m | Bootsgeschwindigkeit |
-| Relation (m/s), Prozent | Relationsgeschwindigkeit des Bootes und erreichte Prozent (Steuerleute ohne Prozent) |
+| Relation (m/s), Prozent | Relationsgeschwindigkeit des Bootes und erreichter Anteil daran, z. B. `1,0812` = 108,12 % (Steuerleute ohne Wert). Wer lieber `108,12 %` sieht: Spalte markieren → Format → Zahl → Prozent. |
 | Ø SF | durchschnittliche Schlagfrequenz |
 | Splits | Zwischenzeiten ab Start, z. B. `1:41,2 \| 3:23,0` |
 | Mannschaft | alle Ruderer des Bootes |

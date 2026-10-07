@@ -33,7 +33,7 @@
  * unter der Web-App-Adresse weiter die alte Version. Die Adresse bleibt gleich.
  */
 
-var SCRIPT_VERSION = 4;
+var SCRIPT_VERSION = 5;
 var CODE_PREFIX = 'CHRONOAR1:';
 var SH_ATH = 'Sportler', SH_RES = 'Ergebnis Sportler', SH_TEAM = 'Ergebnis Mannschaft';
 var OLD_NAMES = { 'Ergebnis Sportler': 'Ergebnisse', 'Ergebnis Mannschaft': 'Mannschaften' };
@@ -50,7 +50,7 @@ var AGE_TXT = { JB: 'Junior B', JA: 'Junior A', SB: 'Senior B', SA: 'Senior A' }
 
 function onOpen() {
   // Sicherheitsnetz: läuft immer mit dem zuletzt gespeicherten Code, unabhängig von der Bereitstellung.
-  try { renameOld_(); if (SpreadsheetApp.getActive().getSheetByName(SH_RES)) syncTeams_(); } catch (e) { }
+  try { renameOld_(); if (SpreadsheetApp.getActive().getSheetByName(SH_RES)) { fixPercent_(); syncTeams_(); } } catch (e) { }
   SpreadsheetApp.getUi().createMenu('ChronOar')
     .addItem('1. Einrichten', 'setup')
     .addItem('2. Mit Handy verbinden (QR-Code)', 'showConnect')
@@ -85,7 +85,7 @@ function setup() {
   res.getRange('L:L').setNumberFormat('0.00');
   res.getRange('M:M').setNumberFormat('0.000000');
   res.getRange('O:O').setNumberFormat('0.000000');
-  res.getRange('P:P').setNumberFormat('0.00');
+  res.getRange('P:P').setNumberFormat('0.0000');
   res.getRange('Q:Q').setNumberFormat('0.0');
   res.getRange('A:B').setFontColor('#999999');
 
@@ -270,11 +270,13 @@ function appendResults_(rows) {
     have[r.id] = true;
     var d = new Date(r.ts);
     add.push([r.id, r.run, d, d, r.first, r.last, r.cat, r.role, r.boat, r.dist, r.time, num_(r.t), num_(r.v),
-      r.pace, num_(r.rel), r.role === 'Steuerperson' ? '' : num_(r.pct), num_(r.avgRate), r.splits || '', r.crew || '', r.ath || '']);
+      r.pace, num_(r.rel), r.role === 'Steuerperson' ? '' : pct_(r.pct), num_(r.avgRate), r.splits || '', r.crew || '', r.ath || '']);
   });
   if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, RES_HEAD.length).setValues(add);
   appendTeams_(add);
 }
+/** Prozent als Anteil speichern (1,08 statt 108). Ältere App-Versionen schicken noch 108 → umrechnen. */
+function pct_(x) { var n = num_(x); return n === '' ? '' : (n > 3 ? n / 100 : n); }
 function num_(x) { return (x === null || x === undefined || x === '' || !isFinite(x)) ? '' : Number(x); }
 
 function deleteRun_(run) {
@@ -305,7 +307,7 @@ function teamSheet_() {
     t.getRange('J:J').setNumberFormat('0.00');
     t.getRange('K:K').setNumberFormat('0.00');
     t.getRange('M:M').setNumberFormat('0.000000');
-    t.getRange('N:N').setNumberFormat('0.00');
+    t.getRange('N:N').setNumberFormat('0.0000');
     t.getRange('O:O').setNumberFormat('0.0');
   }
   return t;
@@ -347,6 +349,17 @@ function appendTeams_(resRows) {
 function rebuildTeams() {
   var n = rebuildTeams_();
   SpreadsheetApp.getUi().alert('Ergebnis Mannschaft neu aufgebaut: ' + n + ' Bootszeilen.');
+}
+
+/** Alte Prozentwerte (108) in Anteile (1,08) umrechnen. Ein Anteil ist nie > 3, ein Prozentwert nie < 3 → eindeutig. */
+function fixPercent_() {
+  [[SH_RES, 16], [SH_TEAM, 14]].forEach(function (x) {
+    var sh = SpreadsheetApp.getActive().getSheetByName(x[0]);
+    if (!sh || sh.getLastRow() < 2) return;
+    var rg = sh.getRange(2, x[1], sh.getLastRow() - 1, 1), v = rg.getValues(), changed = false;
+    v.forEach(function (r) { if (typeof r[0] === 'number' && r[0] > 3) { r[0] = r[0] / 100; changed = true; } });
+    if (changed) rg.setValues(v);
+  });
 }
 
 /** Abgleich ohne Neuaufbau: fehlende Bootszeilen anhängen, verwaiste entfernen. Gibt die Zahl neuer Zeilen zurück. */

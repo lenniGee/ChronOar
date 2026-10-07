@@ -375,7 +375,7 @@ function recordResults(w){
   if(!w.example)enqueue({op:"results",run:w.runId,rows:S.results.filter(r=>r.run===w.runId).map(r=>({
     id:r.id,run:r.run,ts:r.ts,first:r.first,last:r.last,ath:r.ath,cat:r.cat,role:r.role,boat:r.boat,dist:r.dist,
     time:fmtTime(r.t),t:+r.t.toFixed(2),v:+r.v.toFixed(6),pace:fmtTime(500/r.v),rel:r.rel==null?null:+r.rel.toFixed(6),
-    pct:r.pct==null?null:+r.pct.toFixed(2),avgRate:r.avgRate==null?null:+r.avgRate.toFixed(1),splits:r.splits,crew:r.crew}))});
+    pct:r.pct==null?null:+(r.pct/100).toFixed(6), /* als Anteil: 108,12 % → 1,0812 */avgRate:r.avgRate==null?null:+r.avgRate.toFixed(1),splits:r.splits,crew:r.crew}))});
 }
 function resetWatch(w){Object.assign(w,{start:null,splits:[],stop:null,rates:[],rateStart:null,open:false,runId:uid()})}
 
@@ -680,7 +680,7 @@ function renderResults(){
 }
 function resultsTSV(){
   const head=["Datum","Uhrzeit","Vorname","Nachname","Kategorie","Rolle","Boot","Strecke (m)","Zeit","Zeit (s)","m/s","/500 m","Relation (m/s)","Prozent","Ø SF","Splits","Mannschaft"];
-  const rows=[...S.results].sort((a,b)=>a.ts-b.ts).map(r=>[r.date,r.time,r.first,r.last,r.cat,r.role,r.boat,r.dist,fmtTime(r.t),dec(r.t,2),dec(r.v,6),fmtTime(500/r.v),dec(r.rel,6),r.role==="Steuerperson"?"":dec(r.pct,2),r.avgRate?dec(r.avgRate,1):"",r.splits,r.crew]);
+  const rows=[...S.results].sort((a,b)=>a.ts-b.ts).map(r=>[r.date,r.time,r.first,r.last,r.cat,r.role,r.boat,r.dist,fmtTime(r.t),dec(r.t,2),dec(r.v,6),fmtTime(500/r.v),dec(r.rel,6),r.role==="Steuerperson"?"":dec(r.pct/100,4),r.avgRate?dec(r.avgRate,1):"",r.splits,r.crew]);
   return [head,...rows].map(x=>x.join("\t")).join("\n");
 }
 $("#csv-btn").addEventListener("click",()=>{
