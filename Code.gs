@@ -33,15 +33,15 @@
  * unter der Web-App-Adresse weiter die alte Version. Die Adresse bleibt gleich.
  */
 
-var SCRIPT_VERSION = 10;
+var SCRIPT_VERSION = 11;
 var CODE_PREFIX = 'CHRONOAR1:';
 var SH_ATH = 'Sportler', SH_RES = 'Ergebnis Sportler', SH_TEAM = 'Ergebnis Mannschaft';
 var OLD_NAMES = { 'Ergebnis Sportler': 'Ergebnisse', 'Ergebnis Mannschaft': 'Mannschaften' };
-var TEAM_HEAD = ['Belastung', 'Datum', 'Uhrzeit', 'Strecke (m)', 'Mannschaft', 'Steuerperson', 'Kategorien', 'Boot',
+var TEAM_HEAD = ['Belastung', 'Datum', 'Uhrzeit', 'Strecke (m)', 'Strecke Nr.', 'Mannschaft', 'Steuerperson', 'Kategorien', 'Boot',
   'Zeit', 'Zeit (s)', '/500 m', 'm/s', 'Ø SF', 'Splits', 'Relation (m/s)', 'Zielzeit', 'Zielzeit (s)', 'Prozent'];
 var ATH_HEAD = ['ID', 'Vorname', 'Nachname', 'Geschlecht', 'Altersklasse', 'Gewichtsklasse'];
 /* „Ergebnis Sportler“. ID und Belastung sind technische Spalten (Doppel-Upload-Schutz, Zurücknehmen eines Stopps). */
-var RES_HEAD = ['Mannschaft', 'Sportler-ID', 'Datum', 'Uhrzeit', 'Strecke (m)', 'Vorname', 'Nachname', 'Rolle', 'Kategorie',
+var RES_HEAD = ['Mannschaft', 'Sportler-ID', 'Datum', 'Uhrzeit', 'Strecke (m)', 'Strecke Nr.', 'Vorname', 'Nachname', 'Rolle', 'Kategorie',
   'Boot', 'Zeit', 'Zeit (s)', '/500 m', 'm/s', 'Ø SF', 'Splits', 'Relation (m/s)', 'Zielzeit', 'Zielzeit (s)', 'Prozent',
   'ID', 'Belastung'];
 /* Spalten werden im ganzen Skript über ihren Namen angesprochen: RC['Prozent'] = Spaltennummer (1-basiert). */
@@ -69,7 +69,7 @@ var AGE_TXT = { JB: 'Junior B', JA: 'Junior A', SB: 'Senior B', SA: 'Senior A' }
 
 function onOpen() {
   // Sicherheitsnetz: läuft immer mit dem zuletzt gespeicherten Code, unabhängig von der Bereitstellung.
-  try { renameOld_(); if (SpreadsheetApp.getActive().getSheetByName(SH_RES)) { fixHeaders_(); fixTargets_(); syncTeams_(); } } catch (e) { }
+  try { renameOld_(); if (SpreadsheetApp.getActive().getSheetByName(SH_RES)) { fixHeaders_(); fixTargets_(); syncTeams_(); numberRuns_(); } } catch (e) { }
   SpreadsheetApp.getUi().createMenu('ChronOar')
     .addItem('1. Einrichten', 'setup')
     .addItem('2. Mit Handy verbinden (QR-Code)', 'showConnect')
@@ -316,6 +316,7 @@ function appendResults_(rows) {
   });
   if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, RES_HEAD.length).setValues(add);
   appendTeams_(add);
+  if (add.length) numberRuns_();
 }
 /**
  * Prozent als Anteil speichern (1,08 statt 108). Die App kennzeichnet Anteile mit pf=1 und wird nie umgerechnet –
@@ -334,6 +335,7 @@ function deleteRun_(run) {
   if (tn < 2) return;
   var truns = t.getRange(2, TC['Belastung'], tn - 1, 1).getValues();
   for (var j = truns.length - 1; j >= 0; j--) if (String(truns[j][0]) === String(run)) t.deleteRow(j + 2);
+  numberRuns_();
 }
 
 /* ------------------------------------------------------------------ Mannschaften */
@@ -380,7 +382,7 @@ function teamRows_(resRows) {
     g.rowers.forEach(function (r) { if (cats.indexOf(v(r, 'Kategorie')) < 0) cats.push(v(r, 'Kategorie')); });
     var tg = target_(v(f, 'Strecke (m)'), v(f, 'Relation (m/s)'));
     out.push(rowFrom_(TEAM_HEAD, {
-      'Belastung': run, 'Datum': v(f, 'Datum'), 'Uhrzeit': v(f, 'Uhrzeit'), 'Strecke (m)': v(f, 'Strecke (m)'),
+      'Belastung': run, 'Datum': v(f, 'Datum'), 'Uhrzeit': v(f, 'Uhrzeit'), 'Strecke (m)': v(f, 'Strecke (m)'), 'Strecke Nr.': v(f, 'Strecke Nr.'),
       'Mannschaft': v(f, 'Mannschaft') || g.rowers.map(name).join(', '), 'Steuerperson': g.cox.map(name).join(', '),
       'Kategorien': cats.join(', '), 'Boot': v(f, 'Boot'), 'Zeit': v(f, 'Zeit'), 'Zeit (s)': v(f, 'Zeit (s)'),
       '/500 m': v(f, '/500 m'), 'm/s': v(f, 'm/s'), 'Ø SF': v(f, 'Ø SF'), 'Splits': v(f, 'Splits'),
@@ -515,6 +517,47 @@ function syncTeams_() {
   if (add.length) t.getRange(t.getLastRow() + 1, 1, add.length, TEAM_HEAD.length).setValues(add);
   return add.length;
 }
+/**
+ * „Strecke Nr.“: zählt pro Kalendertag die Fahrten derselben Mannschaft (gleiche Ruderer – Reihenfolge egal,
+ * Steuerperson zählt nicht – im gleichen Boot) in zeitlicher Reihenfolge: „1. Strecke“, „2. Strecke“, …
+ * Wird nach jedem Upload, jedem zurückgenommenen Stopp und beim Öffnen des Sheets komplett neu berechnet,
+ * damit auch spät hochgeladene oder gelöschte Fahrten richtig einsortiert werden.
+ */
+function numberRuns_() {
+  var ss = SpreadsheetApp.getActive(), res = ss.getSheetByName(SH_RES);
+  if (!res || res.getLastRow() < 2) return;
+  var tz = ss.getSpreadsheetTimeZone ? ss.getSpreadsheetTimeZone() : 'Europe/Berlin';
+  var n = res.getLastRow() - 1, data = res.getRange(2, 1, n, RES_HEAD.length).getValues();
+  var v = function (r, name) { return r[RC[name] - 1]; };
+  var runs = {};   // Belastung → {ts, day, boat, ids[]}
+  data.forEach(function (r) {
+    var run = String(v(r, 'Belastung')); if (!run) return;
+    var d = v(r, 'Datum'); d = d instanceof Date ? d : new Date(d);
+    var x = runs[run] || (runs[run] = { ts: d.getTime(), boat: v(r, 'Boot'), ids: [],
+      day: isNaN(d.getTime()) ? '' : Utilities.formatDate(d, tz, 'yyyy-MM-dd') });
+    if (v(r, 'Rolle') !== 'Steuerperson') x.ids.push(String(v(r, 'Sportler-ID') || (v(r, 'Vorname') + ' ' + v(r, 'Nachname'))));
+  });
+  var groups = {};
+  Object.keys(runs).forEach(function (run) {
+    var x = runs[run], key = x.day + '|' + x.boat + '|' + x.ids.sort().join(',');
+    (groups[key] = groups[key] || []).push(run);
+  });
+  var label = {};
+  Object.keys(groups).forEach(function (k) {
+    groups[k].sort(function (a, b) { return runs[a].ts - runs[b].ts; })
+      .forEach(function (run, i) { label[run] = (i + 1) + '. Strecke'; });
+  });
+  var writeCol = function (sh, cols, nRows, runCol, nrCol) {
+    if (!sh || nRows < 1) return;
+    var runsV = sh.getRange(2, runCol, nRows, 1).getValues(), rg = sh.getRange(2, nrCol, nRows, 1), cur = rg.getValues(), changed = false;
+    var out = runsV.map(function (r, i) { var l = label[String(r[0])] || ''; if (l !== cur[i][0]) changed = true; return [l]; });
+    if (changed) rg.setValues(out);
+  };
+  writeCol(res, RES_HEAD, n, RC['Belastung'], RC['Strecke Nr.']);
+  var team = ss.getSheetByName(SH_TEAM);
+  if (team && team.getLastRow() > 1) writeCol(team, TEAM_HEAD, team.getLastRow() - 1, TC['Belastung'], TC['Strecke Nr.']);
+}
+
 function rebuildTeams_() {
   var res = sheet_(SH_RES), n = res.getLastRow();
   var data = n > 1 ? res.getRange(2, 1, n - 1, RES_HEAD.length).getValues() : [];
