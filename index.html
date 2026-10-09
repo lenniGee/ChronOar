@@ -373,7 +373,7 @@ function recordResults(w){
   if(!w.example)enqueue({op:"results",run:w.runId,rows:S.results.filter(r=>r.run===w.runId).map(r=>({
     id:r.id,run:r.run,ts:r.ts,first:r.first,last:r.last,ath:r.ath,cat:r.cat,role:r.role,boat:r.boat,dist:r.dist,
     time:fmtTime(r.t),t:+r.t.toFixed(2),v:+r.v.toFixed(6),pace:fmtTime(500/r.v),rel:r.rel==null?null:+r.rel.toFixed(6),
-    pct:r.pct==null?null:+(r.pct/100).toFixed(6), /* als Anteil: 108,12 % → 1,0812 */avgRate:r.avgRate==null?null:+r.avgRate.toFixed(1),splits:r.splits,crew:r.crew}))});
+    pct:r.pct==null?null:+(r.pct/100).toFixed(6),pf:1, /* als Anteil: 108,12 % → 1,0812; pf=1 sagt dem Sheet „schon Anteil, nicht umrechnen“ */avgRate:r.avgRate==null?null:+r.avgRate.toFixed(1),splits:r.splits,crew:r.crew}))});
 }
 function resetWatch(w){Object.assign(w,{start:null,splits:[],stop:null,rates:[],rateStart:null,open:false,runId:uid()})}
 

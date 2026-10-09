@@ -33,7 +33,7 @@
  * unter der Web-App-Adresse weiter die alte Version. Die Adresse bleibt gleich.
  */
 
-var SCRIPT_VERSION = 9;
+var SCRIPT_VERSION = 10;
 var CODE_PREFIX = 'CHRONOAR1:';
 var SH_ATH = 'Sportler', SH_RES = 'Ergebnis Sportler', SH_TEAM = 'Ergebnis Mannschaft';
 var OLD_NAMES = { 'Ergebnis Sportler': 'Ergebnisse', 'Ergebnis Mannschaft': 'Mannschaften' };
@@ -69,7 +69,7 @@ var AGE_TXT = { JB: 'Junior B', JA: 'Junior A', SB: 'Senior B', SA: 'Senior A' }
 
 function onOpen() {
   // Sicherheitsnetz: läuft immer mit dem zuletzt gespeicherten Code, unabhängig von der Bereitstellung.
-  try { renameOld_(); if (SpreadsheetApp.getActive().getSheetByName(SH_RES)) { fixHeaders_(); fixPercent_(); fixTargets_(); syncTeams_(); } } catch (e) { }
+  try { renameOld_(); if (SpreadsheetApp.getActive().getSheetByName(SH_RES)) { fixHeaders_(); fixTargets_(); syncTeams_(); } } catch (e) { }
   SpreadsheetApp.getUi().createMenu('ChronOar')
     .addItem('1. Einrichten', 'setup')
     .addItem('2. Mit Handy verbinden (QR-Code)', 'showConnect')
@@ -312,13 +312,16 @@ function appendResults_(rows) {
       'Vorname': r.first, 'Nachname': r.last, 'Rolle': r.role, 'Kategorie': r.cat, 'Boot': r.boat,
       'Zeit': r.time, 'Zeit (s)': num_(r.t), '/500 m': r.pace, 'm/s': num_(r.v), 'Ø SF': num_(r.avgRate),
       'Splits': lapSplits_(r.splits || '', r.time), 'Relation (m/s)': num_(r.rel), 'Zielzeit': tg[0], 'Zielzeit (s)': tg[1],
-      'Prozent': r.role === 'Steuerperson' ? '' : pct_(r.pct), 'ID': r.id, 'Belastung': r.run }));
+      'Prozent': r.role === 'Steuerperson' ? '' : pct_(r.pct, r.pf), 'ID': r.id, 'Belastung': r.run }));
   });
   if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, RES_HEAD.length).setValues(add);
   appendTeams_(add);
 }
-/** Prozent als Anteil speichern (1,08 statt 108). Ältere App-Versionen schicken noch 108 → umrechnen. */
-function pct_(x) { var n = num_(x); return n === '' ? '' : (n > 3 ? n / 100 : n); }
+/**
+ * Prozent als Anteil speichern (1,08 statt 108). Die App kennzeichnet Anteile mit pf=1 und wird nie umgerechnet –
+ * auch nicht bei Testwerten wie 37,78 (= 3778 %). Nur sehr alte App-Versionen ohne pf schicken noch 108 → /100.
+ */
+function pct_(x, isFraction) { var n = num_(x); return n === '' ? '' : (!isFraction && n > 3 ? n / 100 : n); }
 function num_(x) { return (x === null || x === undefined || x === '' || !isFinite(x)) ? '' : Number(x); }
 
 function deleteRun_(run) {
@@ -485,7 +488,8 @@ function fixTargets_() {
   });
 }
 
-/** Alte Prozentwerte (108) in Anteile (1,08) umrechnen. Ein Anteil ist nie > 3, ein Prozentwert nie < 3 → eindeutig. */
+/** Einmalige Umstellung (Version 5) alter Prozentwerte (108) in Anteile (1,08). Wird ab Version 10 nicht mehr automatisch
+ *  ausgeführt, weil echte Anteile aus Testfahrten (z. B. 37,78) sonst fälschlich umgerechnet würden. */
 function fixPercent_() {
   [[SH_RES, RC['Prozent']], [SH_TEAM, TC['Prozent']]].forEach(function (x) {
     var sh = SpreadsheetApp.getActive().getSheetByName(x[0]);

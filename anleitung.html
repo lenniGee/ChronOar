@@ -52,6 +52,7 @@ nav.toc a{text-decoration:none}
   <li><a href="#second">Zweites Handy (Helfer)</a></li>
   <li><a href="#data">Was wird wo gespeichert?</a></li>
   <li><a href="#help">Wenn etwas nicht klappt</a></li>
+  <li><a href="#calc">So rechnet ChronOar</a></li>
 </ol></nav>
 
 <h2 id="app"><span class="n">1</span>App aufs Handy holen</h2>
@@ -72,7 +73,7 @@ nav.toc a{text-decoration:none}
 
 <h2 id="sheet"><span class="n">2</span>Eigenes Google Sheet anlegen</h2>
 <p>Jeder Trainer hat sein eigenes Sheet in seinem eigenen Google Drive. Niemand sonst sieht deine Daten.</p>
-<p>Am Computer geht es am einfachsten (Google Sheets auf dem Handy kann keine Skripte einrichten).</p>
+<div class="box"><b>💻 Dieser und der nächste Schritt gehen nur am Computer.</b><br>Die Google-Sheets-App auf Handy und Tablet zeigt das Menü „ChronOar“ nicht an und kann keine Skripte freigeben. Öffne dein Google Drive deshalb im Browser am Laptop oder PC. Ab Schritt 4 brauchst du dann wieder das Handy.</div>
 <ol>
   <li>Bei Google anmelden und die Vorlage öffnen:<br>
     <a class="cta" id="tpl" href="https://docs.google.com/spreadsheets/d/1cvO-qIhe3zOAq9YAVsM8863idswO59TLl_5yTVL8ebI/copy" target="_blank" rel="noopener">Vorlage kopieren</a></li>
@@ -157,6 +158,26 @@ Das Skript darf danach nur auf <b>dieses eine Sheet</b> zugreifen und läuft unt
     <tr><td>Kamera geht nicht</td><td>In den Handy-Einstellungen die Kamera für Safari bzw. Chrome erlauben – oder den Code einfügen.</td></tr>
     <tr><td>Menü „ChronOar“ fehlt im Sheet</td><td>Seite neu laden. Auf dem Handy gibt es das Menü nicht – Einrichtung am Computer machen.</td></tr>
     <tr><td>„☁ 5“ verschwindet nicht</td><td>Unter <span class="k">☁ Sheet</span> steht der Grund. <span class="k">Jetzt abgleichen</span> versucht es sofort erneut.</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="calc"><span class="n">9</span>So rechnet ChronOar</h2>
+<p>Alle Zeiten werden auf Zehntelsekunden <b>abgeschnitten</b> angezeigt (6:45,38 → 6:45,3), wie bei einer klassischen Stoppuhr. Gerechnet wird intern mit voller Genauigkeit.</p>
+<div class="tw"><table>
+  <thead><tr><th>Wert</th><th>Berechnung</th></tr></thead>
+  <tbody>
+    <tr><td>Zeit</td><td>Zeitpunkt Stopp − Zeitpunkt Start</td></tr>
+    <tr><td>Splits</td><td>Abschnittszeiten: jeweils Zeit seit dem vorherigen Split (der erste ab Start). Nach dem Stopp kommt der letzte Abschnitt bis zum Ziel dazu – bei 3 Splits also 4 Werte, die zusammen die Endzeit ergeben.</td></tr>
+    <tr><td>m/s</td><td>Strecke ÷ Zeit in Sekunden<br><span class="muted">2000 m in 6:30,0 (390 s) → 5,13 m/s</span></td></tr>
+    <tr><td>/500 m</td><td>500 ÷ m/s, als Zeit dargestellt<br><span class="muted">5,13 m/s → 97,5 s → 1:37,5</span></td></tr>
+    <tr><td>Schlagfrequenz (SF)</td><td>Zwei Tipps im Abstand von 2 Schlägen: SF = 120 ÷ Sekunden zwischen den Tipps<br><span class="muted">3,6 s für 2 Schläge → 33,3 Schläge/min. Werte unter 8 oder über 70 werden als Fehltipp verworfen.</span></td></tr>
+    <tr><td>Ø SF</td><td>Mittelwert aller Frequenzen, die an dieser Uhr gemessen wurden</td></tr>
+    <tr><td>Kategorie</td><td>Aus Sportler-Daten: J/S (Junior/Senior) + M/F + A/B (Altersklasse) + L (nur bei Leichtgewicht) + Bootsklasse<br><span class="muted">leichter B-Junior im Doppelzweier → <code>JMBL2x</code></span></td></tr>
+    <tr><td>Relation (m/s)</td><td>Wert der Kategorie aus der zentralen Relationstabelle.<br><b>Gemischte Boote:</b> Es zählt die durchschnittliche <i>Zeit</i>, nicht die durchschnittliche Geschwindigkeit. Jeder Sitz zählt einmal: Relation = Anzahl Sitze ÷ Summe(1 ÷ Relation je Sitz).<br><span class="muted">Beispiel: Ein Boot bräuchte 5 min, das andere 8 min für 1000 m → zusammen 13 min für 2000 m → 2000 m ÷ 780 s = 2,5641 m/s.</span><br>Sportler, für deren Kategorie es in dieser Bootsklasse keinen Wert gibt, und Steuerleute zählen nicht mit.</td></tr>
+    <tr><td>Zielzeit</td><td>Strecke ÷ Relation<br><span class="muted">2000 m ÷ 5,3419 m/s → 374,4 s → 6:14,4</span></td></tr>
+    <tr><td>Prozent</td><td>m/s ÷ Relation. In der App als Prozent (96,0 %), im Sheet als Anteil (0,9600), damit man direkt damit rechnen kann. Gilt für das ganze Boot; Steuerleute bekommen keinen Wert.</td></tr>
+    <tr><td>GPS-Tempo</td><td>Zurückgelegte Strecke der letzten 5 Sekunden ÷ deren Dauer, als /500 m dargestellt</td></tr>
+    <tr><td>GPS-km</td><td>Summe der Strecken zwischen den GPS-Punkten seit „GPS starten“. Kleine Sprünge (unter 4 m bzw. unter der GPS-Ungenauigkeit) werden ignoriert, damit Stillstand nicht mitzählt. Läuft nur bei eingeschaltetem Display.</td></tr>
   </tbody>
 </table></div>
 </main>
