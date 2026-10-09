@@ -49,7 +49,7 @@ nav.toc a{text-decoration:none}
   <li><a href="#deploy">Sheet für die App freigeben</a></li>
   <li><a href="#connect">Handy verbinden</a></li>
   <li><a href="#athletes">Sportler pflegen</a></li>
-  <li><a href="#second">Zweites Handy (Helfer)</a></li>
+  <li><a href="#second">Weitere Trainer verbinden</a></li>
   <li><a href="#data">Was wird wo gespeichert?</a></li>
   <li><a href="#help">Wenn etwas nicht klappt</a></li>
   <li><a href="#calc">So rechnet ChronOar</a></li>
@@ -81,14 +81,16 @@ nav.toc a{text-decoration:none}
   <li>Kurz warten, bis oben in der Menüleiste <span class="k">ChronOar</span> erscheint (ggf. Seite neu laden).</li>
   <li><span class="k">ChronOar → 1. Einrichten</span> wählen. Beim ersten Mal fragt Google nach einer Berechtigung – siehe Kasten unten.</li>
 </ol>
-<div class="box warn"><b>„Google hat diese App nicht überprüft“</b><br>
-Diese Warnung ist normal: Das Skript in deinem Sheet stammt nicht aus einem geprüften Store. So geht's weiter:
+<div class="box warn"><b>Berechtigung erteilen</b><br>
+Beim ersten Mal fragt Google nach, ob das Skript auf dein Sheet zugreifen darf. Die Warnungen dabei sind normal, weil das Skript nicht aus einem geprüften Store stammt. So geht's weiter:
 <ol>
-  <li><span class="k">Berechtigungen prüfen</span> → dein Google-Konto wählen.</li>
-  <li>Unten links auf <span class="k">Erweitert</span> tippen.</li>
-  <li><span class="k">Zu ChronOar (unsicher) wechseln</span> → <span class="k">Zulassen</span>.</li>
+  <li>Fenster <span class="k">Autorisierung erforderlich</span>: auf <span class="k">OK</span> klicken.</li>
+  <li>Dein Google-Konto auswählen.</li>
+  <li>Bei „Google hat diese App nicht überprüft“ unten links auf <span class="k">Erweitert</span> klicken.</li>
+  <li>Unter dem Satz „Fahren Sie nur dann fort, wenn Sie die Risiken verstanden haben und dem Entwickler (…) vertrauen“ auf <span class="k">ChronOar öffnen (unsicher)</span> klicken.</li>
+  <li>Häkchen bei <span class="k">Alles auswählen</span> setzen → <span class="k">Weiter</span>.</li>
 </ol>
-Das Skript darf danach nur auf <b>dieses eine Sheet</b> zugreifen und läuft unter deinem Konto.</div>
+In der Klammer steht <b>deine eigene E-Mail-Adresse</b>: Nach dem Kopieren gehört das Skript dir, du bist also selbst der „Entwickler“. Das Skript darf danach nur auf <b>dieses eine Sheet</b> zugreifen und läuft unter deinem Konto.</div>
 
 <h2 id="deploy"><span class="n">3</span>Sheet für die App freigeben</h2>
 <p>Damit die App ins Sheet schreiben kann, bekommt das Skript eine eigene Internetadresse („Web-App“).</p>
@@ -131,12 +133,13 @@ Das Skript darf danach nur auf <b>dieses eine Sheet</b> zugreifen und läuft unt
 </table></div>
 <p class="muted">Zeilen mit fehlenden oder ungültigen Angaben übernimmt die App nicht. Zum Saisonwechsel einfach die Altersklasse im Sheet ändern. Die App holt die Liste beim Öffnen des Tabs „Sportler“ neu.</p>
 
-<h2 id="second"><span class="n">6</span>Zweites Handy (Helfer)</h2>
-<p>Stoppt jemand am Ziel mit, sollen dessen Ergebnisse auch in <i>dein</i> Sheet:</p>
+<h2 id="second"><span class="n">6</span>Weitere Trainer verbinden</h2>
+<p>Stoppen noch andere Trainer aus deinem Verein Belastungen, können sie sich mit <i>deinem</i> Sheet verbinden. Dann teilt ihr euch die Sportlerliste, und alle Ergebnisse landen gesammelt an einem Ort. Die Stoppuhren legt jeder auf seinem eigenen Handy an.</p>
 <ol>
-  <li>Auf deinem Handy: <span class="k">Sportler → ☁ Sheet → Weiteres Handy verbinden</span>.</li>
-  <li>Auf dem zweiten Handy: ChronOar installieren (Schritt 1) → <span class="k">Sportler → ☁ Sheet → QR-Code scannen</span>.</li>
+  <li>Auf deinem Handy: <span class="k">Sportler → ☁ Sheet → Weiteres Handy verbinden</span>. Ein QR-Code erscheint.</li>
+  <li>Auf dem Handy des anderen Trainers: ChronOar installieren (Schritt 1) → <span class="k">Sportler → ☁ Sheet → QR-Code scannen</span>.</li>
 </ol>
+<p class="muted">Ein eigenes Sheet braucht der andere Trainer dafür nicht. Alternativ kann er den QR-Code auch direkt im Sheet über <span class="k">ChronOar → Mit Handy verbinden</span> scannen.</p>
 <p class="muted">Der QR-Code ist wie ein Passwort. Brauchst du ein Handy nicht mehr, erzeugst du im Sheet über <span class="k">ChronOar → Neuen Schlüssel erzeugen</span> einen neuen Code – dann sind alle alten Handys getrennt und du verbindest nur die gewünschten neu.</p>
 
 <h2 id="data"><span class="n">7</span>Was wird wo gespeichert?</h2>
@@ -173,7 +176,10 @@ Das Skript darf danach nur auf <b>dieses eine Sheet</b> zugreifen und läuft unt
     <tr><td>Schlagfrequenz (SF)</td><td>Zwei Tipps im Abstand von 2 Schlägen: SF = 120 ÷ Sekunden zwischen den Tipps<br><span class="muted">3,6 s für 2 Schläge → 33,3 Schläge/min. Werte unter 8 oder über 70 werden als Fehltipp verworfen.</span></td></tr>
     <tr><td>Ø SF</td><td>Mittelwert aller Frequenzen, die an dieser Uhr gemessen wurden</td></tr>
     <tr><td>Kategorie</td><td>Aus Sportler-Daten: J/S (Junior/Senior) + M/F + A/B (Altersklasse) + L (nur bei Leichtgewicht) + Bootsklasse<br><span class="muted">leichter B-Junior im Doppelzweier → <code>JMBL2x</code></span></td></tr>
-    <tr><td>Relation (m/s)</td><td>Wert der Kategorie aus der zentralen Relationstabelle.<br><b>Gemischte Boote:</b> Es zählt die durchschnittliche <i>Zeit</i>, nicht die durchschnittliche Geschwindigkeit. Jeder Sitz zählt einmal: Relation = Anzahl Sitze ÷ Summe(1 ÷ Relation je Sitz).<br><span class="muted">Beispiel: Ein Boot bräuchte 5 min, das andere 8 min für 1000 m → zusammen 13 min für 2000 m → 2000 m ÷ 780 s = 2,5641 m/s.</span><br>Sportler, für deren Kategorie es in dieser Bootsklasse keinen Wert gibt, und Steuerleute zählen nicht mit.</td></tr>
+    <tr><td>Relation (m/s)</td><td>Der Wert der Kategorie aus der zentralen Relationstabelle.<br>
+      <b>Gemischte Boote:</b> Für jeden Sitz rechnet ChronOar aus, wie lange ein reines Boot dieser Kategorie für die Strecke bräuchte. Der Durchschnitt dieser Zeiten ist die Zielzeit des Bootes, daraus folgt die Relation = Strecke ÷ durchschnittliche Zeit.<br>
+      <span class="muted">Beispiel 2x über 1000 m: Sitz 1 bräuchte 5:00, Sitz 2 bräuchte 8:00 → Durchschnitt 6:30 (390 s) → 1000 m ÷ 390 s = 2,5641 m/s.</span><br>
+      Sportler, für deren Kategorie es in dieser Bootsklasse keinen Wert gibt, und Steuerleute zählen nicht mit.</td></tr>
     <tr><td>Zielzeit</td><td>Strecke ÷ Relation<br><span class="muted">2000 m ÷ 5,3419 m/s → 374,4 s → 6:14,4</span></td></tr>
     <tr><td>Prozent</td><td>m/s ÷ Relation. In der App als Prozent (96,0 %), im Sheet als Anteil (0,9600), damit man direkt damit rechnen kann. Gilt für das ganze Boot; Steuerleute bekommen keinen Wert.</td></tr>
     <tr><td>GPS-Tempo</td><td>Zurückgelegte Strecke der letzten 5 Sekunden ÷ deren Dauer, als /500 m dargestellt</td></tr>
