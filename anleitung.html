@@ -177,9 +177,11 @@ In der Klammer steht <b>deine eigene E-Mail-Adresse</b>: Nach dem Kopieren gehö
     <tr><td>Ø SF</td><td>Mittelwert aller Frequenzen, die an dieser Uhr gemessen wurden</td></tr>
     <tr><td>Kategorie</td><td>Aus Sportler-Daten: J/S (Junior/Senior) + M/F + A/B (Altersklasse) + L (nur bei Leichtgewicht) + Bootsklasse<br><span class="muted">leichter B-Junior im Doppelzweier → <code>JMBL2x</code></span></td></tr>
     <tr><td>Relation (m/s)</td><td>Der Wert der Kategorie aus der zentralen Relationstabelle.<br>
-      <b>Gemischte Boote:</b> Für jeden Sitz rechnet ChronOar aus, wie lange ein reines Boot dieser Kategorie für die Strecke bräuchte. Der Durchschnitt dieser Zeiten ist die Zielzeit des Bootes, daraus folgt die Relation = Strecke ÷ durchschnittliche Zeit.<br>
-      <span class="muted">Beispiel 2x über 1000 m: Sitz 1 bräuchte 5:00, Sitz 2 bräuchte 8:00 → Durchschnitt 6:30 (390 s) → 1000 m ÷ 390 s = 2,5641 m/s.</span><br>
-      Sportler, für deren Kategorie es in dieser Bootsklasse keinen Wert gibt, und Steuerleute zählen nicht mit.</td></tr>
+      <b>Gemischte Boote:</b> Man stellt sich vor, jeder Sitz fährt die Strecke einmal allein – mit der Relationsgeschwindigkeit seiner Kategorie. Dann werden alle Strecken und alle Zeiten addiert:<br>
+      Relation des Bootes = Summe der Strecken ÷ Summe der Zeiten.<br>
+      <span class="muted">Beispiel 2x über 1000 m: Sitz 1 braucht 5:00, Sitz 2 braucht 8:00 → zusammen 2000 m in 13:00 (780 s) → 2000 m ÷ 780 s = 2,5641 m/s.<br>
+      Beispiel 4x: Drei Sitze schaffen 100 m in 1 s, einer braucht 2 s → zusammen 400 m in 5 s → 80 m/s.</span><br>
+      Das ist bewusst <i>nicht</i> der Mittelwert der Geschwindigkeiten (der würde das schnellere Boot bevorzugen). Jeder Sitz zählt einmal; Sportler, für deren Kategorie es in dieser Bootsklasse keinen Wert gibt, und Steuerleute zählen nicht mit.</td></tr>
     <tr><td>Zielzeit</td><td>Strecke ÷ Relation<br><span class="muted">2000 m ÷ 5,3419 m/s → 374,4 s → 6:14,4</span></td></tr>
     <tr><td>Prozent</td><td>m/s ÷ Relation. In der App als Prozent (96,0 %), im Sheet als Anteil (0,9600), damit man direkt damit rechnen kann. Gilt für das ganze Boot; Steuerleute bekommen keinen Wert.</td></tr>
     <tr><td>GPS-Tempo</td><td>Zurückgelegte Strecke der letzten 5 Sekunden ÷ deren Dauer, als /500 m dargestellt</td></tr>
