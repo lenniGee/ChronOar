@@ -218,6 +218,7 @@ function doPost(e) {
   return handle_(function () {
     var body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     checkKey_(body.key);
+    if (body.action === 'pdf') return makePdf(body.form);   // App: „PDF für heute“
     if (body.action !== 'batch') throw new Error('unknown_action');
     var lock = LockService.getScriptLock();
     lock.waitLock(20000);

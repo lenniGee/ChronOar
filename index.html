@@ -212,6 +212,7 @@ textarea.codein{min-height:76px;padding:10px 12px;font-size:13px;font-family:ui-
 .rg-grp{font-family:var(--display);font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);padding:6px 2px 0}
 .rg-who{font-size:12px;color:var(--muted)}
 .sheet a{color:var(--accent)}
+.sheet a.btn{color:var(--accent-ink);text-decoration:none}
 </style>
 </head>
 <body>
@@ -273,6 +274,7 @@ textarea.codein{min-height:76px;padding:10px 12px;font-size:13px;font-family:ui-
 
   <section data-tab="results" id="tab-results" hidden>
     <div class="bar">
+      <button class="btn primary" data-act="pdf-today" id="pdf-btn">PDF für heute</button>
       <button class="btn primary" id="csv-btn">Als Tabelle kopieren</button>
       <button class="btn ghost" id="res-sheet">☁ Sheet</button>
       <button class="btn ghost danger" id="res-clear" data-confirm="Alle Ergebnisse löschen?">Alle löschen</button>
@@ -577,7 +579,7 @@ function openWatchSheet(){
   D={step:1,dist:first?first.dist:2000,startNo:"",boat:null,crew:[],cox:null,filter:""};
   renderSheet();
 }
-function closeSheet(){stopScan();D=null;A=null;G=null;E=null;$("#sheet-root").innerHTML=""}
+function closeSheet(){stopScan();D=null;A=null;G=null;E=null;P=null;$("#sheet-root").innerHTML=""}
 function sheetShell(title,steps,body,foot){
   $("#sheet-root").innerHTML=`<div class="sheet-bg" data-act="bg"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}">
     <div class="sheet-h"><h3>${esc(title)}</h3><span class="steps">${steps}</span><button class="btn sm ghost" data-act="close">Abbrechen</button></div>
@@ -654,6 +656,7 @@ $("#sheet-root").addEventListener("click",e=>{
   const b=e.target.closest("[data-act]"); if(!b||b.disabled||b.dataset.act==="bg")return;
   const act=b.dataset.act;
   if(act==="close"){closeSheet();return}
+  if(P){pdfClick(act,b);return}
   if(E){distClick(act,b);return}
   if(G){settingsClick(act,b);return}
   if(A){athSheetClick(act,b);return}
@@ -756,6 +759,52 @@ $("#tab-athletes").addEventListener("click",e=>{
 });
 
 /* ---------- results ---------- */
+/* ---------- Ergebnis-PDF für heute: das Sheet erstellt es (gleiches Layout wie Menü „Ergebnis-PDF erstellen“) ---------- */
+const NEED_PDF=14;
+let P=null;
+function todayKey(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function openPdfSheet(){
+  if(!S.conn){toast("Dafür mit einem Sheet verbinden (☁ Sheet)");return}
+  P={busy:false,err:"",res:null,...(S.pdfForm||{})};renderPdfSheet();
+}
+function pdfKeep(){["ort","wind","temp","goal"].forEach(k=>{const f=$("#p-"+k);if(f)P[k]=f.value.trim()})}
+function renderPdfSheet(){
+  const old=(S.conn.version||0)<NEED_PDF;
+  let body,foot;
+  if(P.res){
+    body=`<div class="note">PDF ist fertig und liegt im Google Drive neben dem Sheet:<br><b>${esc(P.res.name)}</b></div>
+      <div class="bar"><a class="btn" href="${esc(P.res.url)}" target="_blank" rel="noopener">PDF öffnen</a><a class="btn ghost" href="${esc(P.res.download)}" target="_blank" rel="noopener">Herunterladen</a></div>`;
+    foot=`<span class="sum"></span><button class="btn" data-act="close">Fertig</button>`;
+  }else{
+    body=`<div class="muted">Alle Fahrten von <b>heute (${new Date().toLocaleDateString("de-DE")})</b> aus dem Sheet „${esc(S.conn.name||"Sheet")}“ – dreimal sortiert: nach Prozent, nach Strecke Nr. und nach Mannschaft. Für andere Tage im Sheet: ChronOar → Ergebnis-PDF erstellen.</div>
+      ${old?`<div class="warnt">Das Skript im Sheet ist zu alt (nötig: Version ${NEED_PDF}). Bitte Code.gs aktualisieren und eine neue Version bereitstellen.</div>`:""}
+      <label class="fld" for="p-ort">Ort<input class="txt" id="p-ort" maxlength="80" autocomplete="off" value="${esc(P.ort||"")}"></label>
+      <label class="fld" for="p-wind">Wind (optional)<input class="txt" id="p-wind" maxlength="80" autocomplete="off" value="${esc(P.wind||"")}"></label>
+      <label class="fld" for="p-temp">Temperatur (optional)<input class="txt" id="p-temp" maxlength="40" autocomplete="off" value="${esc(P.temp||"")}"></label>
+      <label class="fld" for="p-goal">Trainingsvorgabe (optional)<textarea class="txt codein" id="p-goal" maxlength="600" style="font-family:inherit;font-size:16px">${esc(P.goal||"")}</textarea></label>
+      ${P.err?`<div class="warnt">${esc(P.err)}</div>`:""}`;
+    foot=`<span class="sum">${P.busy?"Wird erstellt – das dauert ein paar Sekunden…":""}</span><button class="btn" data-act="p-make" ${P.busy||old?"disabled":""}>${P.busy?"Erstelle…":"PDF erstellen"}</button>`;
+  }
+  sheetShell("Ergebnis-PDF","",body,foot);
+}
+async function pdfClick(act){
+  if(act!=="p-make"||P.busy)return;
+  pdfKeep();
+  if(!P.ort){P.err="Bitte den Ort eintragen.";renderPdfSheet();$("#p-ort").focus();return}
+  S.pdfForm={ort:P.ort,wind:P.wind,temp:P.temp,goal:P.goal};save();
+  P.busy=true;P.err="";renderPdfSheet();
+  try{
+    await sync();                                   /* erst alle wartenden Ergebnisse hochladen */
+    if(S.queue.some(o=>o.op==="results"))throw new ApiError("Noch nicht alle Ergebnisse sind im Sheet (kein Netz?). Bitte gleich nochmal versuchen.");
+    const j=await apiPost({action:"pdf",form:{day:todayKey(),ort:P.ort,wind:P.wind,temp:P.temp,goal:P.goal}});
+    if(P){P.res=j;P.busy=false;renderPdfSheet()}
+  }catch(e){
+    if(!P)return;
+    P.busy=false;P.err=e instanceof TypeError?"Sheet nicht erreichbar – Internet prüfen.":e.code==="unknown_action"?"Das Skript im Sheet ist zu alt (Version "+NEED_PDF+" nötig).":(e.code||e.message);
+    renderPdfSheet();
+  }
+}
+$("#tab-results").addEventListener("click",e=>{if(e.target.closest('[data-act="pdf-today"]'))openPdfSheet()});
 function renderResults(){
   const rs=[...S.results].sort((a,b)=>b.ts-a.ts);
   $("#topsub").textContent=rs.length+" Einträge";
