@@ -630,7 +630,9 @@ function createFromDraft(){
 }
 $("#sheet-root").addEventListener("click",e=>{
   if(e.target.dataset.act==="bg"){closeSheet();return}
-  const b=e.target.closest("[data-act]"); if(!b||b.disabled)return;
+  /* Nur echte Tasten auswerten. Ein Tipp in ein Eingabefeld findet sonst den Hintergrund (data-act="bg") als
+     nächstes Element, das Fenster würde neu gezeichnet und die Tastatur ginge sofort wieder zu. */
+  const b=e.target.closest("[data-act]"); if(!b||b.disabled||b.dataset.act==="bg")return;
   const act=b.dataset.act;
   if(act==="close"){closeSheet();return}
   if(E){distClick(act,b);return}
