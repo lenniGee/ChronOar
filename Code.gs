@@ -42,7 +42,7 @@
  * unter der Web-App-Adresse weiter die alte Version. Die Adresse bleibt gleich.
  */
 
-var SCRIPT_VERSION = 15;
+var SCRIPT_VERSION = 16;
 var CODE_PREFIX = 'CHRONOAR1:';
 var SH_ATH = 'Sportler', SH_RES = 'Ergebnis Sportler', SH_TEAM = 'Ergebnis Mannschaft';
 var OLD_NAMES = { 'Ergebnis Sportler': 'Ergebnisse', 'Ergebnis Mannschaft': 'Mannschaften' };
@@ -244,6 +244,7 @@ function doPost(e) {
         else if (o.op === 'rgEventDel') delRgEvent_(o.id);
         done.push(o.qid);
       });
+      if ((body.ops || []).some(function (o) { return o.op === 'rgBoat' || o.op === 'rgBoatDel'; })) { try { refreshRgValidation_(); } catch (e) { } }
       SpreadsheetApp.flush();
       return { done: done };
     } finally { lock.releaseLock(); }
@@ -626,9 +627,8 @@ function regattaSheet_() {
     sh.getRange('A1').setNote('Wird automatisch vergeben. Neue Boote einfach ab Spalte B eintragen.');
     sh.getRange('O1').setNote('Wird von der App hochgezählt („Neuer Lauf“).');
     sh.getRange('D2:D').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(BOAT_LIST, true).setAllowInvalid(false).build());
-    var list = SpreadsheetApp.getActive().getSheetByName(SH_LIST) || listSheet_();
-    var dv = SpreadsheetApp.newDataValidation().requireValueInRange(list.getRange('A2:A'), true).setAllowInvalid(true).build();
-    sh.getRange('F2:N').setDataValidation(dv);
+    if (!SpreadsheetApp.getActive().getSheetByName(SH_LIST)) listSheet_();
+    try { refreshRgValidation_(); } catch (e) { }
   }
   return sh;
 }
@@ -654,10 +654,33 @@ function refreshNameList_() {
   var sh = listSheet_();
   if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 1).clearContent();
   if (names.length) sh.getRange(2, 1, names.length, 1).setValues(names);
+  try { refreshRgValidation_(); } catch (e) { }
 }
 /** Einfacher Trigger: Änderungen im Blatt Sportler aktualisieren sofort die Auswahllisten der Regatta. */
 function onEdit(e) {
-  try { if (e && e.range && e.range.getSheet().getName() === SH_ATH) refreshNameList_(); } catch (err) { }
+  try {
+    if (!e || !e.range) return;
+    var name = e.range.getSheet().getName();
+    if (name === SH_ATH) refreshNameList_();
+    else if (name === SH_RG && e.range.getLastColumn() >= 6 && e.range.getColumn() <= 14) refreshRgValidation_();
+  } catch (err) { }
+}
+/**
+ * Auswahllisten im Blatt „Regatta“ (Platz 1–8, Steuerperson): nur Sportler, die in der Regatta noch nicht eingeteilt sind.
+ * Jede Zelle bekommt ihre eigene Liste = freie Namen + der Name, der schon in ihr steht (sonst markiert Sheets ihn als ungültig).
+ * Von Hand lässt sich weiterhin jeder Name eintragen (z. B. wenn jemand in zwei Rennen sitzt).
+ */
+function refreshRgValidation_() {
+  var ss = SpreadsheetApp.getActive(), sh = ss.getSheetByName(SH_RG), list = ss.getSheetByName(SH_LIST);
+  if (!sh || !list) return;
+  var all = list.getLastRow() > 1 ? list.getRange(2, 1, list.getLastRow() - 1, 1).getValues().map(function (r) { return String(r[0]).trim(); }).filter(String) : [];
+  var n = Math.max(sh.getLastRow(), 1) + 30, vals = sh.getRange(2, 6, n - 1, 9).getValues(), used = {};
+  vals.forEach(function (row) { row.forEach(function (v) { v = String(v).trim().toLowerCase(); if (v) used[v] = true; }); });
+  var free = all.filter(function (x) { return !used[x.toLowerCase()]; });
+  var mk = function (items) { return items.length ? SpreadsheetApp.newDataValidation().requireValueInList(items.slice(0, 500), true).setAllowInvalid(true).build() : null; };
+  var emptyRule = mk(free);
+  var rules = vals.map(function (row) { return row.map(function (v) { v = String(v).trim(); return v ? mk([v].concat(free)) : emptyRule; }); });
+  sh.getRange(2, 6, n - 1, 9).setDataValidations(rules);
 }
 function athleteNames_() {
   var ath = SpreadsheetApp.getActive().getSheetByName(SH_ATH), byName = {}, byId = {};
