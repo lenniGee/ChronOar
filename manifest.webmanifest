@@ -1,6 +1,7 @@
 {
   "name": "ChronOar",
   "short_name": "ChronOar",
+  "description": "Stoppuhren, Schlagzahl und Regatta-Zeitnahme für Rudertrainer – eine App von Lennart Geerdes.",
   "lang": "de",
   "start_url": "./",
   "scope": "./",

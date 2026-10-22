@@ -1,5 +1,7 @@
 # ChronOar
 
+**Autor:** Lennart Geerdes · © 2026 Lennart Geerdes. ChronOar wurde von Lennart Geerdes konzipiert und entwickelt.
+
 Stoppuhren mit Relationsgeschwindigkeiten für Rudertrainer – als Web-App (PWA) für iPhone und Android, gehostet über GitHub Pages. Jeder Trainer speichert Sportler und Ergebnisse in seinem **eigenen** Google Sheet; die Relationsgeschwindigkeiten kommen **zentral** aus der Datei `relationen.csv` in diesem Repository.
 
 - **Für Trainer:** Einrichtung Schritt für Schritt in [`anleitung.html`](anleitung.html) (in der App unter *Sportler → ☁ Sheet* verlinkt).
@@ -129,7 +131,7 @@ Gespeichert wird auf dem Handy im Browser-Speicher unter dem Schlüssel `rudertr
 
 ## Skript (Code.gs) aktualisieren
 
-Nötig, wenn sich `Code.gs` ändert (`SCRIPT_VERSION`). Version 2 brachte das Mannschaftsblatt, Version 3 die Blattnamen „Ergebnis Sportler“ / „Ergebnis Mannschaft“ (alte Blätter werden automatisch umbenannt) und die Versionsanzeige in der App, Version 4 entfernt das Blatt „Relationen“ (Relationen kommen aus `relationen.csv`; ein vorhandenes Blatt „Relationen“ kann gelöscht werden). Version 5 speichert Prozent als Anteil (1,08 statt 108) und rechnet alte Werte beim Öffnen des Sheets automatisch um. Version 6 ergänzt die Spalten „Zielzeit“ und „Zielzeit (s)“ und trägt sie für alte Zeilen beim Öffnen nach. Version 7 ändert die Spaltenreihenfolge in „Ergebnis Mannschaft“ (das Blatt wird automatisch neu aufgebaut). Version 8 findet und prüft im Dialog „Mit Handy verbinden“ die Web-App-Adresse selbst (braucht einmalig die zusätzliche Berechtigung „Mit externem Dienst verbinden“) und warnt, wenn unter der Adresse eine ältere Skript-Version läuft. Version 9 ändert die Spaltenreihenfolge in „Ergebnis Sportler“ (wird beim Öffnen automatisch umsortiert) und speichert Splits als Abschnittszeiten (alte Einträge werden umgerechnet). Version 10 behebt eine falsche Umrechnung der Prozentwerte bei sehr kurzen Testfahrten: Die App kennzeichnet Anteile jetzt ausdrücklich (`pf: 1`), das Skript rechnet nur noch Werte sehr alter App-Versionen um. Version 11 ergänzt die Spalte „Strecke Nr.“ in beiden Ergebnis-Blättern. Version 12 ergänzt „Startnummer“ und „Frequenzen“. Version 13 bringt den Regatta-Modus (Blätter „Regatta“, „Regatta-Log“, „_Listen“ werden beim Öffnen bzw. beim ersten Abruf automatisch angelegt; die App braucht für den Regatta-Tab mindestens Version 13). Version 14 ergänzt den Menüpunkt „Ergebnis-PDF erstellen“ und den Knopf „PDF für heute“ in der App (braucht einmalig die zusätzliche Berechtigung für Google Drive: nach dem Einspielen den Menüpunkt einmal aufrufen und zulassen, danach eine neue Version bereitstellen).
+Nötig, wenn sich `Code.gs` ändert (`SCRIPT_VERSION`). Version 2 brachte das Mannschaftsblatt, Version 3 die Blattnamen „Ergebnis Sportler“ / „Ergebnis Mannschaft“ (alte Blätter werden automatisch umbenannt) und die Versionsanzeige in der App, Version 4 entfernt das Blatt „Relationen“ (Relationen kommen aus `relationen.csv`; ein vorhandenes Blatt „Relationen“ kann gelöscht werden). Version 5 speichert Prozent als Anteil (1,08 statt 108) und rechnet alte Werte beim Öffnen des Sheets automatisch um. Version 6 ergänzt die Spalten „Zielzeit“ und „Zielzeit (s)“ und trägt sie für alte Zeilen beim Öffnen nach. Version 7 ändert die Spaltenreihenfolge in „Ergebnis Mannschaft“ (das Blatt wird automatisch neu aufgebaut). Version 8 findet und prüft im Dialog „Mit Handy verbinden“ die Web-App-Adresse selbst (braucht einmalig die zusätzliche Berechtigung „Mit externem Dienst verbinden“) und warnt, wenn unter der Adresse eine ältere Skript-Version läuft. Version 9 ändert die Spaltenreihenfolge in „Ergebnis Sportler“ (wird beim Öffnen automatisch umsortiert) und speichert Splits als Abschnittszeiten (alte Einträge werden umgerechnet). Version 10 behebt eine falsche Umrechnung der Prozentwerte bei sehr kurzen Testfahrten: Die App kennzeichnet Anteile jetzt ausdrücklich (`pf: 1`), das Skript rechnet nur noch Werte sehr alter App-Versionen um. Version 11 ergänzt die Spalte „Strecke Nr.“ in beiden Ergebnis-Blättern. Version 12 ergänzt „Startnummer“ und „Frequenzen“. Version 13 bringt den Regatta-Modus (Blätter „Regatta“, „Regatta-Log“, „_Listen“ werden beim Öffnen bzw. beim ersten Abruf automatisch angelegt; die App braucht für den Regatta-Tab mindestens Version 13). Version 14 ergänzt den Menüpunkt „Ergebnis-PDF erstellen“ und den Knopf „PDF für heute“ in der App (braucht einmalig die zusätzliche Berechtigung für Google Drive: nach dem Einspielen den Menüpunkt einmal aufrufen und zulassen, danach eine neue Version bereitstellen). Version 15 ergänzt die Spalte „Abteilung“ in beiden Ergebnis-Blättern (Regatta-Modus; wird beim Öffnen automatisch eingefügt), den vierten PDF-Teil „Nach Abteilung und Strecke Nr.“ und den Menüpunkt „Über ChronOar“.
 
 **Kontrolle:** In der App unter *Sportler → ☁ Sheet* steht „Sheet-Skript: Version 3“ oder höher (aktuell 12). Steht dort ein Hinweis „veraltet“, läuft unter der Web-App-Adresse noch der alte Code – dann fehlt Schritt 2 (neue Version in der bestehenden Bereitstellung).
 
@@ -159,6 +161,7 @@ Bestehende Kopien aktualisieren sich **nicht** automatisch – Trainer müssen i
 | Datum, Uhrzeit | Zeitpunkt des Stopps |
 | Strecke (m) | |
 | Startnummer | optional, beim Anlegen der Uhr eingetragen |
+| Abteilung | nur Regatta-Modus: Abteilung des Bootes (optional) |
 | Strecke Nr. | `1. Strecke`, `2. Strecke`, … – wievielte Fahrt dieser Mannschaft an diesem Tag (siehe unten) |
 | Vorname, Nachname, Rolle, Kategorie | Rolle = `Ruderer` oder `Steuerperson` |
 | Boot | |
@@ -184,7 +187,7 @@ Tipp für Auswertungen: eigene Blätter mit `FILTER`, `QUERY` oder Pivot-Tabelle
 | Belastung | ID der Belastung (Verknüpfung zu „Ergebnis Sportler“) |
 | Datum, Uhrzeit | Zeitpunkt des Stopps |
 | Strecke (m) | |
-| Startnummer, Strecke Nr. | wie in „Ergebnis Sportler“ |
+| Startnummer, Abteilung, Strecke Nr. | wie in „Ergebnis Sportler“ |
 | Mannschaft | alle Ruderer in Sitzreihenfolge der Auswahl |
 | Steuerperson | falls vorhanden |
 | Kategorien | alle Kategorien im Boot, z. B. `JM A, JM B L` (Mixed-Boote erkennbar) |
@@ -224,8 +227,8 @@ Zeitabgleich (`webTimeSync`, `rgSample` in `index.html`): Alle Zeiten sind Weltz
 Menü **ChronOar → Ergebnis-PDF erstellen** (Funktionen `showPdf`, `makePdf`, `pdfHtml_` in `Code.gs`).
 
 - **Daten:** alle Zeilen eines Kalendertags aus „Ergebnis Mannschaft“ (Spalten werden über ihren Namen gelesen). Boot-Bezeichnung aus „Kategorien“ + „Boot“: eine Kategorie → `JMBL1x`, mehrere → `JMA/JMBL 4x` (alphabetisch).
-- **Kopf:** Datum mit Wochentag, Zeitraum = früheste bis späteste „Uhrzeit“ des Tages, Ort (Pflicht), Wind, Temperatur, Vorgabe (optional, nur Seite 1). Die Eingaben merkt sich der Dialog im Browser.
-- **Drei Teile**, jeweils ab neuer Seite: nach Prozent · nach „Strecke Nr.“, dann Prozent · nach Mannschaft (gleiche Ruderer im gleichen Boot, Reihenfolge egal; Mannschaften geordnet nach ihrem besten Ergebnis), dann Prozent. Fahrten ohne Prozent stehen am Ende.
+- **Kopf:** Wortmarke CHRON (schwarz) OAR (orange), darunter „von Lennart Geerdes“; Datum mit Wochentag, Zeitraum = früheste bis späteste „Uhrzeit“ des Tages, Ort (Pflicht), Wind, Temperatur, Vorgabe (optional, nur Seite 1). Die Eingaben merkt sich der Dialog im Browser.
+- **Vier Teile**, jeweils ab neuer Seite: nach Prozent · nach „Strecke Nr.“, dann Prozent · nach Abteilung und „Strecke Nr.“, dann Prozent (nur wenn am Tag Abteilungen vergeben sind; jede Kombination ist eine eigene, nicht getrennte Gruppe; Fahrten ohne Abteilung am Ende) · nach Mannschaft (gleiche Ruderer im gleichen Boot, Reihenfolge egal; Mannschaften geordnet nach ihrem besten Ergebnis), dann Prozent. Fahrten ohne Prozent stehen am Ende.
 - **Seitenumbruch** wird im Skript berechnet (geschätzte Zeilenhöhen, Konstanten `PDF_PAGE`, `PDF_FIRST`, `PDF_ROW`, `PDF_ROW_WRAP`, `PDF_GRP`). Jede Seite bekommt Kopf und Spaltenüberschrift; eine Mannschaft wird im dritten Teil nicht getrennt; Zwischenüberschriften stehen nie allein am Seitenende. Sind die Seiten im fertigen PDF zu voll oder zu leer, `PDF_PAGE`/`PDF_FIRST` anpassen.
 - **Umwandlung:** HTML → PDF mit Googles eingebautem Konverter (`Utilities.newBlob(html,'text/html').getAs('application/pdf')`), gespeichert im Drive-Ordner des Sheets als `ChronOar <Datum> <Ort>.pdf`. Das Logo ist als PNG (Base64) im Skript eingebettet.
 

@@ -2,6 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
+<meta name="author" content="Lennart Geerdes">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ChronOar einrichten</title>
 <meta name="theme-color" content="#1b1b1d">
@@ -41,6 +42,7 @@ nav.toc a{text-decoration:none}
 <body>
 <main>
 <h1>Chron<span>Oar</span> einrichten</h1>
+<p class="muted" style="margin-top:-6px">Eine App von <b>Lennart Geerdes</b></p>
 <p class="lead">Stoppuhren mit Relationsgeschwindigkeiten für Rudertrainer. Diese Anleitung führt dich in etwa 10 Minuten von null bis zum ersten Ergebnis in deinem eigenen Google Sheet.</p>
 
 <nav class="toc"><ol>
@@ -184,10 +186,11 @@ In der Klammer steht <b>deine eigene E-Mail-Adresse</b>: Nach dem Kopieren gehö
   <li><span class="k">PDF erstellen</span>. Das PDF liegt danach im selben Google-Drive-Ordner wie dein Sheet und lässt sich direkt öffnen oder herunterladen.</li>
 </ol>
 <p><b>Für heute geht es auch in der App:</b> <span class="k">Ergebnisse → PDF für heute</span>, Ort und die optionalen Angaben eintragen, <span class="k">PDF erstellen</span>. Die App lädt vorher alle wartenden Ergebnisse hoch; das Sheet erstellt das PDF und legt es ebenfalls in den Drive-Ordner. Danach lässt es sich direkt öffnen oder herunterladen. Für andere Tage den Weg über das Sheet nehmen.</p>
-<p>Das PDF enthält alle Fahrten des Tages aus „Ergebnis Mannschaft“, in drei Teilen. Jeder Teil beginnt auf einer neuen Seite:</p>
+<p>Das PDF enthält alle Fahrten des Tages aus „Ergebnis Mannschaft“, in bis zu vier Teilen. Jeder Teil beginnt auf einer neuen Seite:</p>
 <ul>
   <li><b>Nach Prozent</b> – die Gesamtliste.</li>
   <li><b>Nach Strecke Nr., dann Prozent</b> – alle 1. Strecken, alle 2. Strecken, …</li>
+  <li><b>Nach Abteilung und Strecke Nr., dann Prozent</b> – jede Abteilung und jede ihrer Strecken als eigene Auswertung (Abteilung 1 · 1. Strecke, Abteilung 1 · 2. Strecke, …). Eine Auswertung wird nicht auf zwei Seiten verteilt. Dieser Teil erscheint nur, wenn an dem Tag im Regatta-Modus Abteilungen vergeben wurden.</li>
   <li><b>Nach Mannschaft, dann Prozent</b> – jede Mannschaft steht zusammen auf einer Seite. Nur wenn eine Mannschaft mehr Fahrten hat, als auf eine Seite passen, geht es mit „(Fortsetzung)“ weiter.</li>
 </ul>
 <p>Pro Fahrt gibt es zwei Zeilen: Mannschaft mit Steuerperson, Boot (z. B. <i>JMBL1x</i>, gemischt <i>JMA/JMBL 4x</i>), Distanz, Ø SF, m/s, Zeit und Prozent – darunter Strecke Nr., Relation mit Zielzeit (z. B. <i>4,71 m/s – 3:32,3</i>) und Splits. Die Spaltenüberschrift steht auf jeder Seite.</p>
@@ -245,6 +248,7 @@ In der Klammer steht <b>deine eigene E-Mail-Adresse</b>: Nach dem Kopieren gehö
     <tr><td>GPS-km</td><td>Summe der Strecken zwischen den GPS-Punkten seit „GPS starten“. Kleine Sprünge (unter 4 m bzw. unter der GPS-Ungenauigkeit) werden ignoriert, damit Stillstand nicht mitzählt. Läuft nur bei eingeschaltetem Display.</td></tr>
   </tbody>
 </table></div>
+<p class="muted" style="margin-top:32px;border-top:1px solid #3a3a3e;padding-top:12px">ChronOar – Trainings- und Regatta-App für Rudertrainer, entwickelt von <b>Lennart Geerdes</b>. © 2026 Lennart Geerdes.</p>
 </main>
 <script>
 fetch("config.json",{cache:"no-store"}).then(r=>r.json()).then(c=>{

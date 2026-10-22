@@ -10,6 +10,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="ChronOar">
 <title>ChronOar</title>
+<meta name="author" content="Lennart Geerdes">
+<meta name="description" content="ChronOar – Stoppuhren, Schlagzahl und Regatta-Zeitnahme für Rudertrainer. Eine App von Lennart Geerdes.">
 <meta name="theme-color" content="#1b1b1d">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
@@ -204,6 +206,13 @@ textarea.codein{min-height:76px;padding:10px 12px;font-size:13px;font-family:ui-
 .qrbox{background:#fff;border-radius:12px;padding:12px;width:min(100%,320px);margin:0 auto}
 .qrbox svg{display:block;width:100%;height:auto}
 .relinfo{border-top:1px solid var(--line);padding-top:10px}
+.byline{text-align:center;color:var(--muted);font-size:13px;padding-top:4px}.byline b{color:var(--ink)}
+#splash{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .45s}
+#splash img{width:112px;height:112px;border-radius:24px}
+#splash .nm{font-family:var(--display);font-size:42px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1}
+#splash .nm span{color:var(--accent)}
+#splash .by{color:var(--muted);font-size:16px;letter-spacing:.04em}#splash .by b{color:var(--ink);font-weight:600}
+#splash.out{opacity:0;pointer-events:none}
 /* Regatta */
 .tabs-in{grid-template-columns:repeat(6,minmax(0,1fr))}
 .tabs button{font-size:11px;letter-spacing:0}
@@ -290,13 +299,14 @@ textarea.codein{min-height:76px;padding:10px 12px;font-size:13px;font-family:ui-
   <button data-act="open-help" aria-label="Anleitung"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5C4.7 20 4 19.3 4 18.5z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg><span>Anleitung</span></button>
   <button role="tab" data-tabbtn="general" aria-selected="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 17a8.5 8.5 0 1 1 17 0"/><path d="M12 17l4.5-6"/><circle cx="12" cy="17" r="1.6"/><path d="M6.5 13.5l1 .6M17.5 13.5l-1 .6M12 8.5v1.2"/></svg><span>StrokeCoach</span></button>
   <button role="tab" data-tabbtn="watches" aria-selected="true"><svg class="ti ti-oar" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.48 15.94A8 8 0 1 1 19.52 15.94"/><path d="M18.13 18.34A8 8 0 0 1 5.87 18.34"/><path class="tl" d="M13.06 13.76L21.71 18.36"/><path class="tl" d="M10.94 13.76L2.29 18.36"/><g class="tf"><rect x="10" y="2.4" width="4" height="2.2" rx=".3"/><rect x="4.28" y="5.39" width="3" height="1.8" rx=".3" transform="rotate(-42 5.78 6.29)"/><rect x="16.72" y="5.39" width="3" height="1.8" rx=".3" transform="rotate(42 18.22 6.29)"/><path d="M12 6.3L12.9 11.6L11.1 11.6Z"/><path d="M11.1 14.8L12.9 14.8L12 20.2Z"/></g></svg><span>ChronOar</span></button>
-  <button role="tab" data-tabbtn="regatta" aria-selected="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V3.5"/><path d="M5 4h13l-2.5 4L18 12H5"/><path class="tf" d="M8.5 4h3v4h-3zM11.5 8h3v4h-3z"/></svg><span>Regatta</span></button>
+  <button role="tab" data-tabbtn="regatta" aria-selected="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.3 19V2.8h4.2V19"/><path d="M8.4 2.8V1.2"/><path d="M10.5 4.2h8.7v6.9h-8.7"/><path d="M10.5 7.65h8.7"/><path d="M11.4 11.1v2.4h6.9v-2.4"/><path d="M10.5 13.5h8.7V19h-8.7"/><path d="M13.4 13.5V19M16.3 13.5V19"/><path d="M2.5 21.6c1.6-1 3-1 4.6 0s3 1 4.6 0 3-1 4.6 0 3 1 4.6 0"/></svg><span>Regatta</span></button>
   <button role="tab" data-tabbtn="athletes" aria-selected="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.6 2.7-6 6-6s6 2.4 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 14.3c3 .1 5.5 2.3 5.5 5.7"/></svg><span>Sportler</span></button>
   <button role="tab" data-tabbtn="results" aria-selected="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 20v-6M12 20V8M17 20v-9"/></svg><span>Ergebnisse</span></button>
 </div></nav>
 <div class="help" id="help" hidden><div class="help-h"><h3>Anleitung</h3><button class="btn" id="help-close">Schließen</button></div><iframe id="help-frame" title="Anleitung"></iframe></div>
 
 <div id="sheet-root"></div>
+<div id="splash" aria-hidden="true"><img src="icon-192.png" alt="" onerror="this.remove()"><div class="nm">Chron<span>Oar</span></div><div class="by">eine App von <b>Lennart Geerdes</b></div></div>
 
 <script>
 "use strict";
@@ -405,13 +415,13 @@ function recordResults(w){
   const date=d.toLocaleDateString("de-DE"), time=d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
   const crewNames=w.crewSnap.map(c=>c.first+" "+c.last).join(", ");
   const splits=splitText(w).join(" | ");
-  const base={watch:w.id,run:w.runId,ts:w.stop,date,time,boat:w.boat,dist:w.dist,t:st.t,v:st.v,rel:w.rel,pct:st.pct,avgRate:st.avgRate,splits,rates:rateText(w),startNo:w.startNo||"",crew:crewNames};
+  const base={watch:w.id,run:w.runId,ts:w.stop,date,time,boat:w.boat,dist:w.dist,t:st.t,v:st.v,rel:w.rel,pct:st.pct,avgRate:st.avgRate,splits,rates:rateText(w),startNo:w.startNo||"",abt:w.abt||"",crew:crewNames};
   w.crewSnap.forEach(c=>S.results.push({...base,id:uid(),ath:c.id,first:c.first,last:c.last,cat:c.cat,role:"Ruderer"}));
   if(w.cox)S.results.push({...base,id:uid(),ath:w.cox.id,first:w.cox.first,last:w.cox.last,cat:w.cox.cat,role:"Steuerperson"});
   if(!w.example)enqueue({op:"results",run:w.runId,rows:S.results.filter(r=>r.run===w.runId).map(r=>({
     id:r.id,run:r.run,ts:r.ts,first:r.first,last:r.last,ath:r.ath,cat:r.cat,role:r.role,boat:r.boat,dist:r.dist,
     time:fmtTime(r.t),t:+r.t.toFixed(2),v:+r.v.toFixed(6),pace:fmtTime(500/r.v),rel:r.rel==null?null:+r.rel.toFixed(6),
-    pct:r.pct==null?null:+(r.pct/100).toFixed(6),pf:1, /* als Anteil: 108,12 % → 1,0812; pf=1 sagt dem Sheet „schon Anteil, nicht umrechnen“ */avgRate:r.avgRate==null?null:+r.avgRate.toFixed(1),splits:r.splits,rates:r.rates||"",startNo:r.startNo||"",crew:r.crew}))});
+    pct:r.pct==null?null:+(r.pct/100).toFixed(6),pf:1, /* als Anteil: 108,12 % → 1,0812; pf=1 sagt dem Sheet „schon Anteil, nicht umrechnen“ */avgRate:r.avgRate==null?null:+r.avgRate.toFixed(1),splits:r.splits,rates:r.rates||"",startNo:r.startNo||"",abt:r.abt||"",crew:r.crew}))});
 }
 /* „x. Strecke heute“: wie oft diese Mannschaft (gleiche Ruderer, Reihenfolge egal, gleiches Boot) heute auf DIESEM Handy
    schon gestoppt wurde. Verbindlich ist die Spalte „Strecke Nr.“ im Sheet, die alle Handys berücksichtigt. */
@@ -776,7 +786,7 @@ function renderPdfSheet(){
       <div class="bar"><a class="btn" href="${esc(P.res.url)}" target="_blank" rel="noopener">PDF öffnen</a><a class="btn ghost" href="${esc(P.res.download)}" target="_blank" rel="noopener">Herunterladen</a></div>`;
     foot=`<span class="sum"></span><button class="btn" data-act="close">Fertig</button>`;
   }else{
-    body=`<div class="muted">Alle Fahrten von <b>heute (${new Date().toLocaleDateString("de-DE")})</b> aus dem Sheet „${esc(S.conn.name||"Sheet")}“ – dreimal sortiert: nach Prozent, nach Strecke Nr. und nach Mannschaft. Für andere Tage im Sheet: ChronOar → Ergebnis-PDF erstellen.</div>
+    body=`<div class="muted">Alle Fahrten von <b>heute (${new Date().toLocaleDateString("de-DE")})</b> aus dem Sheet „${esc(S.conn.name||"Sheet")}“ – sortiert nach Prozent, nach Strecke Nr., nach Abteilung und Strecke Nr. (bei Regatta-Abteilungen) und nach Mannschaft. Für andere Tage im Sheet: ChronOar → Ergebnis-PDF erstellen.</div>
       ${old?`<div class="warnt">Das Skript im Sheet ist zu alt (nötig: Version ${NEED_PDF}). Bitte Code.gs aktualisieren und eine neue Version bereitstellen.</div>`:""}
       <label class="fld" for="p-ort">Ort<input class="txt" id="p-ort" maxlength="80" autocomplete="off" value="${esc(P.ort||"")}"></label>
       <label class="fld" for="p-wind">Wind (optional)<input class="txt" id="p-wind" maxlength="80" autocomplete="off" value="${esc(P.wind||"")}"></label>
@@ -1111,7 +1121,7 @@ function renderSettings(){
       <div class="muted">Noch kein Sheet? <a href="#" data-act="open-help">Anleitung: Sheet in 5 Minuten einrichten</a></div>`;
   }
   sheetShell(G.view==="scan"?"QR-Code scannen":G.view==="share"?"Weiteres Handy":G.view==="add"?"Anderes Sheet":"Google Sheet","",
-    body+(G.view==="main"?`<div class="muted relinfo">Relationsgeschwindigkeiten: ${rel}</div>`:""),
+    body+(G.view==="main"?`<div class="muted relinfo">Relationsgeschwindigkeiten: ${rel}</div><div class="byline"><b>ChronOar</b> – entwickelt von <b>Lennart Geerdes</b> · © ${new Date().getFullYear()}</div>`:""),
     G.view==="main"?`<span class="sum"></span><button class="btn" data-act="close">Fertig</button>`:`<span class="sum"></span><button class="btn" data-act="g-back">Zurück</button>`);
   if(G.view==="share")showShareQR();
 }
@@ -1510,6 +1520,7 @@ setInterval(()=>{
   if(tab==="general"){renderSess();if(spmStart!=null&&performance.now()-spmStart>12000){spmStart=null;const b=$("#spm-tap");b.classList.remove("pending");b.textContent="Tippen: Start"}}
 },50);
 
+(()=>{const sp=$("#splash");const go=()=>{sp.classList.add("out");setTimeout(()=>sp.remove(),500)};sp.addEventListener("click",go);setTimeout(go,1300)})();
 if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(()=>{})}
 load();renderSpmHist();renderSess();showTab("watches");
 loadCentralRel();if(S.conn)sync({force:true});
