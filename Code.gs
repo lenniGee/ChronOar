@@ -837,7 +837,7 @@ function pdfHtml_(runs, f) {
         var r0 = crews[k][0];
         return { title: pdfEsc_(r0.crew) + ' <span class="gb">' + pdfEsc_(pdfBoat_(r0)) + '</span>', runs: byPct(crews[k]) }; }) }
   ];
-  var rowH = function (r) { return PDF_ROW + ((r.crew.length + (r.cox ? r.cox.length + 6 : 0)) > 46 ? PDF_ROW_WRAP : 0); };
+  var rowH = function (r) { return PDF_ROW + ((r.crew.length + (r.cox ? r.cox.length + 6 : 0)) > 40 ? PDF_ROW_WRAP : 0); };
   var pages = [];
   secs.forEach(function (sec) {
     var cap = pages.length ? PDF_PAGE : PDF_FIRST, cur = [], used = 0;
@@ -873,12 +873,12 @@ function pdfRun_(r, alt) {
   return '<tbody class="res' + (alt ? ' alt' : '') + '"><tr class="l1"><td>' + crew + '</td><td class="bt">' + pdfEsc_(pdfBoat_(r)) + '</td>' +
     '<td class="n">' + (r.dist ? r.dist.toLocaleString('de-DE').replace(/,/g, '.') + ' m' : '–') + '</td><td class="n">' + pdfDec_(r.sf, 1) + '</td>' +
     '<td class="n">' + pdfDec_(r.v, 2) + '</td><td class="n t">' + pdfEsc_(r.zeit) + '</td><td class="n pct">' + (r.pct === null ? '–' : pdfDec_(r.pct, 1) + ' %') + '</td></tr>' +
-    '<tr class="l2"><td>' + pdfEsc_(r.nr) + '</td><td>' + (r.rel ? pdfDec_(r.rel, 2) + ' m/s' : '–') + '</td>' +
+    '<tr class="l2"><td>' + pdfEsc_(r.nr) + '</td><td>' + (r.rel ? pdfDec_(r.rel, 2) + ' m/s' + (r.dist ? ' – ' + target_(r.dist, r.rel)[0] : '') : '–') + '</td>' +
     '<td class="sp" colspan="4">' + (r.splits ? '<span class="lbl">Splits</span> ' + pdfEsc_(r.splits) : '') + '</td><td></td></tr></tbody>';
 }
-var PDF_THEAD = '<colgroup><col width="37%"><col width="15%"><col width="11%"><col width="8%"><col width="8%"><col width="10%"><col width="11%"></colgroup>' +
+var PDF_THEAD = '<colgroup><col width="33%"><col width="19%"><col width="11%"><col width="8%"><col width="8%"><col width="10%"><col width="11%"></colgroup>' +
   '<thead><tr><th>Mannschaft</th><th>Boot</th><th class="n">Distanz</th><th class="n">Ø SF</th><th class="n">m/s</th><th class="n">Zeit</th><th class="n">Prozent</th></tr>' +
-  '<tr class="hl2"><th>Strecke Nr.</th><th>Relation</th><th></th><th></th><th></th><th class="n">Splits</th><th></th></tr></thead>';
+  '<tr class="hl2"><th>Strecke Nr.</th><th>Relation – Zielzeit</th><th></th><th></th><th></th><th class="n">Splits</th><th></th></tr></thead>';
 var PDF_CSS =
   '@page{size:A4;margin:12mm}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#1d1d1f}' +
   '.brk{page-break-before:always}' +
