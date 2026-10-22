@@ -637,7 +637,7 @@ function renderSheet(){
           const i=D.crew.indexOf(a.id), has=REL[relKey(a,b.id)]!=null;
           const dis=full&&i<0;
           return `<button data-act="d-crew" data-v="${a.id}" aria-pressed="${i>=0}" ${dis&&i<0?"disabled":""}>
-            <span class="seat">${i>=0?i+1:""}</span><span class="nm">${esc(fullName(a))}${a.example?' <span class="ex">Beispiel</span>':""}${!has?'<div class="why nov">'+esc(relKey(a,b.id))+" hat keinen Wert, zählt nicht zur Relation</div>":""}${busy.has(a.id)?inWatch(busy.get(a.id)):""}</span><span class="cat">${catLabel(a)}</span></button>`}).join("")||`<div class="empty">${nHidden?"Alle passenden Sportler sind schon in einer Uhr.":"Keine Sportler gefunden."}</div>`}</div>${hiddenNote(nHidden,D.showAll)}`,
+            <span class="seat">${i>=0?i+1:""}</span><span class="nm">${esc(fullName(a))}${a.example?' <span class="ex">Beispiel</span>':""}${!has?'<div class="why nov">'+esc(relKey(a,b.id))+" hat keinen Wert, zählt nicht zur Relation</div>":""}${busy.has(a.id)?inWatch(busy.get(a.id)):""}</span><span class="cat">${catKey(a)}</span></button>`}).join("")||`<div class="empty">${nHidden?"Alle passenden Sportler sind schon in einer Uhr.":"Keine Sportler gefunden."}</div>`}</div>${hiddenNote(nHidden,D.showAll)}`,
       sum+`<button class="btn ghost" data-act="back">Zurück</button><button class="btn primary" data-act="next" ${full&&r&&r.v?"":"disabled"}>${b.cox?"Weiter":D.rg?"Boot anlegen":"Uhr anlegen"}</button>`);
     const inp=$("#d-filter");inp.addEventListener("input",()=>{D.filter=inp.value;const pos=inp.selectionStart;renderSheet();const n=$("#d-filter");n.focus();n.setSelectionRange(pos,pos)});
   }else if(D.step===4){
@@ -648,7 +648,7 @@ function renderSheet(){
     sheetShell("Steuerperson",stepTxt,
       `<div class="muted">Steuerleute zählen nicht zur Relation.</div>
        <div class="pick"><button data-act="d-cox" data-v="" aria-pressed="${!D.cox}"><span class="seat">–</span><span class="nm">Ohne Steuerperson</span></button>
-       ${list.map(a=>`<button data-act="d-cox" data-v="${a.id}" aria-pressed="${D.cox===a.id}"><span class="seat">St</span><span class="nm">${esc(fullName(a))}${busy.has(a.id)?inWatch(busy.get(a.id)):""}</span><span class="cat">${catLabel(a)}</span></button>`).join("")}</div>${hiddenNote(nHidden,D.showAll)}`,
+       ${list.map(a=>`<button data-act="d-cox" data-v="${a.id}" aria-pressed="${D.cox===a.id}"><span class="seat">St</span><span class="nm">${esc(fullName(a))}${busy.has(a.id)?inWatch(busy.get(a.id)):""}</span><span class="cat">${catKey(a)}</span></button>`).join("")}</div>${hiddenNote(nHidden,D.showAll)}`,
       sum+`<button class="btn ghost" data-act="back">Zurück</button><button class="btn primary" data-act="next">${D.rg?"Boot anlegen":"Uhr anlegen"}</button>`);
   }
 }
@@ -727,7 +727,7 @@ function renderAthletes(){
   const ex=S.athletes.some(a=>a.example);
   $("#ex-note").innerHTML=ex?`<div class="note"><span><b>Beispiel-Sportler.</b> Lege deine eigenen an und entferne die Beispiele.</span><button class="btn sm ghost danger" data-act="del-ex" data-confirm="Beispiele löschen?">Beispiele entfernen</button></div>`:"";
   const list=sortedAthletes();
-  $("#athlist").innerHTML=list.length?list.map(a=>`<button class="ath" data-act="edit-ath" data-id="${a.id}"><span class="nm">${esc(a.last)}, ${esc(a.first)}${a.example?' <span class="ex">Beispiel</span>':""}</span><span class="cat">${catLabel(a)}</span></button>`).join("")
+  $("#athlist").innerHTML=list.length?list.map(a=>`<button class="ath" data-act="edit-ath" data-id="${a.id}"><span class="nm">${esc(a.last)}, ${esc(a.first)}${a.example?' <span class="ex">Beispiel</span>':""}</span><span class="cat">${catKey(a)}</span></button>`).join("")
     :'<div class="empty">Noch keine Sportler angelegt.</div>';
   $("#topsub").textContent=S.athletes.length+" Sportler";
 }

@@ -650,7 +650,7 @@ function refreshNameList_() {
   if (!ath) return;
   var v = ath.getDataRange().getValues().slice(1).filter(function (r) { return String(r[1]).trim() || String(r[2]).trim(); });
   v.sort(function (a, b) { return String(a[2]).localeCompare(String(b[2])) || String(a[1]).localeCompare(String(b[1])); });
-  var names = v.map(function (r) { return [String(r[1]).trim() + ' ' + String(r[2]).trim()]; });
+  var names = v.map(function (r) { return [athLabel_(r)]; });
   var sh = listSheet_();
   if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 1).clearContent();
   if (names.length) sh.getRange(2, 1, names.length, 1).setValues(names);
@@ -675,19 +675,26 @@ function refreshRgValidation_() {
   if (!sh || !list) return;
   var all = list.getLastRow() > 1 ? list.getRange(2, 1, list.getLastRow() - 1, 1).getValues().map(function (r) { return String(r[0]).trim(); }).filter(String) : [];
   var n = Math.max(sh.getLastRow(), 1) + 30, vals = sh.getRange(2, 6, n - 1, 9).getValues(), used = {};
-  vals.forEach(function (row) { row.forEach(function (v) { v = String(v).trim().toLowerCase(); if (v) used[v] = true; }); });
-  var free = all.filter(function (x) { return !used[x.toLowerCase()]; });
+  vals.forEach(function (row) { row.forEach(function (v) { v = baseName_(v).toLowerCase(); if (v) used[v] = true; }); });
+  var free = all.filter(function (x) { return !used[baseName_(x).toLowerCase()]; });
   var mk = function (items) { return items.length ? SpreadsheetApp.newDataValidation().requireValueInList(items.slice(0, 500), true).setAllowInvalid(true).build() : null; };
   var emptyRule = mk(free);
   var rules = vals.map(function (row) { return row.map(function (v) { v = String(v).trim(); return v ? mk([v].concat(free)) : emptyRule; }); });
   sh.getRange(2, 6, n - 1, 9).setDataValidations(rules);
 }
+/** „Lena Becker (JFA)“ – Name mit Kategorie für die Auswahllisten. Zeile = Zeile aus dem Blatt Sportler. */
+function athLabel_(r) {
+  var name = (String(r[1]).trim() + ' ' + String(r[2]).trim()).trim(), sex = normSex_(r[3]), age = normAge_(r[4]);
+  return sex && age ? name + ' (' + age.charAt(0) + sex + age.charAt(1) + (/^l/i.test(String(r[5]).trim()) ? 'L' : '') + ')' : name;
+}
+/** „Lena Becker (JFA)“ → „Lena Becker“ (Kategorie in Klammern am Ende entfernen) */
+function baseName_(s) { return String(s || '').replace(/\s*\([^)]*\)\s*$/, '').trim(); }
 function athleteNames_() {
   var ath = SpreadsheetApp.getActive().getSheetByName(SH_ATH), byName = {}, byId = {};
   if (ath) ath.getDataRange().getValues().slice(1).forEach(function (r) {
     var id = String(r[0]).trim(), name = (String(r[1]).trim() + ' ' + String(r[2]).trim()).trim();
     if (!name) return;
-    if (id) byId[id] = name;
+    if (id) byId[id] = athLabel_(r);
     byName[name.toLowerCase()] = id || null;
   });
   return { byName: byName, byId: byId };
@@ -702,7 +709,7 @@ function readRegatta_() {
     if (!String(r[0]).trim()) { r[0] = newId_(); sh.getRange(i + 2, 1).setValue(r[0]); dirty = true; }
     if (!(Number(r[14]) >= 1)) { r[14] = 1; sh.getRange(i + 2, 15).setValue(1); }
     var person = function (c) {
-      var nm = String(c || '').trim(); if (!nm) return null;
+      var nm = baseName_(c); if (!nm) return null;
       var id = names.byName[nm.toLowerCase()];
       return { id: id || null, name: nm };
     };
@@ -776,7 +783,7 @@ function clearRegatta() {
  * keine Fahrt zerrissen wird und eine Mannschaft im dritten Teil nicht über zwei Seiten läuft.
  * Das PDF wird im selben Drive-Ordner wie das Sheet gespeichert.
  */
-var PDF_PAGE = 780, PDF_FIRST = 670, PDF_ROW = 40, PDF_GRP = 36, PDF_GAP = 64;  // Höhen in px (geschätzt, mit Reserve); GAP = Abstand vor jeder Gruppe (≈ 2 Einer-Zeilen)
+var PDF_PAGE = 855, PDF_FIRST = 770, PDF_ROW = 40, PDF_GRP = 36, PDF_GAP = 64;  // Höhen in px, kalibriert an einem echten Google-PDF (nutzbar ≈ 805 px auf Seite 1, ≈ 890 px danach; Rest = Reserve); GAP = Abstand vor jeder Gruppe (≈ 2 Einer-Zeilen)
 var PDF_CREW_W = 262;   // nutzbare Breite der Spalte Mannschaft in px (39 % von A4 abzüglich Rand)
 /* Zeichenbreiten von Arial fett in 1/100 der Schriftgröße – damit lässt sich der Zeilenumbruch der Namen exakt vorausberechnen */
 var PDF_CW = {"a":56,"b":61,"c":56,"d":61,"e":56,"f":33,"g":61,"h":61,"i":28,"j":28,"k":56,"l":28,"m":89,"n":61,"o":61,"p":61,"q":61,"r":39,"s":56,"t":33,"u":61,"v":56,"w":78,"x":56,"y":56,"z":50,"A":72,"B":72,"C":72,"D":72,"E":67,"F":61,"G":78,"H":72,"I":28,"J":56,"K":72,"L":61,"M":83,"N":72,"O":78,"P":67,"Q":78,"R":72,"S":67,"T":61,"U":72,"V":67,"W":94,"X":67,"Y":67,"Z":61,"ä":56,"ö":61,"ü":61,"Ä":72,"Ö":78,"Ü":72,"ß":61,".":28,",":28,"-":33," ":28,"'":24,"é":56,"è":56,"á":56,"à":56,"ç":56,"ñ":61};
@@ -893,9 +900,12 @@ function pdfHtml_(runs, f) {
     var c = pdfCrew_(r), b = pdfBoat_(r).length, boatLines = b > 18 ? 3 : b > 9 ? 2 : 1;
     var l1 = Math.max(c.lines * c.lh, boatLines * 15), spl = Math.max(1, Math.ceil(r.splits.length / 31));
     return PDF_ROW + (l1 - 15) + (spl - 1) * 13; };
+  /* Seite 1: lange Trainingsvorgabe braucht mehr Platz (≈ 95 Zeichen pro Zeile), fehlende Angaben geben keinen Platz frei (Reserve) */
+  var goalLines = String(f.goal || '').split('\n').reduce(function (n, l) { return n + Math.max(1, Math.ceil(l.length / 95)); }, 0);
+  var first = PDF_FIRST - Math.max(0, goalLines - 1) * 17;
   var pages = [];
   secs.forEach(function (sec) {
-    var cap = pages.length ? PDF_PAGE : PDF_FIRST, cur = [], used = 0;
+    var cap = pages.length ? PDF_PAGE : first, cur = [], used = 0;
     var flush = function () { pages.push({ title: sec.title, rows: cur }); cur = []; used = 0; cap = PDF_PAGE; };
     var head = function (t) { var gap = used > 0; cur.push(pdfGrp_(t, gap)); used += PDF_GRP + (gap ? PDF_GAP : 0); };
     sec.blocks.forEach(function (bl) {

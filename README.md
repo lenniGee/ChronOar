@@ -212,7 +212,7 @@ Wird eine Belastung in der App zurückgenommen, verschwindet ihre Zeile auch hie
 | Startnummer | optional |
 | Boot | Auswahlliste (`1x`, `2x`, `2-`, `2+`, `4x`, `4x+`, `4-`, `4+`, `8+`, `Ergo`) |
 | Strecke (m) | |
-| Platz 1 … Platz 8 | Ruderer als „Vorname Nachname“ (Auswahlliste aus „Sportler“, Groß-/Kleinschreibung egal). Unbekannte Namen sind erlaubt, zählen aber nicht zur Relation |
+| Platz 1 … Platz 8 | Ruderer als „Vorname Nachname (Kategorie)“, z. B. `Lena Becker (JFA)` (Auswahlliste aus „Sportler“). Erkannt wird über den Namen; die Klammer am Ende darf fehlen, Groß-/Kleinschreibung egal. Unbekannte Namen sind erlaubt, zählen aber nicht zur Relation |
 | Steuerperson | wie oben |
 | Lauf | wird von der App hochgezählt („Neuer Lauf“), grau |
 
