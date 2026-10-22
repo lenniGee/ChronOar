@@ -50,6 +50,7 @@ nav.toc a{text-decoration:none}
   <li><a href="#connect">Handy verbinden</a></li>
   <li><a href="#athletes">Sportler pflegen</a></li>
   <li><a href="#second">Weitere Trainer verbinden</a></li>
+  <li><a href="#regatta">Regatta mit mehreren Handys</a></li>
   <li><a href="#data">Was wird wo gespeichert?</a></li>
   <li><a href="#help">Wenn etwas nicht klappt</a></li>
   <li><a href="#calc">So rechnet ChronOar</a></li>
@@ -142,16 +143,33 @@ In der Klammer steht <b>deine eigene E-Mail-Adresse</b>: Nach dem Kopieren gehö
 <p class="muted">Ein eigenes Sheet braucht der andere Trainer dafür nicht. Alternativ kann er den QR-Code auch direkt im Sheet über <span class="k">ChronOar → Mit Handy verbinden</span> scannen.</p>
 <p class="muted">Der QR-Code ist wie ein Passwort. Brauchst du ein Handy nicht mehr, erzeugst du im Sheet über <span class="k">ChronOar → Neuen Schlüssel erzeugen</span> einen neuen Code – dann sind alle alten Handys getrennt und du verbindest nur die gewünschten neu.</p>
 
-<h2 id="data"><span class="n">7</span>Was wird wo gespeichert?</h2>
+<h2 id="regatta"><span class="n">7</span>Regatta mit mehreren Handys</h2>
+<p>Im Tab <span class="k">Regatta</span> stoppen mehrere Personen <i>dieselben</i> Boote: Eine startet, eine nimmt bei 250 m die Frequenz, eine drückt bei 500 m den Split, eine stoppt im Ziel. Bedient wird alles wie im Tab ChronOar – jede Taste ist auf jedem Handy jederzeit verfügbar.</p>
+<ol>
+  <li><b>Alle Handys mit demselben Sheet verbinden</b> (Abschnitt 6). Der Regatta-Modus braucht Internet.</li>
+  <li><b>Boote anlegen</b> – auf einem beliebigen Handy mit <span class="k">+ Boot</span> (Strecke, Startnummer, Abteilung, Boot, Mannschaft) oder am Computer direkt im Sheet im Blatt <b>Regatta</b>: ab Spalte B eine Zeile pro Boot, Sportler über die Auswahlliste. Die Spalten <i>ID</i> und <i>Lauf</i> füllt ChronOar selbst.</li>
+  <li>Nach wenigen Sekunden sehen <b>alle Handys</b> alle Boote. Ändern oder löschen kann jedes Handy.</li>
+  <li><b>Abteilungen</b> (optional): Oben erscheinen dann Knöpfe für jede Abteilung. Jedes Team tippt nur seine Abteilung(en) an und sieht nur diese Boote. <span class="k">Alle</span> zeigt wieder alles.</li>
+  <li><b>Starten:</b> einzeln mit <span class="k">Start</span> oder mehrere Boote markieren und gemeinsam starten.</li>
+  <li><b>Unterwegs und im Ziel:</b> Split, SF und Stopp drückt, wer gerade an der Stelle steht. Die Uhr läuft auf allen Handys mit, sobald der Start dort angekommen ist (meist 1–4 Sekunden), und zeigt dann die richtige Zeit.</li>
+  <li><b>Ergebnisse</b> landen wie gewohnt in <b>Ergebnis Sportler</b> und <b>Ergebnis Mannschaft</b>. Geschrieben werden sie vom Handy, das gestoppt hat, etwa 5 Sekunden nach dem Stopp.</li>
+  <li><b>Fehler korrigieren:</b> „Stopp / Split / Start zurücknehmen“ und „Letzte SF löschen“ wirken für alle Handys. Wird ein Stopp zurückgenommen, verschwindet auch das Ergebnis wieder aus dem Sheet.</li>
+  <li><b>Nächstes Rennen desselben Bootes:</b> Details öffnen → <span class="k">Neuer Lauf</span>. Das gespeicherte Ergebnis bleibt erhalten.</li>
+</ol>
+<div class="box"><b>Wie genau ist die Zeit?</b> Jeder Tastendruck wird mit der Uhrzeit des Google-Servers gespeichert, nicht mit der Uhr des Handys. Jedes Handy misst dafür laufend seinen Abstand zur Serverzeit. Die Genauigkeit steht oben rechts („Zeit ±0,2 s“) und liegt meist bei 0,1–0,3 Sekunden. Bei knappen Rennen hilft es, wenn alle Boote eines Laufs vom selben Handy gestartet und vom selben Handy gestoppt werden: Dann wirkt eine kleine Abweichung auf alle Boote gleich.</div>
+<p class="muted">Ohne Netz geht nichts verloren: Tastendrücke werden mit der geschätzten Serverzeit gespeichert und nachgereicht. Die anderen Handys sehen sie aber erst, wenn das Handy wieder online ist. Nach der Regatta räumt <span class="k">ChronOar → Regatta leeren</span> im Sheet die Boote ab; die Ergebnisse bleiben.</p>
+
+<h2 id="data"><span class="n">8</span>Was wird wo gespeichert?</h2>
 <ul>
   <li><b>Im Google Sheet (dein Drive):</b> Sportler und alle Ergebnisse. Das ist dein dauerhaftes Archiv. Das Blatt <b>Ergebnis Sportler</b> hat eine Zeile pro Sportler, das Blatt <b>Ergebnis Mannschaft</b> eine Zeile pro Boot und Belastung.</li>
+  <li><b>Regatta:</b> die Boote im Blatt <b>Regatta</b>, alle Tastendrücke im versteckten Blatt <b>Regatta-Log</b>. Das versteckte Blatt <b>_Listen</b> liefert die Namen für die Auswahllisten. Diese Blätter bitte nicht umbenennen.</li>
   <li><b>Auf dem Handy:</b> Uhren, eine Kopie der Sportler, die letzten Ergebnisse und wartende Uploads.</li>
   <li><b>„Ergebnisse → Alle löschen“</b> leert nur die Liste auf dem Handy. Im Sheet bleibt alles.</li>
   <li><b>„Stopp zurücknehmen“</b> an einer Uhr löscht die Zeilen dieser Belastung auch im Sheet – damit dort keine Fehlstopps stehen bleiben.</li>
   <li><b>Relationsgeschwindigkeiten</b> pflegt zentral der Betreiber von ChronOar. Neue Werte kommen beim nächsten Öffnen mit Netz automatisch. Bereits gespeicherte Ergebnisse ändern sich dadurch nicht.</li>
 </ul>
 
-<h2 id="help"><span class="n">8</span>Wenn etwas nicht klappt</h2>
+<h2 id="help"><span class="n">9</span>Wenn etwas nicht klappt</h2>
 <div class="tw"><table>
   <thead><tr><th>Meldung</th><th>Lösung</th></tr></thead>
   <tbody>
@@ -160,11 +178,13 @@ In der Klammer steht <b>deine eigene E-Mail-Adresse</b>: Nach dem Kopieren gehö
     <tr><td>„Code passt nicht zum Sheet“ / Status „getrennt“</td><td>Im Sheet wurde ein neuer Schlüssel erzeugt. QR-Code neu anzeigen und neu scannen.</td></tr>
     <tr><td>Kamera geht nicht</td><td>In den Handy-Einstellungen die Kamera für Safari bzw. Chrome erlauben – oder den Code einfügen.</td></tr>
     <tr><td>Menü „ChronOar“ fehlt im Sheet</td><td>Seite neu laden. Auf dem Handy gibt es das Menü nicht – Einrichtung am Computer machen.</td></tr>
+    <tr><td>Regatta: „Skript im Sheet ist zu alt“</td><td>Neue <code>Code.gs</code> einspielen und unter <span class="k">Bereitstellen → Bereitstellungen verwalten → Bearbeiten</span> eine <b>neue Version</b> bereitstellen. Danach in der App einmal <span class="k">☁ Sheet → Jetzt abgleichen</span>.</td></tr>
+    <tr><td>Regatta: Boot aus dem Sheet erscheint nicht</td><td>Zeile braucht mindestens Boot oder einen Namen. Unbekannte Namen (nicht im Blatt Sportler) werden angezeigt, zählen aber nicht zur Relation.</td></tr>
     <tr><td>„☁ 5“ verschwindet nicht</td><td>Unter <span class="k">☁ Sheet</span> steht der Grund. <span class="k">Jetzt abgleichen</span> versucht es sofort erneut.</td></tr>
   </tbody>
 </table></div>
 
-<h2 id="calc"><span class="n">9</span>So rechnet ChronOar</h2>
+<h2 id="calc"><span class="n">10</span>So rechnet ChronOar</h2>
 <p>Alle Zeiten werden auf Zehntelsekunden <b>abgeschnitten</b> angezeigt (6:45,38 → 6:45,3), wie bei einer klassischen Stoppuhr. Gerechnet wird intern mit voller Genauigkeit.</p>
 <div class="tw"><table>
   <thead><tr><th>Wert</th><th>Berechnung</th></tr></thead>

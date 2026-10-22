@@ -23,6 +23,14 @@
  *        {op:"resultsDel", run:"…"}        Zeilen einer Belastung löschen (Stopp in der App zurückgenommen)
  *        {op:"athlete",    athlete:{…}}    Sportler anlegen oder ändern
  *        {op:"athleteDel", id:"…"}         Sportler löschen
+ *        {op:"rgBoat",     boat:{…}}       Regatta-Boot anlegen oder ändern
+ *        {op:"rgBoatDel",  id:"…"}         Regatta-Boot löschen
+ *        {op:"rgNewRun",   id:"…"}         Regatta-Boot für einen neuen Lauf zurücksetzen (Lauf + 1)
+ *        {op:"rgEvent",    ev:{…}}         Start / Split / Frequenz / Stopp eines Handys protokollieren
+ *        {op:"rgEventDel", id:"…"}         ein Ereignis zurücknehmen
+ *   GET  ?action=regatta&key=…&etag=…     Regatta-Boote + Ereignisse (oder {same:true}, wenn unverändert)
+ *   Jede Antwort enthält "now" = Serverzeit in ms. Daraus berechnet jedes Handy seine Uhr-Abweichung,
+ *   damit Zeiten von verschiedenen Handys (Start auf A, Stopp auf B) zusammenpassen.
  *
  * Sicherheit: Jeder Aufruf braucht den Schlüssel. Er wird pro Sheet
  * zufällig erzeugt und steckt im Verbindungscode / QR-Code. Eine Kopie des
@@ -33,7 +41,7 @@
  * unter der Web-App-Adresse weiter die alte Version. Die Adresse bleibt gleich.
  */
 
-var SCRIPT_VERSION = 12;
+var SCRIPT_VERSION = 13;
 var CODE_PREFIX = 'CHRONOAR1:';
 var SH_ATH = 'Sportler', SH_RES = 'Ergebnis Sportler', SH_TEAM = 'Ergebnis Mannschaft';
 var OLD_NAMES = { 'Ergebnis Sportler': 'Ergebnisse', 'Ergebnis Mannschaft': 'Mannschaften' };
@@ -70,10 +78,12 @@ var AGE_TXT = { JB: 'Junior B', JA: 'Junior A', SB: 'Senior B', SA: 'Senior A' }
 function onOpen() {
   // Sicherheitsnetz: läuft immer mit dem zuletzt gespeicherten Code, unabhängig von der Bereitstellung.
   try { renameOld_(); if (SpreadsheetApp.getActive().getSheetByName(SH_RES)) { fixHeaders_(); fixTargets_(); syncTeams_(); numberRuns_(); } } catch (e) { }
+  try { if (SpreadsheetApp.getActive().getSheetByName(SH_ATH)) { regattaSheet_(); logSheet_(); refreshNameList_(); } } catch (e) { }
   SpreadsheetApp.getUi().createMenu('ChronOar')
     .addItem('1. Einrichten', 'setup')
     .addItem('2. Mit Handy verbinden (QR-Code)', 'showConnect')
     .addItem('Ergebnis Mannschaft neu aufbauen', 'rebuildTeams')
+    .addItem('Regatta leeren (alle Boote und Zeiten löschen)', 'clearRegatta')
     .addSeparator()
     .addItem('Neuen Schlüssel erzeugen (alte Handys trennen)', 'resetKey')
     .addToUi();
@@ -87,6 +97,7 @@ function setup() {
   var res = ensureSheet_(ss, SH_RES, RES_HEAD);
   var team = teamSheet_();
   if (team.getLastRow() < 2 && res.getLastRow() > 1) rebuildTeams_();
+  regattaSheet_(); logSheet_(); refreshNameList_();
 
   // Auswahllisten für die Sportler-Spalten D–F
   var dv = function (list) { return SpreadsheetApp.newDataValidation().requireValueInList(list, true).setAllowInvalid(false).build(); };
@@ -193,6 +204,11 @@ function doGet(e) {
     checkKey_(p.key);
     if (p.action === 'ping') return { name: SpreadsheetApp.getActive().getName(), id: SpreadsheetApp.getActive().getId(), version: SCRIPT_VERSION };
     if (p.action === 'athletes') return { athletes: readAthletes_(), version: SCRIPT_VERSION };
+    if (p.action === 'time') return {};
+    if (p.action === 'regatta') {
+      var st = readRegatta_();
+      return st.etag === p.etag ? { same: true, etag: st.etag } : st;
+    }
     throw new Error('unknown_action');
   });
 }
@@ -211,6 +227,11 @@ function doPost(e) {
         else if (o.op === 'resultsDel') deleteRun_(o.run);
         else if (o.op === 'athlete') upsertAthlete_(o.athlete);
         else if (o.op === 'athleteDel') deleteAthlete_(o.id);
+        else if (o.op === 'rgBoat') upsertRgBoat_(o.boat);
+        else if (o.op === 'rgBoatDel') deleteRgBoat_(o.id);
+        else if (o.op === 'rgNewRun') newRgRun_(o.id);
+        else if (o.op === 'rgEvent') addRgEvent_(o.ev);
+        else if (o.op === 'rgEventDel') delRgEvent_(o.id);
         done.push(o.qid);
       });
       SpreadsheetApp.flush();
@@ -221,7 +242,7 @@ function doPost(e) {
 
 function handle_(fn) {
   var out;
-  try { out = fn(); out.ok = true; }
+  try { out = fn(); out.ok = true; out.now = Date.now(); }
   catch (err) { out = { ok: false, error: String(err && err.message || err) }; }
   return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
 }
@@ -283,11 +304,13 @@ function upsertAthlete_(a) {
   var r = findRow_(sh, a.id);
   if (r) sh.getRange(r, 1, 1, row.length).setValues([row]);
   else sh.appendRow(row);
+  refreshNameList_();
 }
 
 function deleteAthlete_(id) {
   var sh = sheet_(SH_ATH), r = findRow_(sh, id);
   if (r) sh.deleteRow(r);
+  refreshNameList_();
 }
 
 function findRow_(sh, id) {
@@ -566,6 +589,150 @@ function rebuildTeams_() {
   if (t.getLastRow() > 1) t.getRange(2, 1, t.getLastRow() - 1, TEAM_HEAD.length).clearContent();
   if (rows.length) t.getRange(2, 1, rows.length, TEAM_HEAD.length).setValues(rows);
   return rows.length;
+}
+
+/* ------------------------------------------------------------------ Regatta */
+/*
+ * Blatt „Regatta“: eine Zeile pro Boot. Kann in der App ODER direkt im Sheet gepflegt werden
+ * (Sportler per Auswahlliste, Schreibweise „Vorname Nachname“ wie im Blatt Sportler).
+ * Blatt „Regatta-Log“ (versteckt): jedes Ereignis jedes Handys (Start, Split, Frequenz, Stopp) mit Serverzeit.
+ * Die Handys holen sich beides regelmäßig ab und berechnen daraus die laufenden Uhren.
+ * Die Ergebniszeilen schickt das Handy, das gestoppt hat (wie bei den normalen Uhren).
+ */
+var SH_RG = 'Regatta', SH_LOG = 'Regatta-Log', SH_LIST = '_Listen';
+var RG_HEAD = ['ID', 'Abteilung', 'Startnummer', 'Boot', 'Strecke (m)', 'Platz 1', 'Platz 2', 'Platz 3', 'Platz 4',
+  'Platz 5', 'Platz 6', 'Platz 7', 'Platz 8', 'Steuerperson', 'Lauf'];
+var LOG_HEAD = ['Event-ID', 'Boot-ID', 'Lauf', 'Typ', 'Zeit', 'Wert', 'Gelöscht', 'Gerät', 'Eingang'];
+var BOAT_LIST = ['1x', '2x', '2-', '2+', '4x', '4x+', '4-', '4+', '8+', 'Ergo'];
+
+function regattaSheet_() {
+  var ss = SpreadsheetApp.getActive(), had = ss.getSheetByName(SH_RG);
+  if (had) return had;   // schneller Weg: wird bei jeder Abfrage der Handys aufgerufen
+  var sh = ensureSheet_(ss, SH_RG, RG_HEAD);
+  if (!had) {
+    sh.getRange('A:A').setFontColor('#999999');
+    sh.getRange('O:O').setFontColor('#999999');
+    sh.getRange('C:C').setNumberFormat('@');
+    sh.getRange('A1').setNote('Wird automatisch vergeben. Neue Boote einfach ab Spalte B eintragen.');
+    sh.getRange('O1').setNote('Wird von der App hochgezählt („Neuer Lauf“).');
+    sh.getRange('D2:D').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(BOAT_LIST, true).setAllowInvalid(false).build());
+    var list = SpreadsheetApp.getActive().getSheetByName(SH_LIST) || listSheet_();
+    var dv = SpreadsheetApp.newDataValidation().requireValueInRange(list.getRange('A2:A'), true).setAllowInvalid(true).build();
+    sh.getRange('F2:N').setDataValidation(dv);
+  }
+  return sh;
+}
+function logSheet_() {
+  var ss = SpreadsheetApp.getActive(), had = ss.getSheetByName(SH_LOG);
+  if (had) return had;
+  var sh = ensureSheet_(ss, SH_LOG, LOG_HEAD);
+  if (!had) { try { sh.hideSheet(); } catch (e) { } }
+  return sh;
+}
+function listSheet_() {
+  var ss = SpreadsheetApp.getActive(), sh = ss.getSheetByName(SH_LIST);
+  if (!sh) { sh = ss.insertSheet(SH_LIST); sh.getRange(1, 1).setValue('Sportler (automatisch)'); try { sh.hideSheet(); } catch (e) { } }
+  return sh;
+}
+/** Namensliste für die Auswahllisten im Blatt Regatta („Vorname Nachname“, alphabetisch nach Nachname). */
+function refreshNameList_() {
+  var ath = SpreadsheetApp.getActive().getSheetByName(SH_ATH);
+  if (!ath) return;
+  var v = ath.getDataRange().getValues().slice(1).filter(function (r) { return String(r[1]).trim() || String(r[2]).trim(); });
+  v.sort(function (a, b) { return String(a[2]).localeCompare(String(b[2])) || String(a[1]).localeCompare(String(b[1])); });
+  var names = v.map(function (r) { return [String(r[1]).trim() + ' ' + String(r[2]).trim()]; });
+  var sh = listSheet_();
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 1).clearContent();
+  if (names.length) sh.getRange(2, 1, names.length, 1).setValues(names);
+}
+/** Einfacher Trigger: Änderungen im Blatt Sportler aktualisieren sofort die Auswahllisten der Regatta. */
+function onEdit(e) {
+  try { if (e && e.range && e.range.getSheet().getName() === SH_ATH) refreshNameList_(); } catch (err) { }
+}
+function athleteNames_() {
+  var ath = SpreadsheetApp.getActive().getSheetByName(SH_ATH), byName = {}, byId = {};
+  if (ath) ath.getDataRange().getValues().slice(1).forEach(function (r) {
+    var id = String(r[0]).trim(), name = (String(r[1]).trim() + ' ' + String(r[2]).trim()).trim();
+    if (!name) return;
+    if (id) byId[id] = name;
+    byName[name.toLowerCase()] = id || null;
+  });
+  return { byName: byName, byId: byId };
+}
+
+/** Regatta lesen: Boote (Zeilen ohne ID bekommen eine) + Ereignisse des aktuellen Laufs jedes Bootes. */
+function readRegatta_() {
+  var sh = regattaSheet_(), n = sh.getLastRow(), names = athleteNames_(), boats = [], dirty = false;
+  var rows = n > 1 ? sh.getRange(2, 1, n - 1, RG_HEAD.length).getValues() : [];
+  rows.forEach(function (r, i) {
+    if (!r.slice(1, 14).some(function (c) { return String(c).trim(); })) return;
+    if (!String(r[0]).trim()) { r[0] = newId_(); sh.getRange(i + 2, 1).setValue(r[0]); dirty = true; }
+    if (!(Number(r[14]) >= 1)) { r[14] = 1; sh.getRange(i + 2, 15).setValue(1); }
+    var person = function (c) {
+      var nm = String(c || '').trim(); if (!nm) return null;
+      var id = names.byName[nm.toLowerCase()];
+      return { id: id || null, name: nm };
+    };
+    var crew = []; for (var k = 5; k <= 12; k++) { var pp = person(r[k]); if (pp) crew.push(pp); }
+    boats.push({ id: String(r[0]), abt: String(r[1]).trim(), startNo: String(r[2]).trim(), boat: String(r[3]).trim(),
+      dist: Number(String(r[4]).replace(',', '.')) || 0, crew: crew, cox: person(r[13]), lauf: Number(r[14]) || 1, row: i + 2 });
+  });
+  var cur = {}; boats.forEach(function (b) { cur[b.id] = b.lauf; });
+  var log = logSheet_(), ln = log.getLastRow(), events = [];
+  if (ln > 1) log.getRange(2, 1, ln - 1, LOG_HEAD.length).getValues().forEach(function (r) {
+    var bid = String(r[1]);
+    if (r[6] === true || String(r[6]) === 'TRUE' || cur[bid] === undefined || Number(r[2]) !== cur[bid]) return;
+    events.push({ id: String(r[0]), boat: bid, lauf: Number(r[2]), type: String(r[3]), t: Number(r[4]), v: r[5] === '' ? null : Number(r[5]), dev: String(r[7]) });
+  });
+  boats.forEach(function (b) { delete b.row; });
+  var body = { boats: boats, events: events };
+  var etag = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, JSON.stringify(body)));
+  body.etag = etag;
+  return body;
+}
+function findRgRow_(id) {
+  var sh = regattaSheet_(), n = sh.getLastRow();
+  if (n < 2) return 0;
+  var ids = sh.getRange(2, 1, n - 1, 1).getValues();
+  for (var i = 0; i < ids.length; i++) if (String(ids[i][0]) === String(id)) return i + 2;
+  return 0;
+}
+function upsertRgBoat_(b) {
+  if (!b || !b.id) return;
+  var sh = regattaSheet_(), names = athleteNames_().byId, r = findRgRow_(b.id);
+  var nm = function (p) { return p ? (names[p.id] || p.name || '') : ''; };
+  var crew = (b.crew || []).slice(0, 8).map(nm); while (crew.length < 8) crew.push('');
+  var lauf = r ? Number(sh.getRange(r, 15).getValue()) || 1 : 1;
+  var row = [b.id, b.abt || '', String(b.startNo || ''), b.boat || '', Number(b.dist) || ''].concat(crew, [nm(b.cox), lauf]);
+  if (r) sh.getRange(r, 1, 1, row.length).setValues([row]);
+  else sh.getRange(sh.getLastRow() + 1, 1, 1, row.length).setValues([row]);
+}
+function deleteRgBoat_(id) { var r = findRgRow_(id); if (r) regattaSheet_().deleteRow(r); }
+function newRgRun_(id) {
+  var r = findRgRow_(id); if (!r) return;
+  var c = regattaSheet_().getRange(r, 15); c.setValue((Number(c.getValue()) || 1) + 1);
+}
+function addRgEvent_(ev) {
+  if (!ev || !ev.id || !ev.boat) return;
+  var log = logSheet_(), n = log.getLastRow();
+  if (n > 1) {
+    var from = Math.max(2, n - 500);   // nur die letzten Einträge auf Doppel-Upload prüfen
+    var ids = log.getRange(from, 1, n - from + 1, 1).getValues();
+    for (var i = 0; i < ids.length; i++) if (String(ids[i][0]) === ev.id) return;
+  }
+  log.getRange(n + 1, 1, 1, LOG_HEAD.length).setValues([[ev.id, ev.boat, Number(ev.lauf) || 1, ev.type, Number(ev.t),
+    ev.v === null || ev.v === undefined ? '' : Number(ev.v), false, ev.dev || '', Date.now()]]);
+}
+function delRgEvent_(id) {
+  var log = logSheet_(), n = log.getLastRow(); if (n < 2) return;
+  var ids = log.getRange(2, 1, n - 1, 1).getValues();
+  for (var i = ids.length - 1; i >= 0; i--) if (String(ids[i][0]) === String(id)) { log.getRange(i + 2, 7).setValue(true); return; }
+}
+/** Menü: Regatta komplett leeren (Boote und Protokoll). Ergebnisse bleiben erhalten. */
+function clearRegatta() {
+  var ui = SpreadsheetApp.getUi();
+  if (ui.alert('Regatta leeren?', 'Alle Boote und Zeiten im Blatt „Regatta“ werden gelöscht. Die Ergebnis-Blätter bleiben erhalten.', ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) return;
+  [regattaSheet_(), logSheet_()].forEach(function (sh) { if (sh.getLastRow() > 1) sh.deleteRows(2, sh.getLastRow() - 1); });
 }
 
 /* ------------------------------------------------------------------ Dialog */

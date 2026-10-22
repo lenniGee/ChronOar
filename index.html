@@ -204,6 +204,13 @@ textarea.codein{min-height:76px;padding:10px 12px;font-size:13px;font-family:ui-
 .qrbox{background:#fff;border-radius:12px;padding:12px;width:min(100%,320px);margin:0 auto}
 .qrbox svg{display:block;width:100%;height:auto}
 .relinfo{border-top:1px solid var(--line);padding-top:10px}
+/* Regatta */
+.tabs-in{grid-template-columns:repeat(6,minmax(0,1fr))}
+.tabs button{font-size:11px;letter-spacing:0}
+.rg-abt{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.rg-abt .chip{min-height:38px;font-size:16px;padding:0 12px;white-space:nowrap;flex:none}
+.rg-grp{font-family:var(--display);font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);padding:6px 2px 0}
+.rg-who{font-size:12px;color:var(--muted)}
 .sheet a{color:var(--accent)}
 </style>
 </head>
@@ -251,6 +258,12 @@ textarea.codein{min-height:76px;padding:10px 12px;font-size:13px;font-family:ui-
     </div>
   </section>
 
+  <section data-tab="regatta" id="tab-regatta" hidden>
+    <div id="rg-msg"></div>
+    <div class="rg-abt" id="rg-abt" role="group" aria-label="Abteilungen"></div>
+    <div id="rglist" class="wlist"></div>
+  </section>
+
   <section data-tab="athletes" id="tab-athletes" hidden>
     <div class="bar"><button class="btn primary" data-act="new-ath">+ Sportler</button><button class="btn ghost" data-act="sheet-settings">☁ Sheet</button></div>
     <div class="syncline" id="sync-ath"></div>
@@ -275,6 +288,7 @@ textarea.codein{min-height:76px;padding:10px 12px;font-size:13px;font-family:ui-
   <button data-act="open-help" aria-label="Anleitung"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5C4.7 20 4 19.3 4 18.5z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg><span>Anleitung</span></button>
   <button role="tab" data-tabbtn="general" aria-selected="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 17a8.5 8.5 0 1 1 17 0"/><path d="M12 17l4.5-6"/><circle cx="12" cy="17" r="1.6"/><path d="M6.5 13.5l1 .6M17.5 13.5l-1 .6M12 8.5v1.2"/></svg><span>StrokeCoach</span></button>
   <button role="tab" data-tabbtn="watches" aria-selected="true"><svg class="ti ti-oar" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.48 15.94A8 8 0 1 1 19.52 15.94"/><path d="M18.13 18.34A8 8 0 0 1 5.87 18.34"/><path class="tl" d="M13.06 13.76L21.71 18.36"/><path class="tl" d="M10.94 13.76L2.29 18.36"/><g class="tf"><rect x="10" y="2.4" width="4" height="2.2" rx=".3"/><rect x="4.28" y="5.39" width="3" height="1.8" rx=".3" transform="rotate(-42 5.78 6.29)"/><rect x="16.72" y="5.39" width="3" height="1.8" rx=".3" transform="rotate(42 18.22 6.29)"/><path d="M12 6.3L12.9 11.6L11.1 11.6Z"/><path d="M11.1 14.8L12.9 14.8L12 20.2Z"/></g></svg><span>ChronOar</span></button>
+  <button role="tab" data-tabbtn="regatta" aria-selected="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V3.5"/><path d="M5 4h13l-2.5 4L18 12H5"/><path class="tf" d="M8.5 4h3v4h-3zM11.5 8h3v4h-3z"/></svg><span>Regatta</span></button>
   <button role="tab" data-tabbtn="athletes" aria-selected="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.6 2.7-6 6-6s6 2.4 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 14.3c3 .1 5.5 2.3 5.5 5.7"/></svg><span>Sportler</span></button>
   <button role="tab" data-tabbtn="results" aria-selected="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 20v-6M12 20V8M17 20v-9"/></svg><span>Ergebnisse</span></button>
 </div></nav>
@@ -335,7 +349,7 @@ function load(){
   REL=REL_BUILTIN;
   try{const raw=localStorage.getItem(STORE);if(raw){S=JSON.parse(raw);S.watches.forEach(w=>{w.runId=w.runId||uid()});S.results.forEach(r=>{r.run=r.run||r.watch})}}catch(e){S=null}
   if(!S)S=defaults();
-  S.conn=S.conn||null;S.queue=S.queue||[];
+  S.conn=S.conn||null;S.queue=S.queue||[];S.devId=S.devId||uid();
   REL=S.rel&&Object.keys(S.rel).length>=10?S.rel:REL_BUILTIN;
 }
 let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(STORE,JSON.stringify(S))}catch(e){}},150)}
@@ -415,10 +429,13 @@ function showTab(t){
   tab=t;
   document.querySelectorAll("[data-tabbtn]").forEach(b=>b.setAttribute("aria-selected",b.dataset.tabbtn===t));
   document.querySelectorAll("section[data-tab]").forEach(s=>s.hidden=s.dataset.tab!==t);
-  $("#hdr").hidden=t==="general";$("#hdr-tools").hidden=t!=="watches";$("#hdr-title").hidden=t==="watches";
-  if(t!=="watches")$("#selbar").hidden=true;
+  const clk=t==="watches"||t==="regatta";
+  $("#hdr").hidden=t==="general";$("#hdr-tools").hidden=!clk;$("#hdr-title").hidden=clk;
+  $("#btn-new").textContent=t==="regatta"?"+ Boot":"+ Uhr";$("#btn-sort").hidden=t==="regatta";
+  $("#btn-distsel").textContent=t==="regatta"?"Bearbeiten":"Strecke";
+  if(!clk)$("#selbar").hidden=true;
   if(t==="athletes"){renderAthletes();if(S.conn&&Date.now()-lastPull>15000)sync({force:true})} if(t==="results")renderResults();
-  refreshSyncUI(); if(t==="watches")renderWatches();
+  refreshSyncUI(); if(t==="watches")renderWatches(); if(t==="regatta")rgEnter();
   if(t==="general"){$("#topsub").textContent="";requestAnimationFrame(()=>window.scrollTo(0,document.body.scrollHeight))}
   else window.scrollTo(0,0);
   updateWake();
@@ -442,25 +459,25 @@ function watchState(w){return w.stop!=null?"done":w.start!=null?"running":"idle"
 /* Uhren bleiben immer in der eingestellten Reihenfolge, auch nach dem Stoppen (sonst verrutscht im Ziel alles) */
 function ordered(){return S.watches}
 function watchCard(w){
-  const st=watchState(w), s=stats(w);
+  const st=watchState(w), s=stats(w), rg=!!w.rg, sortM=sortMode&&!rg;
   const crew=w.crewSnap.map(c=>esc(c.last)).join(" · ")+(w.cox?" · St: "+esc(w.cox.last):"");
   const target=w.rel?fmtTime(w.dist/w.rel):"–";
   const lastRate=w.rates.length?rv(w.rates[w.rates.length-1]):null;
   let btns="";
-  if(sortMode){
-    btns=`<button class="btn" data-act="up" data-id="${w.id}" aria-label="Nach oben">▲</button><button class="btn" data-act="down" data-id="${w.id}" aria-label="Nach unten">▼</button>`;
+  if(sortM){
+    btns=`<button class="btn" data-act="up" data-id="${esc(w.id)}" aria-label="Nach oben">▲</button><button class="btn" data-act="down" data-id="${esc(w.id)}" aria-label="Nach unten">▼</button>`;
   }else{
-    if(st!=="done")btns+=`<button class="btn rate${w.rateStart?" pending":""}" data-act="rate" data-id="${w.id}">${w.rateStart?"2×…":"SF"}${!w.rateStart&&lastRate?`<small>${dec(lastRate,1)}</small>`:""}</button>`;
-    if(st==="running")btns+=`<button class="btn" data-act="split" data-id="${w.id}" ${w.splits.length>=MAX_SPLITS?"disabled":""}>Split<small>${w.splits.length}/${MAX_SPLITS}</small></button>`;
-    if(st==="idle")btns+=`<button class="btn go" data-act="start" data-id="${w.id}">Start</button>`;
-    if(st==="running")btns+=`<button class="btn stop" data-act="stop" data-id="${w.id}">Stopp</button>`;
+    if(st!=="done")btns+=`<button class="btn rate${w.rateStart?" pending":""}" data-act="rate" data-id="${esc(w.id)}">${w.rateStart?"2×…":"SF"}${!w.rateStart&&lastRate?`<small>${dec(lastRate,1)}</small>`:""}</button>`;
+    if(st==="running")btns+=`<button class="btn" data-act="split" data-id="${esc(w.id)}" ${w.splits.length>=MAX_SPLITS?"disabled":""}>Split<small>${w.splits.length}/${MAX_SPLITS}</small></button>`;
+    if(st==="idle")btns+=`<button class="btn go" data-act="start" data-id="${esc(w.id)}">Start</button>`;
+    if(st==="running")btns+=`<button class="btn stop" data-act="stop" data-id="${esc(w.id)}">Stopp</button>`;
   }
   let l2,l3="";
   if(s){
     l2=`<span class="w-time">${fmtTime(s.t)}</span><span class="w-sub"><b class="pct">${dec(s.pct,1)} %</b></span>`;
     l3=`<div class="w-l3"><b>${w.dist.toLocaleString("de-DE")}</b> m · <b>${fmtTime(s.pace)}</b>/500 · <b>${dec(s.v,2)}</b> m/s · SF <b>${s.avgRate?dec(s.avgRate,1):"–"}</b></div>`;
   }else{
-    l2=`<span class="w-time" data-time="${w.id}">${fmtTime(w.start==null?0:(Date.now()-w.start)/1000)}</span><span class="w-sub"><span>${w.dist.toLocaleString("de-DE")} m</span><span>Ziel <b>${target}</b></span></span>`;
+    l2=`<span class="w-time" data-time="${esc(w.id)}">${fmtTime(w.start==null?0:((rg?rgNow():Date.now())-w.start)/1000)}</span><span class="w-sub"><span>${w.dist.toLocaleString("de-DE")} m</span><span>Ziel <b>${target}</b></span></span>`;
   }
   let more="";
   if(w.open){
@@ -468,20 +485,20 @@ function watchCard(w){
     more=`<div class="w-more">
       <div>${esc(w.crewSnap.map(c=>c.first+" "+c.last).join(", "))}${w.cox?" · Steuerperson "+esc(w.cox.first+" "+w.cox.last):""}${w.example?' · <span class="ex">Beispiel</span>':""}</div>
       <div>${w.dist.toLocaleString("de-DE")} m · Relation <span class="num">${dec(w.rel,2)}</span> m/s · Ziel <span class="num">${target}</span>${w.relParts.length>1&&new Set(w.relParts.map(p=>p.key)).size>1?" · gemischt aus "+[...new Set(w.relParts.filter(p=>p.v).map(p=>p.key))].map(esc).join(", "):""}${w.relParts.some(p=>!p.v)?` · zählt ${w.relParts.filter(p=>p.v).length} von ${w.relParts.length} (ohne Wert: ${[...new Set(w.relParts.filter(p=>!p.v).map(p=>p.key))].map(esc).join(", ")})`:""}</div>
-      <div>Heute: <b>${runNoToday(w)}. Strecke</b> dieser Mannschaft</div>
+      ${rg?`<div>${w.abt?"Abteilung <b>"+esc(w.abt)+"</b> · ":""}Lauf ${w.lauf}${w.who?' · <span class="rg-who">'+esc(w.who)+"</span>":""}</div>`:`<div>Heute: <b>${runNoToday(w)}. Strecke</b> dieser Mannschaft</div>`}
       ${sp.length?`<div>Splits: <span class="num">${sp.join(" · ")}</span></div>`:""}
       ${w.rates.length?`<div>Frequenzen: <span class="num">${esc(rateText(w))}</span></div>`:""}
       <div class="bar">
-        ${w.rates.length?`<button class="btn sm ghost" data-act="rate-undo" data-id="${w.id}">Letzte SF löschen</button>`:""}
-        ${st!=="idle"?`<button class="btn sm ghost" data-act="undo" data-id="${w.id}" data-confirm="Sicher?">${st==="done"?"Stopp zurücknehmen":w.splits.length?"Split zurücknehmen":"Start zurücknehmen"}</button>`:""}
-        ${st==="done"?`<button class="btn sm ghost" data-act="reset" data-id="${w.id}" data-confirm="Zurücksetzen?">Neue Belastung</button>`:""}
-        ${st==="idle"?`<button class="btn sm ghost" data-act="dist-one" data-id="${w.id}">Strecke / Startnr.</button>`:""}
-        <button class="btn sm ghost danger" data-act="del" data-id="${w.id}" data-confirm="Löschen?">Uhr löschen</button>
+        ${w.rates.length?`<button class="btn sm ghost" data-act="rate-undo" data-id="${esc(w.id)}">Letzte SF löschen</button>`:""}
+        ${st!=="idle"?`<button class="btn sm ghost" data-act="undo" data-id="${esc(w.id)}" data-confirm="Sicher?">${st==="done"?"Stopp zurücknehmen":w.splits.length?"Split zurücknehmen":"Start zurücknehmen"}</button>`:""}
+        ${st==="done"?`<button class="btn sm ghost" data-act="reset" data-id="${esc(w.id)}" data-confirm="Zurücksetzen?">${rg?"Neuer Lauf":"Neue Belastung"}</button>`:""}
+        ${st==="idle"?`<button class="btn sm ghost" data-act="dist-one" data-id="${esc(w.id)}">${rg?"Bearbeiten":"Strecke / Startnr."}</button>`:""}
+        <button class="btn sm ghost danger" data-act="del" data-id="${esc(w.id)}" data-confirm="Löschen?">${rg?"Boot löschen":"Uhr löschen"}</button>
       </div></div>`;
   }
-  return `<article class="watch ${st}${w.sel?" sel":""}">
-    <button class="w-check" data-act="sel" data-id="${w.id}" aria-pressed="${!!w.sel}" aria-label="Auswählen">${w.sel?"✓":""}</button>
-    <button class="w-info" data-act="open" data-id="${w.id}" aria-expanded="${!!w.open}">
+  return `<article class="watch ${st}${w.sel?" sel":""}" data-wid="${esc(w.id)}">
+    <button class="w-check" data-act="sel" data-id="${esc(w.id)}" aria-pressed="${!!w.sel}" aria-label="Auswählen">${w.sel?"✓":""}</button>
+    <button class="w-info" data-act="open" data-id="${esc(w.id)}" aria-expanded="${!!w.open}">
       <span class="w-l1">${w.startNo?`<span class="sno">${esc(w.startNo)}</span>`:""}<span class="boat">${esc(w.boat)}</span>${crew}</span>
       <span class="w-l2">${l2}</span>${l3}
     </button>
@@ -549,7 +566,7 @@ function onWatchClick(e){
   save();renderWatches();
 }
 $("#tab-watches").addEventListener("click",onWatchClick);
-$("#hdr").addEventListener("click",onWatchClick);
+$("#hdr").addEventListener("click",e=>tab==="regatta"?onRgClick(e):onWatchClick(e));
 
 /* ---------- new-watch sheet ---------- */
 let D=null;
@@ -587,7 +604,8 @@ function renderSheet(){
     sheetShell("Strecke",stepTxt,
       `<div class="chips">${[250,500,1000,1500,2000,3000,6000].map(m=>`<button class="chip" data-act="d-preset" data-v="${m}" aria-pressed="${D.dist===m}">${m.toLocaleString("de-DE")}</button>`).join("")}</div>
        <label class="fld" for="d-dist">Eigene Strecke in Metern<input class="txt dist num" id="d-dist" type="text" inputmode="numeric" autocomplete="off" value="${D.dist}"></label>
-       <label class="fld" for="d-startno">Startnummer (optional)<input class="txt" id="d-startno" type="text" inputmode="numeric" autocomplete="off" maxlength="6" value="${esc(D.startNo)}" placeholder="z. B. 7"></label>`,
+       <label class="fld" for="d-startno">Startnummer (optional)<input class="txt" id="d-startno" type="text" inputmode="numeric" autocomplete="off" maxlength="6" value="${esc(D.startNo)}" placeholder="z. B. 7"></label>
+       ${D.rg?abtField("d-abt",D.abt):""}`,
       sum+`<button class="btn primary" data-act="next">Weiter</button>`);
   }else if(D.step===2){
     sheetShell("Bootsklasse",stepTxt,
@@ -595,7 +613,7 @@ function renderSheet(){
       sum+`<button class="btn ghost" data-act="back">Zurück</button>`);
   }else if(D.step===3){
     const f=D.filter.toLowerCase();
-    const busy=assignedMap();
+    const busy=D.rg?rgAssignedMap():assignedMap();
     const all=sortedAthletes().filter(a=>!f||fullName(a).toLowerCase().includes(f));
     const list=all.filter(a=>D.showAll||!busy.has(a.id)||D.crew.includes(a.id));
     const nHidden=all.filter(a=>busy.has(a.id)&&!D.crew.includes(a.id)).length;
@@ -607,10 +625,10 @@ function renderSheet(){
           const dis=full&&i<0;
           return `<button data-act="d-crew" data-v="${a.id}" aria-pressed="${i>=0}" ${dis&&i<0?"disabled":""}>
             <span class="seat">${i>=0?i+1:""}</span><span class="nm">${esc(fullName(a))}${a.example?' <span class="ex">Beispiel</span>':""}${!has?'<div class="why nov">'+esc(relKey(a,b.id))+" hat keinen Wert, zählt nicht zur Relation</div>":""}${busy.has(a.id)?inWatch(busy.get(a.id)):""}</span><span class="cat">${catLabel(a)}</span></button>`}).join("")||`<div class="empty">${nHidden?"Alle passenden Sportler sind schon in einer Uhr.":"Keine Sportler gefunden."}</div>`}</div>${hiddenNote(nHidden,D.showAll)}`,
-      sum+`<button class="btn ghost" data-act="back">Zurück</button><button class="btn primary" data-act="next" ${full&&r&&r.v?"":"disabled"}>${b.cox?"Weiter":"Uhr anlegen"}</button>`);
+      sum+`<button class="btn ghost" data-act="back">Zurück</button><button class="btn primary" data-act="next" ${full&&r&&r.v?"":"disabled"}>${b.cox?"Weiter":D.rg?"Boot anlegen":"Uhr anlegen"}</button>`);
     const inp=$("#d-filter");inp.addEventListener("input",()=>{D.filter=inp.value;const pos=inp.selectionStart;renderSheet();const n=$("#d-filter");n.focus();n.setSelectionRange(pos,pos)});
   }else if(D.step===4){
-    const busy=assignedMap();
+    const busy=D.rg?rgAssignedMap():assignedMap();
     const all=sortedAthletes().filter(a=>!D.crew.includes(a.id));
     const list=all.filter(a=>D.showAll||!busy.has(a.id)||D.cox===a.id);
     const nHidden=all.filter(a=>busy.has(a.id)&&D.cox!==a.id).length;
@@ -618,10 +636,11 @@ function renderSheet(){
       `<div class="muted">Steuerleute zählen nicht zur Relation.</div>
        <div class="pick"><button data-act="d-cox" data-v="" aria-pressed="${!D.cox}"><span class="seat">–</span><span class="nm">Ohne Steuerperson</span></button>
        ${list.map(a=>`<button data-act="d-cox" data-v="${a.id}" aria-pressed="${D.cox===a.id}"><span class="seat">St</span><span class="nm">${esc(fullName(a))}${busy.has(a.id)?inWatch(busy.get(a.id)):""}</span><span class="cat">${catLabel(a)}</span></button>`).join("")}</div>${hiddenNote(nHidden,D.showAll)}`,
-      sum+`<button class="btn ghost" data-act="back">Zurück</button><button class="btn primary" data-act="next">Uhr anlegen</button>`);
+      sum+`<button class="btn ghost" data-act="back">Zurück</button><button class="btn primary" data-act="next">${D.rg?"Boot anlegen":"Uhr anlegen"}</button>`);
   }
 }
 function createFromDraft(){
+  if(D.rg){rgCreateFromDraft();return}
   const crew=D.crew.map(athById);
   const w=makeWatch(D.dist,D.boat,crew,D.cox?athById(D.cox):null);
   w.startNo=D.startNo||"";
@@ -641,14 +660,15 @@ $("#sheet-root").addEventListener("click",e=>{
   if(!D)return;
   const boat=D.boat?boatOf(D.boat):null;
   switch(act){
-    case "d-preset": D.dist=+b.dataset.v;D.startNo=($("#d-startno")?.value||"").trim();D.step=2;break;
+    case "d-preset": D.dist=+b.dataset.v;D.startNo=($("#d-startno")?.value||"").trim();if(D.rg)D.abt=($("#d-abt")?.value||"").trim();D.step=2;break;
+    case "abt-pick": {const f=$("#d-abt");if(f){f.value=b.dataset.v;D.abt=b.dataset.v}document.querySelectorAll('[data-act="abt-pick"]').forEach(c=>c.setAttribute("aria-pressed",c.dataset.v===D.abt));return}
     case "d-boat": if(D.boat!==b.dataset.v){D.crew=[];D.cox=null}D.boat=b.dataset.v;D.step=3;break;
     case "d-crew": {const id=b.dataset.v,i=D.crew.indexOf(id);if(i>=0)D.crew.splice(i,1);else if(D.crew.length<boat.n)D.crew.push(id);break}
     case "d-cox": D.cox=b.dataset.v||null;break;
     case "d-showall": D.showAll=!D.showAll;break;
     case "back": D.step=D.step===4?3:D.step-1;break;
     case "next":
-      if(D.step===1){const v=parseFloat(($("#d-dist").value||"").replace(/\./g,"").replace(",","."));if(!(v>0)){toast("Bitte Strecke eingeben");return}D.dist=Math.round(v);D.startNo=($("#d-startno").value||"").trim();D.step=2}
+      if(D.step===1){const v=parseFloat(($("#d-dist").value||"").replace(/\./g,"").replace(",","."));if(!(v>0)){toast("Bitte Strecke eingeben");return}D.dist=Math.round(v);D.startNo=($("#d-startno").value||"").trim();if(D.rg)D.abt=($("#d-abt").value||"").trim();D.step=2}
       else if(D.step===3){if(boat.cox)D.step=4;else{createFromDraft();return}}
       else if(D.step===4){createFromDraft();return}
       break;
@@ -662,23 +682,26 @@ $("#sheet-root").addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()
 
 /* ---------- Strecke einer oder mehrerer Uhren ändern (nur Uhren, die noch nicht laufen) ---------- */
 let E=null;
-function openDistSheet(ids){const w=watchById(ids[0]);E={ids,dist:w.dist,startNo:w.startNo||""};renderDistSheet()}
+function openDistSheet(ids,rg){const w=rg?rgBoatView(ids[0]):watchById(ids[0]);E={ids,rg:!!rg,dist:w.dist,startNo:w.startNo||"",abt:w.abt||""};renderDistSheet()}
 function renderDistSheet(){
   const n=E.ids.length;
-  const keep=()=>{const f=$("#e-startno");if(f)E.startNo=f.value.trim()};keep();
+  const keep=()=>{const f=$("#e-startno");if(f)E.startNo=f.value.trim();const g=$("#e-abt");if(g)E.abt=g.value.trim()};keep();
   sheetShell(n>1?"Strecke ändern":"Strecke & Startnummer",n>1?n+" Uhren":"",
     `<div class="chips">${[250,500,1000,1500,2000,3000,6000].map(m=>`<button class="chip" data-act="e-preset" data-v="${m}" aria-pressed="${E.dist===m}">${m.toLocaleString("de-DE")}</button>`).join("")}</div>
      <label class="fld" for="e-dist">Eigene Strecke in Metern<input class="txt dist num" id="e-dist" type="text" inputmode="numeric" autocomplete="off" value="${E.dist}"></label>
      ${n===1?`<label class="fld" for="e-startno">Startnummer (optional)<input class="txt" id="e-startno" type="text" inputmode="numeric" autocomplete="off" maxlength="6" value="${esc(E.startNo)}" placeholder="z. B. 7"></label>`:""}
-     <div class="muted">Mannschaft und Relation bleiben gleich, die Zielzeit wird neu berechnet.</div>`,
+     ${E.rg?abtField("e-abt",E.abt):""}
+     <div class="muted">Mannschaft und Relation bleiben gleich, die Zielzeit wird neu berechnet.${E.rg?" Die Änderung gilt für alle Handys.":""}</div>`,
     `<span class="sum"></span><button class="btn" data-act="e-save">Übernehmen</button>`);
 }
 function distClick(act,b){
-  if(act==="e-preset"){const f=$("#e-startno");if(f)E.startNo=f.value.trim();E.dist=+b.dataset.v;renderDistSheet();return}
+  if(act==="e-preset"){const f=$("#e-startno");if(f)E.startNo=f.value.trim();const g=$("#e-abt");if(g)E.abt=g.value.trim();E.dist=+b.dataset.v;renderDistSheet();return}
+  if(act==="abt-pick"){const f=$("#e-abt");if(f)f.value=b.dataset.v;E.abt=b.dataset.v;document.querySelectorAll('[data-act="abt-pick"]').forEach(c=>c.setAttribute("aria-pressed",c.dataset.v===E.abt));return}
   if(act==="e-save"){
     const v=parseFloat(($("#e-dist").value||"").replace(/\./g,"").replace(",","."));
     if(!(v>0)){toast("Bitte Strecke eingeben");return}
     const sn=$("#e-startno");
+    if(E.rg){const ab=$("#e-abt");rgEditBoats(E.ids,Math.round(v),sn?sn.value.trim():null,ab?ab.value.trim():null);closeSheet();return}
     let c=0;E.ids.forEach(id=>{const w=watchById(id);if(w&&w.start==null){w.dist=Math.round(v);if(sn)w.startNo=sn.value.trim();c++}});
     save();closeSheet();renderWatches();toast(c+" Uhr"+(c===1?"":"en")+": "+Math.round(v).toLocaleString("de-DE")+" m");
   }
@@ -811,7 +834,7 @@ $("#sess-reset").addEventListener("click",e=>{if(!armed(e.currentTarget))return;
 
 /* ---------- wake lock: manual switch, plus automatic whenever stopwatches are open or running ---------- */
 let wake=null,wakeBusy=false;
-function wakeNeeded(){return !!S.wakeManual||gpsWatch!=null||S.watches.some(w=>watchState(w)==="running")||(tab==="watches"&&S.watches.length>0)}
+function wakeNeeded(){return !!S.wakeManual||gpsWatch!=null||S.watches.some(w=>watchState(w)==="running")||(tab==="watches"&&S.watches.length>0)||tab==="regatta"}
 async function updateWake(){
   $("#wake-btn").setAttribute("aria-checked",!!S.wakeManual);
   if(!("wakeLock" in navigator)||wakeBusy||document.visibilityState!=="visible")return;
@@ -870,7 +893,9 @@ async function sync(opts={}){
       const res=await apiPost({action:"batch",ops:batch});
       const done=new Set(res.done||[]);
       if(!done.size)throw new ApiError("no_progress");
-      S.queue=S.queue.filter(o=>!done.has(o.qid));save();
+      S.queue=S.queue.filter(o=>!done.has(o.qid));
+      if(S.rg)S.rg.pend.forEach(p=>{if(done.has(p.qid)&&!p.sent)p.sent=Date.now()});
+      save();
     }
     if(opts.force||Date.now()-lastPull>120000){
       const j=await apiGet({action:"athletes"});
@@ -906,6 +931,7 @@ async function connectWith(code){
     const wasNew=!old||old.url!==conn.url;
     S.conn=conn;
     if(wasNew){
+      S.rg=null; /* Regatta-Daten gehören zum alten Sheet */
       S.athletes=S.athletes.filter(a=>!a.example);S.watches=S.watches.filter(w=>!w.example);
       /* eigene, schon angelegte Sportler einmalig ins Sheet übernehmen */
       S.athletes.forEach(a=>{if(!S.queue.some(o=>o.op==="athlete"&&o.athlete.id===a.id))S.queue.push({op:"athlete",athlete:athPayload(a),qid:uid()})});
@@ -913,6 +939,7 @@ async function connectWith(code){
     save();toast("Verbunden mit „"+j.name+"“");
     await sync({force:true});
     if(G)renderSettings();
+    if(tab==="regatta")rgEnter();
   }catch(e){toast(e.code==="bad_key"?"Code passt nicht zum Sheet":"Sheet nicht erreichbar – Code und Internet prüfen")}
 }
 function refreshSyncUI(){
@@ -1050,11 +1077,298 @@ function stopScan(){if(scan){cancelAnimationFrame(scan.raf);scan.stream.getTrack
 function openHelp(){const f=$("#help-frame");if(!f.src)f.src="anleitung.html";$("#help").hidden=false}
 document.addEventListener("click",e=>{const b=e.target.closest('[data-act="open-help"]');if(b){e.preventDefault();openHelp()}});
 $("#help-close").addEventListener("click",()=>{$("#help").hidden=true});
+/* ==========================================================================
+   Regatta-Modus: gemeinsame Boote für mehrere Handys
+   - Boote stehen im Blatt „Regatta“ (App oder Sheet), jedes Handy holt sie alle 3 s ab.
+   - Jeder Tastendruck (Start, Split, SF, Stopp) wird als Ereignis mit SERVERZEIT ins Blatt „Regatta-Log“ geschrieben.
+     Die Uhr eines Bootes wird auf jedem Handy aus allen Ereignissen berechnet (frühester Start, frühester Stopp …).
+   - Serverzeit = Handyzeit + Versatz. Der Versatz wird aus den Antworten des Skripts geschätzt (kürzeste Laufzeit gewinnt).
+   - Eigene, noch nicht bestätigte Änderungen (pend) werden sofort angezeigt und verschwinden erst,
+     wenn eine Abfrage NACH der Bestätigung sie vom Sheet zurückliefert.
+   - Die Ergebniszeilen schickt nur das Handy, das (zuerst) gestoppt hat. Jedes Handy hat eine eigene Belastungs-ID,
+     damit ein Handy, das sich geirrt hat, nur seine eigenen Zeilen wieder löschen kann.
+   ========================================================================== */
+const NEED_RG=13, RG_POLL=2000, RG_SETTLE=4000;
+let rgStartCache={}, rgPolling=false, rgErr="", rgTimer=null, rgLastPoll=0, rgLocal={}; /* rgLocal: id → {sel,open,rateStart} nur auf diesem Handy */
+function rgState(){
+  if(!S.devId)S.devId=uid();
+  S.rg=S.rg||{};
+  const r=S.rg; r.boats=r.boats||[];r.events=r.events||[];r.pend=r.pend||[];r.etag=r.etag||"";r.abtSel=r.abtSel||[];r.sent=r.sent||{};
+  if(r.off==null){r.off=0;r.rtt=null;r.offAt=0}
+  return r;
+}
+const rgNow=()=>Date.now()+(S.rg?S.rg.off||0:0);
+function rgSample(serverNow,t0,t1){
+  if(!serverNow)return;
+  const r=S.rg, rtt=t1-t0, off=serverNow-(t0+t1)/2;
+  /* bessere (kürzere) Messung gewinnt; eine alte Messung wird nach 2 min ersetzt, falls die Handyuhr driftet */
+  if(r.rtt==null||rtt<=r.rtt||Date.now()-r.offAt>120000){r.off=Math.round(off);r.rtt=rtt;r.offAt=Date.now()}
+}
+async function rgTimeSync(n=4){
+  for(let i=0;i<n;i++){
+    const t0=Date.now();
+    try{const j=await apiGet({action:"time"});rgSample(j.now,t0,Date.now())}catch(e){break}
+  }
+}
+
+/* --- Sicht: Serverstand + eigene ausstehende Änderungen --- */
+function rgMerged(){
+  const r=rgState();
+  const boats=r.boats.map(b=>({...b}));
+  const del=new Set(), evDel=new Set(), laufMin={};
+  r.pend.forEach(p=>{
+    if(p.kind==="boat"){const i=boats.findIndex(b=>b.id===p.data.id);
+      if(i>=0)boats[i]={...boats[i],...p.data,lauf:boats[i].lauf};else boats.push({...p.data,lauf:1})}
+    else if(p.kind==="boatDel")del.add(p.id);
+    else if(p.kind==="run")laufMin[p.id]=Math.max(laufMin[p.id]||0,p.lauf);
+    else if(p.kind==="evDel")evDel.add(p.id);
+  });
+  const out=boats.filter(b=>!del.has(b.id));
+  out.forEach(b=>{if(laufMin[b.id]>b.lauf)b.lauf=laufMin[b.id]});
+  const lauf=Object.fromEntries(out.map(b=>[b.id,b.lauf]));
+  const seen=new Set(), events=[];
+  const add=e=>{if(seen.has(e.id)||evDel.has(e.id)||lauf[e.boat]!==e.lauf)return;seen.add(e.id);events.push(e)};
+  r.events.forEach(add);
+  r.pend.forEach(p=>{if(p.kind==="ev")add(p.data)});
+  return {boats:out,events};
+}
+function rgFindAth(p){
+  if(!p)return null;
+  if(p.id){const a=athById(p.id);if(a)return a}
+  const nm=String(p.name||"").trim().toLowerCase();
+  return nm?S.athletes.find(a=>fullName(a).toLowerCase()===nm)||null:null;
+}
+function rgSnap(p,boat){
+  const a=rgFindAth(p);
+  if(a)return {id:a.id,first:a.first,last:a.last,cat:catLabel(a),key:relKey(a,boat),a};
+  const nm=String(p.name||"").trim(), i=nm.lastIndexOf(" ");
+  return {id:p.id||"",first:i>0?nm.slice(0,i):"",last:i>0?nm.slice(i+1):nm,cat:"",key:"(unbekannt: "+nm+")",a:null};
+}
+/* Boot + Ereignisse → Uhr im gleichen Format wie die normalen Stoppuhren */
+function rgWatch(b,evs){
+  const loc=rgLocal[b.id]||(rgLocal[b.id]={});
+  const crewSnap=(b.crew||[]).map(p=>rgSnap(p,b.boat));
+  const coxS=b.cox?rgSnap(b.cox,b.boat):null;
+  const known=crewSnap.filter(c=>c.a).map(c=>c.a);
+  const rel=known.length?relation(known,b.boat):{v:null,parts:[]};
+  const relParts=crewSnap.map(c=>c.a?{key:c.key,v:REL[c.key]}:{key:c.key,v:null});
+  const mine=evs.filter(e=>e.boat===b.id).sort((x,y)=>x.t-y.t);
+  const startE=mine.find(e=>e.type==="start");
+  const start=startE?startE.t:null;
+  const stopE=start==null?null:mine.find(e=>e.type==="stop"&&e.t>=start);
+  const stop=stopE?stopE.t:null;
+  const splits=start==null?[]:mine.filter(e=>e.type==="split"&&e.t>start&&(stop==null||e.t<stop)).slice(0,MAX_SPLITS).map(e=>e.t);
+  const rates=mine.filter(e=>e.type==="rate"&&e.v>0).map(e=>({v:e.v,t:start!=null&&e.t>=start&&(stop==null||e.t<=stop)?(e.t-start)/1000:null}));
+  const strip=c=>({id:c.id,first:c.first,last:c.last,cat:c.cat,key:c.key});
+  return {rg:true,id:b.id,abt:b.abt||"",lauf:b.lauf,boat:b.boat,dist:+b.dist||0,startNo:b.startNo||"",
+    crew:crewSnap.map(c=>c.id).filter(Boolean),crewSnap:crewSnap.map(strip),cox:coxS?strip(coxS):null,
+    rel:rel.v,relParts:relParts.length?relParts:rel.parts,start,splits,stop,rates,
+    rateStart:loc.rateStart||null,sel:!!loc.sel,open:!!loc.open,
+    stopper:stopE?stopE.dev:null,stopConfirmed:!!(stopE&&S.rg.events.some(e=>e.id===stopE.id)),
+    who:stopE?(stopE.dev===S.devId?"von diesem Handy gestoppt":"von einem anderen Handy gestoppt"):"",
+    runId:b.id+"-"+b.lauf+"-"+S.devId,_evs:mine};
+}
+function rgView(){const m=rgMerged();return m.boats.map(b=>rgWatch(b,m.events))}
+function rgBoatView(id){return rgView().find(w=>w.id===id)}
+function rgAbts(){return [...new Set(rgMerged().boats.map(b=>b.abt||"").filter(Boolean))].sort((a,b)=>a.localeCompare(b,"de",{numeric:true}))}
+function rgVisible(list){
+  const sel=S.rg.abtSel.filter(a=>rgAbts().includes(a));
+  return sel.length?list.filter(w=>sel.includes(w.abt)):list;
+}
+function rgAssignedMap(){
+  const m=new Map();
+  rgView().forEach(w=>{const t=(w.startNo?"#"+w.startNo+" ":"")+w.boat+" "+w.crewSnap.map(c=>c.last).join("/");
+    w.crew.forEach(id=>m.set(id,t)); if(w.cox&&w.cox.id)m.set(w.cox.id,t+" (St)")});
+  return m;
+}
+function abtField(id,val){
+  const ab=rgAbts();
+  return `<label class="fld" for="${id}">Abteilung (optional)<input class="txt" id="${id}" type="text" autocomplete="off" maxlength="30" value="${esc(val||"")}" placeholder="z. B. Abt. 3 oder Vormittag"></label>
+    ${ab.length?`<div class="chips">${ab.map(a=>`<button class="chip" data-act="abt-pick" data-v="${esc(a)}" aria-pressed="${a===val}">${esc(a)}</button>`).join("")}</div>`:""}`;
+}
+
+/* --- Änderungen erzeugen --- */
+function rgPush(kind,op,extra){
+  enqueue(op);
+  S.rg.pend.push({kind,qid:op.qid,sent:null,...extra});
+  save();scheduleSync(30);
+}
+function rgEvent(w,type,v,t){
+  const ev={id:uid(),boat:w.id,lauf:w.lauf,type,t:Math.round(t??rgNow()),v:v??null,dev:S.devId};
+  rgPush("ev",{op:"rgEvent",ev},{data:ev});
+}
+function rgDelEvents(list){list.forEach(e=>rgPush("evDel",{op:"rgEventDel",id:e.id},{id:e.id}))}
+function rgBoatPayload(b){return {id:b.id,abt:b.abt||"",startNo:b.startNo||"",boat:b.boat,dist:b.dist,crew:b.crew||[],cox:b.cox||null}}
+function rgCreateFromDraft(){
+  const p=a=>({id:a.id,name:fullName(a)});
+  const b={id:uid(),abt:D.abt||"",startNo:D.startNo||"",boat:D.boat,dist:D.dist,crew:D.crew.map(athById).map(p),cox:D.cox?p(athById(D.cox)):null};
+  rgPush("boat",{op:"rgBoat",boat:b},{data:b});
+  if(b.abt&&S.rg.abtSel.length&&!S.rg.abtSel.includes(b.abt))S.rg.abtSel.push(b.abt);
+  closeSheet();renderRegatta();toast("Boot angelegt – erscheint auf allen Handys");
+}
+function rgEditBoats(ids,dist,startNo,abt){
+  const m=rgMerged();let c=0;
+  ids.forEach(id=>{const b=m.boats.find(x=>x.id===id), w=rgBoatView(id);if(!b||!w||w.start!=null)return;
+    const nb=rgBoatPayload({...b,dist,...(startNo!=null?{startNo}:{}),...(abt!=null?{abt}:{})});
+    rgPush("boat",{op:"rgBoat",boat:nb},{data:nb});c++});
+  renderRegatta();toast(c+" Boot"+(c===1?"":"e")+" geändert");
+}
+function rgNewRun(w){rgPush("run",{op:"rgNewRun",id:w.id},{id:w.id,lauf:w.lauf+1});delete rgLocal[w.id]}
+
+/* --- Ergebnisse: nur das Handy, dessen Stopp zählt, schreibt sie ins Sheet --- */
+function rgSig(w){return JSON.stringify([w.start,w.stop,w.splits,w.rates,w.dist,w.startNo,w.crewSnap.map(c=>c.id+c.last),w.cox&&w.cox.id,w.rel])}
+function rgCheckResults(){
+  if(!S.rg)return;
+  const view=rgView(), byId=Object.fromEntries(view.map(w=>[w.id,w])), now=rgNow();
+  let changed=false;
+  /* gesendete Ergebnisse zurückziehen, wenn der Stopp weg ist oder ein anderes Handy früher gestoppt hat */
+  Object.entries(S.rg.sent).forEach(([run,x])=>{
+    const w=byId[x.boat];
+    if(!w||w.lauf!==x.lauf)return;                       /* neuer Lauf / Boot gelöscht: Ergebnis bleibt */
+    if(w.stop==null||w.stopper!==S.devId){
+      S.results=S.results.filter(r=>r.run!==run);unqueueRun(run);delete S.rg.sent[run];changed=true;
+    }
+  });
+  view.forEach(w=>{
+    if(w.stop==null||w.stopper!==S.devId||!w.stopConfirmed||now-w.stop<RG_SETTLE)return;
+    const sig=rgSig(w), old=S.rg.sent[w.runId];
+    if(old&&old.sig===sig)return;
+    if(old){S.queue=S.queue.filter(o=>!(o.op==="results"&&o.run===w.runId));enqueue({op:"resultsDel",run:w.runId})}
+    recordResults(w);
+    S.rg.sent[w.runId]={boat:w.id,lauf:w.lauf,sig};changed=true;
+  });
+  if(changed){save();if(tab==="results")renderResults()}
+}
+
+/* --- Abfragen --- */
+async function rgPoll(){
+  if(!S.conn||rgPolling||!navigator.onLine)return;
+  if((S.conn.version||0)<NEED_RG){rgErr="old";renderRegatta();return}
+  rgPolling=true;const t0=Date.now();
+  try{
+    const j=await apiGet({action:"regatta",etag:S.rg.etag||""});
+    rgSample(j.now,t0,Date.now());
+    if(!j.same){S.rg.boats=j.boats||[];S.rg.events=j.events||[];S.rg.etag=j.etag||""}
+    S.rg.pend=S.rg.pend.filter(p=>!(p.sent&&p.sent<t0));
+    rgLastPoll=Date.now();rgErr="";save();
+  }catch(e){rgErr=e.code==="unknown_action"?"old":e.code==="bad_key"?"key":"net"}
+  finally{rgPolling=false}
+  rgCheckResults();
+  if(tab==="regatta")renderRegatta();
+}
+function rgSchedule(){
+  clearTimeout(rgTimer);
+  const active=tab==="regatta"&&document.visibilityState==="visible";
+  const waiting=S.rg&&rgView().some(w=>w.stop!=null&&w.stopper===S.devId&&!S.rg.sent[w.runId]);
+  if(!S.conn||(!active&&!waiting))return;
+  rgTimer=setTimeout(async()=>{await rgPoll();rgSchedule()},active?RG_POLL:15000);
+}
+async function rgEnter(){
+  rgState();renderRegatta();
+  if(!S.conn)return;
+  if((S.conn.version||0)<NEED_RG){try{const j=await apiGet({action:"ping"});S.conn.version=j.version||0;save()}catch(e){}}
+  if(Date.now()-S.rg.offAt>600000||S.rg.rtt==null)rgTimeSync().then(()=>{if(tab==="regatta")renderRegatta()});
+  await rgPoll();rgSchedule();
+}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&tab==="regatta")rgEnter();else rgSchedule()});
+
+/* --- Anzeige --- */
+function rgSortKey(w){const n=parseFloat(w.startNo);return isFinite(n)?n:1e9}
+function renderRegatta(){
+  if(tab!=="regatta")return;
+  rgState();
+  const msg=$("#rg-msg"), list=$("#rglist"), abtBox=$("#rg-abt");
+  ["#btn-new","#btn-selall","#btn-resetall"].forEach(id=>$(id).disabled=!S.conn);
+  if(!S.conn){
+    msg.innerHTML=`<div class="note">Der Regatta-Modus braucht eine Verbindung zum Google Sheet. Alle Handys, die mitstoppen, verbinden sich mit demselben Sheet (gleicher QR-Code).<button class="btn" data-act="rg-settings">☁ Sheet verbinden</button></div>`;
+    abtBox.innerHTML="";list.innerHTML="";$("#selbar").hidden=true;$("#topsub").textContent="";return;
+  }
+  if(rgErr==="old"){
+    msg.innerHTML=`<div class="note">Das Skript im Sheet ist zu alt für den Regatta-Modus (nötig: Version ${NEED_RG}). Bitte im Sheet <b>Code.gs</b> ersetzen und eine <b>neue Version bereitstellen</b> – siehe Anleitung.</div>`;
+    abtBox.innerHTML="";list.innerHTML="";$("#selbar").hidden=true;$("#topsub").textContent="";return;
+  }
+  msg.innerHTML=rgErr==="net"?`<div class="warnt">Sheet gerade nicht erreichbar – Eingaben werden gespeichert und nachgereicht.</div>`:rgErr==="key"?`<div class="warnt">Verbindungscode passt nicht mehr. Bitte neu verbinden.</div>`:"";
+  const all=rgView(), abts=rgAbts();
+  S.rg.abtSel=S.rg.abtSel.filter(a=>abts.includes(a));
+  abtBox.innerHTML=abts.length?`<button class="chip" data-act="rg-abt" data-v="" aria-pressed="${!S.rg.abtSel.length}">Alle</button>`+
+    abts.map(a=>`<button class="chip" data-act="rg-abt" data-v="${esc(a)}" aria-pressed="${S.rg.abtSel.includes(a)}">${esc(a)}</button>`).join(""):"";
+  const vis=rgVisible(all);
+  const sel=vis.filter(w=>w.sel), running=vis.filter(w=>watchState(w)==="running").length;
+  const acc=S.rg.rtt==null?"":" · Zeit ±"+dec(Math.max(.1,S.rg.rtt/2000),1)+" s";
+  $("#topsub").textContent=vis.length+" Boot"+(vis.length===1?"":"e")+(running?" · "+running+" läuft":"")+acc+(S.queue.length?" · ☁ "+S.queue.length:"");
+  $("#selbar").hidden=!sel.length;
+  $("#selcount").textContent=sel.length+" ✓";
+  $("#btn-startsel").disabled=!sel.some(w=>w.start==null);$("#btn-distsel").disabled=!sel.some(w=>w.start==null);
+  $("#btn-resetall").disabled=!sel.some(w=>w.start!=null);
+  $("#btn-selall").textContent=vis.length&&sel.length===vis.length?"Keine":"Alle";
+  if(!all.length){list.innerHTML=`<div class="empty">Noch keine Regatta-Boote. Mit „+ Boot“ anlegen – oder direkt im Sheet im Blatt „Regatta“. Alle verbundenen Handys sehen sie sofort.</div>`;return}
+  if(!vis.length){list.innerHTML=`<div class="empty">In den gewählten Abteilungen gibt es keine Boote.</div>`;return}
+  /* nach Abteilung gruppieren (Reihenfolge wie im Sheet), innerhalb nach Startnummer */
+  const groups=new Map();
+  vis.forEach(w=>{const k=w.abt||"";if(!groups.has(k))groups.set(k,[]);groups.get(k).push(w)});
+  const keys=[...groups.keys()].sort((a,b)=>(a===""?1:0)-(b===""?1:0)||a.localeCompare(b,"de",{numeric:true}));
+  list.innerHTML=keys.map(k=>{
+    const ws=groups.get(k).map((w,i)=>[w,i]).sort((x,y)=>rgSortKey(x[0])-rgSortKey(y[0])||x[1]-y[1]).map(x=>x[0]);
+    ws.forEach(w=>rgStartCache[w.id]=w.start);
+    return (keys.length>1||k?`<div class="rg-grp">${k?esc(k):"Ohne Abteilung"}</div>`:"")+ws.map(watchCard).join("");
+  }).join("");
+}
+function onRgClick(e){
+  const b=e.target.closest("[data-act]"); if(!b||b.disabled)return;
+  const act=b.dataset.act;
+  if(!armed(b))return;
+  if(act==="rg-settings"){openSettings();return}
+  if(act==="rg-abt"){const v=b.dataset.v,a=S.rg.abtSel;
+    if(!v)S.rg.abtSel=[];else{const i=a.indexOf(v);if(i>=0)a.splice(i,1);else a.push(v)}
+    save();renderRegatta();return}
+  if(!S.conn)return;
+  const now=rgNow(), view=rgVisible(rgView()), w=b.dataset.id?view.find(x=>x.id===b.dataset.id)||rgBoatView(b.dataset.id):null;
+  const loc=id=>rgLocal[id]||(rgLocal[id]={});
+  switch(act){
+    case "new-watch": {
+      const one=S.rg.abtSel.length===1?S.rg.abtSel[0]:"";
+      const any=view[view.length-1];
+      D={rg:true,step:1,dist:any?any.dist:1000,startNo:"",abt:one,boat:null,crew:[],cox:null,filter:""};renderSheet();return}
+    case "sel-all": {const all=view.every(x=>x.sel);view.forEach(x=>loc(x.id).sel=!all);break}
+    case "start-sel": {let c=0;view.forEach(x=>{if(x.sel&&x.start==null){rgEvent(x,"start",null,now);loc(x.id).sel=false;c++}});toast(c+" Boot"+(c===1?"":"e")+" gestartet");break}
+    case "reset-all": {let c=0;view.forEach(x=>{if(x.sel&&x.start!=null){rgNewRun(x);c++}});toast(c+" Boot"+(c===1?"":"e")+": neuer Lauf");break}
+    case "dist-sel": {const ids=view.filter(x=>x.sel&&x.start==null).map(x=>x.id);if(!ids.length){toast("Kein wartendes Boot ausgewählt");return}openDistSheet(ids,true);return}
+    case "del-sel": {const s=view.filter(x=>x.sel);s.forEach(x=>{rgPush("boatDel",{op:"rgBoatDel",id:x.id},{id:x.id});delete rgLocal[x.id]});toast(s.length+" gelöscht");break}
+    case "sel": loc(w.id).sel=!w.sel;break;
+    case "open": loc(w.id).open=!w.open;break;
+    case "start": if(w.start==null)rgEvent(w,"start",null,now);break;
+    case "split": if(w.start!=null&&w.stop==null&&w.splits.length<MAX_SPLITS)rgEvent(w,"split",null,now);break;
+    case "stop": if(w.start!=null&&w.stop==null){rgEvent(w,"stop",null,now);loc(w.id).rateStart=null}break;
+    case "rate": {
+      const L=loc(w.id), pnow=Date.now();
+      if(L.rateStart&&pnow-L.rateStart<12000){const r=120/((pnow-L.rateStart)/1000);L.rateStart=null;
+        if(r>=8&&r<=70)rgEvent(w,"rate",+r.toFixed(2),now);else toast("Ungültig, nochmal")}
+      else L.rateStart=pnow;
+      break}
+    case "rate-undo": {const r=w._evs.filter(e=>e.type==="rate");if(r.length)rgDelEvents([r[r.length-1]]);break}
+    case "undo": {
+      const ev=w._evs;
+      if(w.stop!=null)rgDelEvents(ev.filter(e=>e.type==="stop"));
+      else if(w.splits.length){const last=w.splits[w.splits.length-1];rgDelEvents(ev.filter(e=>e.type==="split"&&e.t>=last))}
+      else rgDelEvents(ev.filter(e=>e.type==="start"||e.type==="split"||e.type==="stop"));
+      break}
+    case "reset": rgNewRun(w);break;
+    case "dist-one": openDistSheet([w.id],true);return;
+    case "del": rgPush("boatDel",{op:"rgBoatDel",id:w.id},{id:w.id});delete rgLocal[w.id];break;
+  }
+  save();renderRegatta();
+}
+$("#tab-regatta").addEventListener("click",onRgClick);
+setInterval(()=>{if(S.rg&&S.conn)rgCheckResults()},1000);
+
 /* ---------- ticking ---------- */
 setInterval(()=>{
   const now=Date.now();
-  if(tab==="watches")for(const w of S.watches){if(w.start!=null&&w.stop==null){const el=document.querySelector(`[data-time="${w.id}"]`);if(el)el.textContent=fmtTime((now-w.start)/1000)}
+  if(tab==="watches")for(const w of S.watches){if(w.start!=null&&w.stop==null){const el=document.querySelector(`[data-time="${esc(w.id)}"]`);if(el)el.textContent=fmtTime((now-w.start)/1000)}
     if(w.rateStart&&now-w.rateStart>12000){w.rateStart=null;renderWatches()}}
+  if(tab==="regatta"&&S.rg){const sn=rgNow();
+    document.querySelectorAll("#rglist .watch.running [data-time]").forEach(el=>{const w=rgStartCache[el.dataset.time];if(w!=null)el.textContent=fmtTime((sn-w)/1000)});
+    for(const id in rgLocal){const L=rgLocal[id];if(L.rateStart&&now-L.rateStart>12000){L.rateStart=null;renderRegatta()}}}
   if(tab==="general"){renderSess();if(spmStart!=null&&performance.now()-spmStart>12000){spmStart=null;const b=$("#spm-tap");b.classList.remove("pending");b.textContent="Tippen: Start"}}
 },50);
 

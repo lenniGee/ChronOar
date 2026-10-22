@@ -129,7 +129,7 @@ Gespeichert wird auf dem Handy im Browser-Speicher unter dem Schlüssel `rudertr
 
 ## Skript (Code.gs) aktualisieren
 
-Nötig, wenn sich `Code.gs` ändert (`SCRIPT_VERSION`). Version 2 brachte das Mannschaftsblatt, Version 3 die Blattnamen „Ergebnis Sportler“ / „Ergebnis Mannschaft“ (alte Blätter werden automatisch umbenannt) und die Versionsanzeige in der App, Version 4 entfernt das Blatt „Relationen“ (Relationen kommen aus `relationen.csv`; ein vorhandenes Blatt „Relationen“ kann gelöscht werden). Version 5 speichert Prozent als Anteil (1,08 statt 108) und rechnet alte Werte beim Öffnen des Sheets automatisch um. Version 6 ergänzt die Spalten „Zielzeit“ und „Zielzeit (s)“ und trägt sie für alte Zeilen beim Öffnen nach. Version 7 ändert die Spaltenreihenfolge in „Ergebnis Mannschaft“ (das Blatt wird automatisch neu aufgebaut). Version 8 findet und prüft im Dialog „Mit Handy verbinden“ die Web-App-Adresse selbst (braucht einmalig die zusätzliche Berechtigung „Mit externem Dienst verbinden“) und warnt, wenn unter der Adresse eine ältere Skript-Version läuft. Version 9 ändert die Spaltenreihenfolge in „Ergebnis Sportler“ (wird beim Öffnen automatisch umsortiert) und speichert Splits als Abschnittszeiten (alte Einträge werden umgerechnet). Version 10 behebt eine falsche Umrechnung der Prozentwerte bei sehr kurzen Testfahrten: Die App kennzeichnet Anteile jetzt ausdrücklich (`pf: 1`), das Skript rechnet nur noch Werte sehr alter App-Versionen um. Version 11 ergänzt die Spalte „Strecke Nr.“ in beiden Ergebnis-Blättern. Version 12 ergänzt „Startnummer“ und „Frequenzen“.
+Nötig, wenn sich `Code.gs` ändert (`SCRIPT_VERSION`). Version 2 brachte das Mannschaftsblatt, Version 3 die Blattnamen „Ergebnis Sportler“ / „Ergebnis Mannschaft“ (alte Blätter werden automatisch umbenannt) und die Versionsanzeige in der App, Version 4 entfernt das Blatt „Relationen“ (Relationen kommen aus `relationen.csv`; ein vorhandenes Blatt „Relationen“ kann gelöscht werden). Version 5 speichert Prozent als Anteil (1,08 statt 108) und rechnet alte Werte beim Öffnen des Sheets automatisch um. Version 6 ergänzt die Spalten „Zielzeit“ und „Zielzeit (s)“ und trägt sie für alte Zeilen beim Öffnen nach. Version 7 ändert die Spaltenreihenfolge in „Ergebnis Mannschaft“ (das Blatt wird automatisch neu aufgebaut). Version 8 findet und prüft im Dialog „Mit Handy verbinden“ die Web-App-Adresse selbst (braucht einmalig die zusätzliche Berechtigung „Mit externem Dienst verbinden“) und warnt, wenn unter der Adresse eine ältere Skript-Version läuft. Version 9 ändert die Spaltenreihenfolge in „Ergebnis Sportler“ (wird beim Öffnen automatisch umsortiert) und speichert Splits als Abschnittszeiten (alte Einträge werden umgerechnet). Version 10 behebt eine falsche Umrechnung der Prozentwerte bei sehr kurzen Testfahrten: Die App kennzeichnet Anteile jetzt ausdrücklich (`pf: 1`), das Skript rechnet nur noch Werte sehr alter App-Versionen um. Version 11 ergänzt die Spalte „Strecke Nr.“ in beiden Ergebnis-Blättern. Version 12 ergänzt „Startnummer“ und „Frequenzen“. Version 13 bringt den Regatta-Modus (Blätter „Regatta“, „Regatta-Log“, „_Listen“ werden beim Öffnen bzw. beim ersten Abruf automatisch angelegt; die App braucht für den Regatta-Tab mindestens Version 13).
 
 **Kontrolle:** In der App unter *Sportler → ☁ Sheet* steht „Sheet-Skript: Version 3“ oder höher (aktuell 12). Steht dort ein Hinweis „veraltet“, läuft unter der Web-App-Adresse noch der alte Code – dann fehlt Schritt 2 (neue Version in der bestehenden Bereitstellung).
 
@@ -198,6 +198,27 @@ Die Spaltenreihenfolge ist im Skript festgelegt (`TEAM_HEAD`). Bitte nicht von H
 Wird eine Belastung in der App zurückgenommen, verschwindet ihre Zeile auch hier. Fehlt das Blatt oder passt es nicht mehr zu den Ergebnissen (z. B. nach Löschen von Hand): **ChronOar → Ergebnis Mannschaft neu aufbauen**.
 
 
+**Regatta** – eine Zeile pro Boot, gepflegt von der App oder von Hand
+
+| Spalte | Inhalt |
+|---|---|
+| ID | wird automatisch vergeben (grau, leer lassen) |
+| Abteilung | optional, frei wählbarer Text; die App filtert danach |
+| Startnummer | optional |
+| Boot | Auswahlliste (`1x`, `2x`, `2-`, `2+`, `4x`, `4x+`, `4-`, `4+`, `8+`, `Ergo`) |
+| Strecke (m) | |
+| Platz 1 … Platz 8 | Ruderer als „Vorname Nachname“ (Auswahlliste aus „Sportler“, Groß-/Kleinschreibung egal). Unbekannte Namen sind erlaubt, zählen aber nicht zur Relation |
+| Steuerperson | wie oben |
+| Lauf | wird von der App hochgezählt („Neuer Lauf“), grau |
+
+Eine Zeile zählt als Boot, sobald irgendeine Spalte von B bis N gefüllt ist. Die Auswahllisten kommen aus dem versteckten Blatt **_Listen**, das bei jeder Änderung im Blatt „Sportler“ (und bei jedem Sportler-Upload aus der App) neu geschrieben wird.
+
+**Regatta-Log** (versteckt) – ein Eintrag pro Tastendruck: `Event-ID`, `Boot-ID`, `Lauf`, `Typ` (`start`, `split`, `rate`, `stop`), `Zeit` (Serverzeit in ms), `Wert` (Schlagfrequenz), `Gelöscht`, `Gerät`, `Eingang`. Zurückgenommene Einträge werden nur als gelöscht markiert. Abgerufen werden nur Einträge des aktuellen Laufs jedes Bootes.
+
+So entsteht die Uhr eines Bootes auf jedem Handy: Start = frühester Start-Eintrag, Stopp = frühester Stopp danach, Splits = die ersten drei Split-Einträge dazwischen, Frequenzen relativ zum Start. Die Ergebniszeilen schickt nur das Handy, dessen Stopp zählt, frühestens 4 s nachdem der Stopp vom Sheet bestätigt wurde. Jedes Handy verwendet eine eigene Belastungs-ID (`<Boot-ID>-<Lauf>-<Gerät>`), damit es bei einem zurückgenommenen oder überholten Stopp nur seine eigenen Zeilen löscht.
+
+Zeitabgleich: Jede Antwort des Skripts enthält `now` (Serverzeit). Die App schätzt daraus ihren Versatz zur Serverzeit (Messung mit der kürzesten Laufzeit gewinnt, nach 2 min wird neu gemessen) und zeigt die halbe Laufzeit als Genauigkeit an. Abgefragt wird alle 2 s, solange der Regatta-Tab offen ist; unveränderte Daten werden per `etag` nicht erneut übertragen.
+
 ## Schnittstelle App ↔ Sheet
 
 Web-App-URL des Sheets, Antworten immer JSON `{ "ok": true, … }` bzw. `{ "ok": false, "error": "…" }`.
@@ -206,9 +227,13 @@ Web-App-URL des Sheets, Antworten immer JSON `{ "ok": true, … }` bzw. `{ "ok":
 |---|---|---|
 | `GET ?action=ping&key=…` | ja | `{ name, version }` |
 | `GET ?action=athletes&key=…` | ja | `{ athletes: [ { id, first, last, sex: "M"/"F", age: "JB"/"JA"/"SB"/"SA", weight: "O"/"L" } ] }` |
+| `GET ?action=time&key=…` | ja | `{}` (nur `now`, für den Zeitabgleich) |
+| `GET ?action=regatta&key=…&etag=…` | ja | `{ boats: [ { id, abt, startNo, boat, dist, crew: [ { id, name } ], cox, lauf } ], events: [ { id, boat, lauf, type, t, v, dev } ], etag }` oder `{ same: true, etag }` |
 | `POST { key, action: "batch", ops: [...] }` | ja | `{ done: [qid, …] }` |
 
-Operationen in `ops` (jede mit eindeutiger `qid`): `results` (Zeilen anhängen, doppelte IDs werden übersprungen), `resultsDel` (alle Zeilen einer Belastung löschen), `athlete` (anlegen/ändern), `athleteDel` (löschen). POST wird als `text/plain` gesendet, damit der Browser keine CORS-Vorabanfrage schickt.
+Jede Antwort enthält zusätzlich `now` (Serverzeit in ms).
+
+Operationen in `ops` (jede mit eindeutiger `qid`): `results` (Zeilen anhängen, doppelte IDs werden übersprungen), `resultsDel` (alle Zeilen einer Belastung löschen), `athlete` (anlegen/ändern), `athleteDel` (löschen), `rgBoat` (Regatta-Boot anlegen/ändern), `rgBoatDel`, `rgNewRun` (Lauf + 1), `rgEvent` (Tastendruck, doppelte Event-IDs werden übersprungen), `rgEventDel` (als gelöscht markieren). POST wird als `text/plain` gesendet, damit der Browser keine CORS-Vorabanfrage schickt.
 
 **Verbindungscode:** `CHRONOAR1:<Web-App-URL>|<Schlüssel>` – derselbe Text steckt im QR-Code.
 
