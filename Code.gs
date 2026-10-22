@@ -33,16 +33,16 @@
  * unter der Web-App-Adresse weiter die alte Version. Die Adresse bleibt gleich.
  */
 
-var SCRIPT_VERSION = 11;
+var SCRIPT_VERSION = 12;
 var CODE_PREFIX = 'CHRONOAR1:';
 var SH_ATH = 'Sportler', SH_RES = 'Ergebnis Sportler', SH_TEAM = 'Ergebnis Mannschaft';
 var OLD_NAMES = { 'Ergebnis Sportler': 'Ergebnisse', 'Ergebnis Mannschaft': 'Mannschaften' };
-var TEAM_HEAD = ['Belastung', 'Datum', 'Uhrzeit', 'Strecke (m)', 'Strecke Nr.', 'Mannschaft', 'Steuerperson', 'Kategorien', 'Boot',
-  'Zeit', 'Zeit (s)', '/500 m', 'm/s', 'Ø SF', 'Splits', 'Relation (m/s)', 'Zielzeit', 'Zielzeit (s)', 'Prozent'];
+var TEAM_HEAD = ['Belastung', 'Datum', 'Uhrzeit', 'Strecke (m)', 'Startnummer', 'Strecke Nr.', 'Mannschaft', 'Steuerperson', 'Kategorien', 'Boot',
+  'Zeit', 'Zeit (s)', '/500 m', 'm/s', 'Ø SF', 'Frequenzen', 'Splits', 'Relation (m/s)', 'Zielzeit', 'Zielzeit (s)', 'Prozent'];
 var ATH_HEAD = ['ID', 'Vorname', 'Nachname', 'Geschlecht', 'Altersklasse', 'Gewichtsklasse'];
 /* „Ergebnis Sportler“. ID und Belastung sind technische Spalten (Doppel-Upload-Schutz, Zurücknehmen eines Stopps). */
-var RES_HEAD = ['Mannschaft', 'Sportler-ID', 'Datum', 'Uhrzeit', 'Strecke (m)', 'Strecke Nr.', 'Vorname', 'Nachname', 'Rolle', 'Kategorie',
-  'Boot', 'Zeit', 'Zeit (s)', '/500 m', 'm/s', 'Ø SF', 'Splits', 'Relation (m/s)', 'Zielzeit', 'Zielzeit (s)', 'Prozent',
+var RES_HEAD = ['Mannschaft', 'Sportler-ID', 'Datum', 'Uhrzeit', 'Strecke (m)', 'Startnummer', 'Strecke Nr.', 'Vorname', 'Nachname', 'Rolle', 'Kategorie',
+  'Boot', 'Zeit', 'Zeit (s)', '/500 m', 'm/s', 'Ø SF', 'Frequenzen', 'Splits', 'Relation (m/s)', 'Zielzeit', 'Zielzeit (s)', 'Prozent',
   'ID', 'Belastung'];
 /* Spalten werden im ganzen Skript über ihren Namen angesprochen: RC['Prozent'] = Spaltennummer (1-basiert). */
 var RC = colMap_(RES_HEAD), TC = colMap_(TEAM_HEAD);
@@ -57,10 +57,10 @@ function formatCols_(sh, head, fmts) {
     if (fmts[name] === 'grey') rg.setFontColor('#999999'); else rg.setNumberFormat(fmts[name]);
   });
 }
-var RES_FMT = { 'Datum': 'dd.MM.yyyy', 'Uhrzeit': 'HH:mm', 'Zeit': '@', 'Zeit (s)': '0.00', '/500 m': '@', 'm/s': '0.000000',
+var RES_FMT = { 'Startnummer': '@', 'Datum': 'dd.MM.yyyy', 'Uhrzeit': 'HH:mm', 'Zeit': '@', 'Zeit (s)': '0.00', '/500 m': '@', 'm/s': '0.000000',
   'Ø SF': '0.0', 'Relation (m/s)': '0.000000', 'Zielzeit': '@', 'Zielzeit (s)': '0.0', 'Prozent': '0.0000',
   'Sportler-ID': 'grey', 'ID': 'grey', 'Belastung': 'grey' };
-var TEAM_FMT = { 'Belastung': 'grey', 'Datum': 'dd.MM.yyyy', 'Uhrzeit': 'HH:mm', 'Zeit': '@', 'Zeit (s)': '0.00', '/500 m': '@',
+var TEAM_FMT = { 'Startnummer': '@', 'Belastung': 'grey', 'Datum': 'dd.MM.yyyy', 'Uhrzeit': 'HH:mm', 'Zeit': '@', 'Zeit (s)': '0.00', '/500 m': '@',
   'm/s': '0.00', 'Ø SF': '0.0', 'Relation (m/s)': '0.000000', 'Zielzeit': '@', 'Zielzeit (s)': '0.0', 'Prozent': '0.0000' };
 var AGE_TXT = { JB: 'Junior B', JA: 'Junior A', SB: 'Senior B', SA: 'Senior A' };
 
@@ -311,6 +311,7 @@ function appendResults_(rows) {
       'Mannschaft': r.crew || '', 'Sportler-ID': r.ath || '', 'Datum': d, 'Uhrzeit': d, 'Strecke (m)': r.dist,
       'Vorname': r.first, 'Nachname': r.last, 'Rolle': r.role, 'Kategorie': r.cat, 'Boot': r.boat,
       'Zeit': r.time, 'Zeit (s)': num_(r.t), '/500 m': r.pace, 'm/s': num_(r.v), 'Ø SF': num_(r.avgRate),
+      'Frequenzen': r.rates || '', 'Startnummer': r.startNo || '',
       'Splits': lapSplits_(r.splits || '', r.time), 'Relation (m/s)': num_(r.rel), 'Zielzeit': tg[0], 'Zielzeit (s)': tg[1],
       'Prozent': r.role === 'Steuerperson' ? '' : pct_(r.pct, r.pf), 'ID': r.id, 'Belastung': r.run }));
   });
@@ -382,10 +383,10 @@ function teamRows_(resRows) {
     g.rowers.forEach(function (r) { if (cats.indexOf(v(r, 'Kategorie')) < 0) cats.push(v(r, 'Kategorie')); });
     var tg = target_(v(f, 'Strecke (m)'), v(f, 'Relation (m/s)'));
     out.push(rowFrom_(TEAM_HEAD, {
-      'Belastung': run, 'Datum': v(f, 'Datum'), 'Uhrzeit': v(f, 'Uhrzeit'), 'Strecke (m)': v(f, 'Strecke (m)'), 'Strecke Nr.': v(f, 'Strecke Nr.'),
+      'Belastung': run, 'Datum': v(f, 'Datum'), 'Uhrzeit': v(f, 'Uhrzeit'), 'Strecke (m)': v(f, 'Strecke (m)'), 'Startnummer': v(f, 'Startnummer'), 'Strecke Nr.': v(f, 'Strecke Nr.'),
       'Mannschaft': v(f, 'Mannschaft') || g.rowers.map(name).join(', '), 'Steuerperson': g.cox.map(name).join(', '),
       'Kategorien': cats.join(', '), 'Boot': v(f, 'Boot'), 'Zeit': v(f, 'Zeit'), 'Zeit (s)': v(f, 'Zeit (s)'),
-      '/500 m': v(f, '/500 m'), 'm/s': v(f, 'm/s'), 'Ø SF': v(f, 'Ø SF'), 'Splits': v(f, 'Splits'),
+      '/500 m': v(f, '/500 m'), 'm/s': v(f, 'm/s'), 'Ø SF': v(f, 'Ø SF'), 'Frequenzen': v(f, 'Frequenzen'), 'Splits': v(f, 'Splits'),
       'Relation (m/s)': v(f, 'Relation (m/s)'), 'Zielzeit': tg[0], 'Zielzeit (s)': tg[1], 'Prozent': v(f, 'Prozent') }));
   });
   return out;

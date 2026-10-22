@@ -88,6 +88,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--surf
 .watch.sel .w-check{background:var(--accent);border-color:var(--accent)}
 .w-info{min-width:0;text-align:left;padding:0;display:flex;flex-direction:column;gap:0}
 .w-l1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;line-height:1.25}
+.w-l1 .sno{display:inline-block;background:var(--accent);color:var(--accent-ink);font-family:var(--display);font-weight:700;font-size:14px;line-height:1;padding:3px 6px;border-radius:5px;margin-right:5px;vertical-align:1px}
 .w-l1 .boat{font-family:var(--display);font-weight:700;font-size:16px;margin-right:4px}
 .w-l2{display:flex;align-items:baseline;gap:6px;min-width:0}
 .w-time{font-family:var(--display);font-variant-numeric:tabular-nums;font-size:29px;font-weight:600;line-height:1.05}
@@ -288,7 +289,7 @@ let REL;
 const REL_BUILTIN={"JFA1x":4.4296788482834994,"JFA2-":4.612546125461255,"JFA2x":4.765308553728854,"JFA4+":4.842615012106537,"JFA4-":5.05050505050505,"JFA4x":5.221932114882507,"JFA8+":5.405405405405405,"JFAL1x":4.329004329004329,"JFAL2x":4.69593801361822,"JFAL4x":5.091649694501018,"JFB1x":4.371903235208394,"JFB2-":4.552352048558422,"JFB2x":4.703668861712136,"JFB4-":4.985044865403789,"JFB4+":4.769475357710652,"JFB4x+":5.098572399728076,"JFB4x":5.190311418685121,"JFB8+":5.334281650071124,"JFBL1x":4.283266704740148,"JFBL2x":4.587155963302752,"JFBL4x+":4.838709677419355,"JMA1x":4.93339911198816,"JMA2-":5.181347150259067,"JMA2x":5.341880341880342,"JMA4-":5.752085130859937,"JMA4+":5.47945205479452,"JMA4x":5.797101449275362,"JMA8+":6.024096385542169,"JMAL1x":4.77326968973747,"JMAL2-":5.022601707684581,"JMAL2x":5.239717055279015,"JMAL4-":5.578800557880056,"JMAL4x":5.680204487361545,"JMAL8+":5.800464037122969,"JMB1x":4.868549172346641,"JMB2-":5.114217524718718,"JMB2x":5.272407732864675,"JMB4-":5.677517032551098,"JMB4+":5.407354001441962,"JMB4x+":5.699088145896657,"JMB4x":5.72737686139748,"JMB8+":5.945303210463734,"JMBL1x":4.7095761381475665,"JMBL2x":5.126452494873547,"JMBL4x+":5.403458213256484,"JMBL4x":5.557613931085588,"SFA1x":4.676174888940847,"SFA2-":4.909180166912126,"SFA2x":5.033979360684621,"SFA4+":5.159958720330237,"SFA4-":5.343307507347047,"SFA4x":5.467468562055768,"SFA8+":5.668934240362812,"SFAL1x":4.524886877828054,"SFAL2x":4.9838026414154,"SFAL4x":5.320563979781857,"SFAL2-":4.697183098591549,"SFB1x":4.676174888940847,"SFB2-":4.909180166912126,"SFB2x":5.033979360684621,"SFB4+":4.952947003467063,"SFB4-":5.343307507347047,"SFB4x":5.477951246233908,"SFB8+":5.667327854916407,"SFBL1x":4.524886877828054,"SFBL2x":4.694835680751174,"SFBL4x":4.9838026414154,"SFBL2-":5.323224261771748,"SMA1x":5.1190171487074485,"SMA2-":5.4274084124830395,"SMA2+":5.0864699898270604,"SMA2x":5.5601890464275785,"SMA4-":5.920663114268798,"SMA4+":5.633802816901408,"SMA4x":6.024096385542169,"SMA8+":6.277463904582548,"SMAL1x":5,"SMAL2-":5.2356020942408374,"SMAL2x":5.474952094169176,"SMAL4-":5.829204313611192,"SMAL4x":5.836008170411438,"SMAL8+":6.0569351907934585,"SMB1x":5.1190171487074485,"SMB2-":5.4274084124830395,"SMB2+":5.0864699898270604,"SMB2x":5.5601890464275785,"SMB4-":5.920663114268798,"SMB4+":5.730659025787966,"SMB4x":6.024096385542169,"SMB8+":6.277463904582548,"SMBL1x":5,"SMBL2-":5.2631578947368425,"SMBL2x":5.474952094169176,"SMBL4-":5.829204313611192,"SMBL4x":5.836008170411438,"SMBL8+":6.0569351907934585,"SMBLErgo":5.6069526212503495,"SMALErgo":5.6069526212503495,"SFBLErgo":4.833252779120348,"SFALErgo":4.833252779120348,"SFAErgo":5.22466039707419,"SFBErgo":5.22466039707419,"SMBErgo":5.955926146515783,"SMAErgo":5.955926146515783,"JMAErgo":5.788712011577425,"JMALErgo":5.457025920873124,"JFAErgo":5.151983513652757,"JFALErgo":4.698144233027954,"JMBErgo":5.662514156285391,"JFBErgo":4.924895345973898,"JMBLErgo":5.347593582887701,"JFBLErgo":4.514672686230249};
 const BOATS=[{id:"1x",n:1},{id:"2x",n:2},{id:"2-",n:2},{id:"2+",n:2,cox:1},{id:"4x",n:4},{id:"4x+",n:4,cox:1},{id:"4-",n:4},{id:"4+",n:4,cox:1},{id:"8+",n:8,cox:1},{id:"Ergo",n:1}];
 const AGES=[["JB","Junior B"],["JA","Junior A"],["SB","Senior B"],["SA","Senior A"]];
-const MAX_WATCHES=20, MAX_SPLITS=3;
+const MAX_WATCHES=Infinity, MAX_SPLITS=3; /* keine Obergrenze für Uhren */
 
 /* ---------- helpers ---------- */
 const $=s=>document.querySelector(s);
@@ -346,10 +347,30 @@ function makeWatch(dist,boat,crew,cox){
     cox:cox?{id:cox.id,first:cox.first,last:cox.last,cat:catLabel(cox)}:null,
     rel:r.v,relParts:r.parts,start:null,splits:[],stop:null,rates:[],rateStart:null,sel:false,open:false,runId:uid()};
 }
+/* Frequenzen werden als {v: Schläge/min, t: Sekunden auf der Uhr bei der Messung (null = vor dem Start)} gespeichert.
+   Ältere Uhren haben noch reine Zahlen – rv() liest beides. */
+const rv=x=>typeof x==="number"?x:x.v;
+const mmss=sec=>{const s=Math.floor(sec);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
+/* „28,3 (1:23), 24,6 (2:32) | 32,2 (3:45) | …“ – je Split-Abschnitt eine Gruppe, getrennt durch „|“ */
+function rateText(w){
+  if(!w.rates.length)return "";
+  const bounds=w.splits.map(x=>(x-w.start)/1000), groups=[[]];
+  for(let i=0;i<w.splits.length;i++)groups.push([]);
+  const pre=[];
+  w.rates.forEach(x=>{
+    const t=typeof x==="number"?null:x.t;
+    if(t==null||w.start==null){pre.push(dec(rv(x),1)+" (vor Start)");return}
+    let g=0;while(g<bounds.length&&t>bounds[g])g++;
+    groups[g].push(dec(rv(x),1)+" ("+mmss(t)+")");
+  });
+  let last=groups.length-1;while(last>0&&!groups[last].length)last--;
+  const body=groups.slice(0,last+1).map(g=>g.length?g.join(", "):"–").join(" | ");
+  return pre.length?(pre.join(", ")+(groups.some(g=>g.length)?" | "+body:"")):body;
+}
 function stats(w){
   if(w.start==null||w.stop==null)return null;
   const t=(w.stop-w.start)/1000, v=w.dist/t;
-  const avgRate=w.rates.length?w.rates.reduce((a,b)=>a+b,0)/w.rates.length:null;
+  const avgRate=w.rates.length?w.rates.reduce((a,b)=>a+rv(b),0)/w.rates.length:null;
   return {t,v,pace:500/v,pct:w.rel?v/w.rel*100:null,avgRate};
 }
 /* Splits als Abschnittszeiten: Zeit seit dem letzten Split (bzw. seit dem Start); nach dem Stopp kommt der letzte Abschnitt dazu */
@@ -368,13 +389,13 @@ function recordResults(w){
   const date=d.toLocaleDateString("de-DE"), time=d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
   const crewNames=w.crewSnap.map(c=>c.first+" "+c.last).join(", ");
   const splits=splitText(w).join(" | ");
-  const base={watch:w.id,run:w.runId,ts:w.stop,date,time,boat:w.boat,dist:w.dist,t:st.t,v:st.v,rel:w.rel,pct:st.pct,avgRate:st.avgRate,splits,crew:crewNames};
+  const base={watch:w.id,run:w.runId,ts:w.stop,date,time,boat:w.boat,dist:w.dist,t:st.t,v:st.v,rel:w.rel,pct:st.pct,avgRate:st.avgRate,splits,rates:rateText(w),startNo:w.startNo||"",crew:crewNames};
   w.crewSnap.forEach(c=>S.results.push({...base,id:uid(),ath:c.id,first:c.first,last:c.last,cat:c.cat,role:"Ruderer"}));
   if(w.cox)S.results.push({...base,id:uid(),ath:w.cox.id,first:w.cox.first,last:w.cox.last,cat:w.cox.cat,role:"Steuerperson"});
   if(!w.example)enqueue({op:"results",run:w.runId,rows:S.results.filter(r=>r.run===w.runId).map(r=>({
     id:r.id,run:r.run,ts:r.ts,first:r.first,last:r.last,ath:r.ath,cat:r.cat,role:r.role,boat:r.boat,dist:r.dist,
     time:fmtTime(r.t),t:+r.t.toFixed(2),v:+r.v.toFixed(6),pace:fmtTime(500/r.v),rel:r.rel==null?null:+r.rel.toFixed(6),
-    pct:r.pct==null?null:+(r.pct/100).toFixed(6),pf:1, /* als Anteil: 108,12 % → 1,0812; pf=1 sagt dem Sheet „schon Anteil, nicht umrechnen“ */avgRate:r.avgRate==null?null:+r.avgRate.toFixed(1),splits:r.splits,crew:r.crew}))});
+    pct:r.pct==null?null:+(r.pct/100).toFixed(6),pf:1, /* als Anteil: 108,12 % → 1,0812; pf=1 sagt dem Sheet „schon Anteil, nicht umrechnen“ */avgRate:r.avgRate==null?null:+r.avgRate.toFixed(1),splits:r.splits,rates:r.rates||"",startNo:r.startNo||"",crew:r.crew}))});
 }
 /* „x. Strecke heute“: wie oft diese Mannschaft (gleiche Ruderer, Reihenfolge egal, gleiches Boot) heute auf DIESEM Handy
    schon gestoppt wurde. Verbindlich ist die Spalte „Strecke Nr.“ im Sheet, die alle Handys berücksichtigt. */
@@ -424,7 +445,7 @@ function watchCard(w){
   const st=watchState(w), s=stats(w);
   const crew=w.crewSnap.map(c=>esc(c.last)).join(" · ")+(w.cox?" · St: "+esc(w.cox.last):"");
   const target=w.rel?fmtTime(w.dist/w.rel):"–";
-  const lastRate=w.rates.length?w.rates[w.rates.length-1]:null;
+  const lastRate=w.rates.length?rv(w.rates[w.rates.length-1]):null;
   let btns="";
   if(sortMode){
     btns=`<button class="btn" data-act="up" data-id="${w.id}" aria-label="Nach oben">▲</button><button class="btn" data-act="down" data-id="${w.id}" aria-label="Nach unten">▼</button>`;
@@ -449,19 +470,19 @@ function watchCard(w){
       <div>${w.dist.toLocaleString("de-DE")} m · Relation <span class="num">${dec(w.rel,2)}</span> m/s · Ziel <span class="num">${target}</span>${w.relParts.length>1&&new Set(w.relParts.map(p=>p.key)).size>1?" · gemischt aus "+[...new Set(w.relParts.filter(p=>p.v).map(p=>p.key))].map(esc).join(", "):""}${w.relParts.some(p=>!p.v)?` · zählt ${w.relParts.filter(p=>p.v).length} von ${w.relParts.length} (ohne Wert: ${[...new Set(w.relParts.filter(p=>!p.v).map(p=>p.key))].map(esc).join(", ")})`:""}</div>
       <div>Heute: <b>${runNoToday(w)}. Strecke</b> dieser Mannschaft</div>
       ${sp.length?`<div>Splits: <span class="num">${sp.join(" · ")}</span></div>`:""}
-      ${w.rates.length?`<div>Frequenzen: <span class="num">${w.rates.map(r=>dec(r,1)).join(" · ")}</span></div>`:""}
+      ${w.rates.length?`<div>Frequenzen: <span class="num">${esc(rateText(w))}</span></div>`:""}
       <div class="bar">
         ${w.rates.length?`<button class="btn sm ghost" data-act="rate-undo" data-id="${w.id}">Letzte SF löschen</button>`:""}
         ${st!=="idle"?`<button class="btn sm ghost" data-act="undo" data-id="${w.id}" data-confirm="Sicher?">${st==="done"?"Stopp zurücknehmen":w.splits.length?"Split zurücknehmen":"Start zurücknehmen"}</button>`:""}
         ${st==="done"?`<button class="btn sm ghost" data-act="reset" data-id="${w.id}" data-confirm="Zurücksetzen?">Neue Belastung</button>`:""}
-        ${st==="idle"?`<button class="btn sm ghost" data-act="dist-one" data-id="${w.id}">Strecke ändern</button>`:""}
+        ${st==="idle"?`<button class="btn sm ghost" data-act="dist-one" data-id="${w.id}">Strecke / Startnr.</button>`:""}
         <button class="btn sm ghost danger" data-act="del" data-id="${w.id}" data-confirm="Löschen?">Uhr löschen</button>
       </div></div>`;
   }
   return `<article class="watch ${st}${w.sel?" sel":""}">
     <button class="w-check" data-act="sel" data-id="${w.id}" aria-pressed="${!!w.sel}" aria-label="Auswählen">${w.sel?"✓":""}</button>
     <button class="w-info" data-act="open" data-id="${w.id}" aria-expanded="${!!w.open}">
-      <span class="w-l1"><span class="boat">${esc(w.boat)}</span>${crew}</span>
+      <span class="w-l1">${w.startNo?`<span class="sno">${esc(w.startNo)}</span>`:""}<span class="boat">${esc(w.boat)}</span>${crew}</span>
       <span class="w-l2">${l2}</span>${l3}
     </button>
     <div class="w-btns">${btns}</div>${more}
@@ -470,7 +491,7 @@ function watchCard(w){
 function renderWatches(){
   const list=$("#watchlist");
   const n=S.watches.length, running=S.watches.filter(w=>watchState(w)==="running").length;
-  if(tab==="watches")$("#topsub").textContent=n+"/"+MAX_WATCHES+(running?" · "+running+" läuft":"")+(S.conn&&S.queue.length?" · ☁ "+S.queue.length:"");
+  if(tab==="watches")$("#topsub").textContent=n+" Uhr"+(n===1?"":"en")+(running?" · "+running+" läuft":"")+(S.conn&&S.queue.length?" · ☁ "+S.queue.length:"");
   $("#btn-new").disabled=n>=MAX_WATCHES;
   $("#btn-sort").setAttribute("aria-pressed",sortMode);$("#btn-sort").textContent=sortMode?"✓":"▲▼";$("#btn-resetall").disabled=!S.watches.some(w=>w.sel&&w.start!=null);
   const sel=S.watches.filter(w=>w.sel);
@@ -511,7 +532,7 @@ function onWatchClick(e){
     case "stop": w.stop=now;w.rateStart=null;recordResults(w);break;
     case "rate":
       if(w.rateStart&&now-w.rateStart<12000){const r=120/((now-w.rateStart)/1000);w.rateStart=null;
-        if(r>=8&&r<=70){w.rates.push(r)}else toast("Ungültig, nochmal");}
+        if(r>=8&&r<=70){w.rates.push({v:r,t:w.start!=null&&w.stop==null?(now-w.start)/1000:null})}else toast("Ungültig, nochmal");}
       else w.rateStart=now;
       break;
     case "rate-undo": w.rates.pop();break;
@@ -536,7 +557,7 @@ function openWatchSheet(){
   if(S.watches.length>=MAX_WATCHES){toast("Maximal "+MAX_WATCHES+" Uhren");return}
   const realW=S.watches.filter(w=>!w.example);
   const first=(realW[0]||S.watches[0]);
-  D={step:1,dist:first?first.dist:2000,boat:null,crew:[],cox:null,filter:""};
+  D={step:1,dist:first?first.dist:2000,startNo:"",boat:null,crew:[],cox:null,filter:""};
   renderSheet();
 }
 function closeSheet(){stopScan();D=null;A=null;G=null;E=null;$("#sheet-root").innerHTML=""}
@@ -565,7 +586,8 @@ function renderSheet(){
   if(D.step===1){
     sheetShell("Strecke",stepTxt,
       `<div class="chips">${[250,500,1000,1500,2000,3000,6000].map(m=>`<button class="chip" data-act="d-preset" data-v="${m}" aria-pressed="${D.dist===m}">${m.toLocaleString("de-DE")}</button>`).join("")}</div>
-       <label class="fld" for="d-dist">Eigene Strecke in Metern<input class="txt dist num" id="d-dist" type="text" inputmode="numeric" autocomplete="off" value="${D.dist}"></label>`,
+       <label class="fld" for="d-dist">Eigene Strecke in Metern<input class="txt dist num" id="d-dist" type="text" inputmode="numeric" autocomplete="off" value="${D.dist}"></label>
+       <label class="fld" for="d-startno">Startnummer (optional)<input class="txt" id="d-startno" type="text" inputmode="numeric" autocomplete="off" maxlength="6" value="${esc(D.startNo)}" placeholder="z. B. 7"></label>`,
       sum+`<button class="btn primary" data-act="next">Weiter</button>`);
   }else if(D.step===2){
     sheetShell("Bootsklasse",stepTxt,
@@ -602,6 +624,7 @@ function renderSheet(){
 function createFromDraft(){
   const crew=D.crew.map(athById);
   const w=makeWatch(D.dist,D.boat,crew,D.cox?athById(D.cox):null);
+  w.startNo=D.startNo||"";
   S.watches.push(w);save();closeSheet();renderWatches();
   toast("Uhr angelegt · Ziel "+fmtTime(w.dist/w.rel));
 }
@@ -616,14 +639,14 @@ $("#sheet-root").addEventListener("click",e=>{
   if(!D)return;
   const boat=D.boat?boatOf(D.boat):null;
   switch(act){
-    case "d-preset": D.dist=+b.dataset.v;D.step=2;break;
+    case "d-preset": D.dist=+b.dataset.v;D.startNo=($("#d-startno")?.value||"").trim();D.step=2;break;
     case "d-boat": if(D.boat!==b.dataset.v){D.crew=[];D.cox=null}D.boat=b.dataset.v;D.step=3;break;
     case "d-crew": {const id=b.dataset.v,i=D.crew.indexOf(id);if(i>=0)D.crew.splice(i,1);else if(D.crew.length<boat.n)D.crew.push(id);break}
     case "d-cox": D.cox=b.dataset.v||null;break;
     case "d-showall": D.showAll=!D.showAll;break;
     case "back": D.step=D.step===4?3:D.step-1;break;
     case "next":
-      if(D.step===1){const v=parseFloat(($("#d-dist").value||"").replace(/\./g,"").replace(",","."));if(!(v>0)){toast("Bitte Strecke eingeben");return}D.dist=Math.round(v);D.step=2}
+      if(D.step===1){const v=parseFloat(($("#d-dist").value||"").replace(/\./g,"").replace(",","."));if(!(v>0)){toast("Bitte Strecke eingeben");return}D.dist=Math.round(v);D.startNo=($("#d-startno").value||"").trim();D.step=2}
       else if(D.step===3){if(boat.cox)D.step=4;else{createFromDraft();return}}
       else if(D.step===4){createFromDraft();return}
       break;
@@ -637,21 +660,24 @@ $("#sheet-root").addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()
 
 /* ---------- Strecke einer oder mehrerer Uhren ändern (nur Uhren, die noch nicht laufen) ---------- */
 let E=null;
-function openDistSheet(ids){const w=watchById(ids[0]);E={ids,dist:w.dist};renderDistSheet()}
+function openDistSheet(ids){const w=watchById(ids[0]);E={ids,dist:w.dist,startNo:w.startNo||""};renderDistSheet()}
 function renderDistSheet(){
   const n=E.ids.length;
-  sheetShell("Strecke ändern",n>1?n+" Uhren":"",
+  const keep=()=>{const f=$("#e-startno");if(f)E.startNo=f.value.trim()};keep();
+  sheetShell(n>1?"Strecke ändern":"Strecke & Startnummer",n>1?n+" Uhren":"",
     `<div class="chips">${[250,500,1000,1500,2000,3000,6000].map(m=>`<button class="chip" data-act="e-preset" data-v="${m}" aria-pressed="${E.dist===m}">${m.toLocaleString("de-DE")}</button>`).join("")}</div>
      <label class="fld" for="e-dist">Eigene Strecke in Metern<input class="txt dist num" id="e-dist" type="text" inputmode="numeric" autocomplete="off" value="${E.dist}"></label>
+     ${n===1?`<label class="fld" for="e-startno">Startnummer (optional)<input class="txt" id="e-startno" type="text" inputmode="numeric" autocomplete="off" maxlength="6" value="${esc(E.startNo)}" placeholder="z. B. 7"></label>`:""}
      <div class="muted">Mannschaft und Relation bleiben gleich, die Zielzeit wird neu berechnet.</div>`,
     `<span class="sum"></span><button class="btn" data-act="e-save">Übernehmen</button>`);
 }
 function distClick(act,b){
-  if(act==="e-preset"){E.dist=+b.dataset.v;renderDistSheet();return}
+  if(act==="e-preset"){const f=$("#e-startno");if(f)E.startNo=f.value.trim();E.dist=+b.dataset.v;renderDistSheet();return}
   if(act==="e-save"){
     const v=parseFloat(($("#e-dist").value||"").replace(/\./g,"").replace(",","."));
     if(!(v>0)){toast("Bitte Strecke eingeben");return}
-    let c=0;E.ids.forEach(id=>{const w=watchById(id);if(w&&w.start==null){w.dist=Math.round(v);c++}});
+    const sn=$("#e-startno");
+    let c=0;E.ids.forEach(id=>{const w=watchById(id);if(w&&w.start==null){w.dist=Math.round(v);if(sn)w.startNo=sn.value.trim();c++}});
     save();closeSheet();renderWatches();toast(c+" Uhr"+(c===1?"":"en")+": "+Math.round(v).toLocaleString("de-DE")+" m");
   }
 }
@@ -901,7 +927,7 @@ function refreshSyncUI(){
 }
 function renderTopsub(){
   const n=S.watches.length, running=S.watches.filter(w=>watchState(w)==="running").length;
-  $("#topsub").textContent=n+"/"+MAX_WATCHES+(running?" · "+running+" läuft":"")+(S.conn&&S.queue.length?" · ☁ "+S.queue.length:"");
+  $("#topsub").textContent=n+" Uhr"+(n===1?"":"en")+(running?" · "+running+" läuft":"")+(S.conn&&S.queue.length?" · ☁ "+S.queue.length:"");
 }
 window.addEventListener("online",()=>sync());
 setInterval(()=>{if(S.conn&&(S.queue.length||Date.now()-lastPull>300000))sync()},45000);
