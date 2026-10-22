@@ -781,7 +781,7 @@ function pdfRows_() {
     return { day: pdfDayKey_(g('Datum')), time: pdfTime_(g('Uhrzeit')), abt: String(g('Abteilung') || '').trim(), dist: Number(g('Strecke (m)')) || 0, nr: String(g('Strecke Nr.') || ''),
       crew: String(g('Mannschaft') || ''), cox: String(g('Steuerperson') || ''), cats: String(g('Kategorien') || ''), boat: String(g('Boot') || ''),
       time_s: Number(g('Zeit (s)')) || 0, zeit: String(g('Zeit') || ''), v: Number(g('m/s')) || 0, sf: g('Ø SF') === '' ? null : Number(g('Ø SF')),
-      splits: String(g('Splits') || ''), rel: g('Relation (m/s)') === '' ? null : Number(g('Relation (m/s)')),
+      splits: String(g('Splits') || ''), pace: String(g('/500 m') || ''), rel: g('Relation (m/s)') === '' ? null : Number(g('Relation (m/s)')),
       pct: g('Prozent') === '' ? null : Number(g('Prozent')) * 100 };
   }).filter(function (x) { return x.day && x.crew; });
 }
@@ -857,7 +857,9 @@ function pdfHtml_(runs, f) {
         var r0 = crews[k][0];
         return { title: pdfEsc_(r0.crew) + ' <span class="gb">' + pdfEsc_(pdfBoat_(r0)) + '</span>', runs: byPct(crews[k]) }; }) }
   ]);
-  var rowH = function (r) { return PDF_ROW + ((r.crew.length + (r.cox ? r.cox.length + 6 : 0)) > 42 ? PDF_ROW_WRAP : 0); };
+  var rowH = function (r) {   // Zeile 1 bricht um bei langen Namen oder vielen Kategorien im Boot, Zeile 2 bei vielen Splits
+    var l1 = (r.crew.length + (r.cox ? r.cox.length + 6 : 0)) > 40 || pdfBoat_(r).length > 13, l2 = r.splits.length > 30;
+    return PDF_ROW + (l1 ? PDF_ROW_WRAP : 0) + (l2 ? PDF_ROW_WRAP - 2 : 0); };
   var pages = [];
   secs.forEach(function (sec) {
     var cap = pages.length ? PDF_PAGE : PDF_FIRST, cur = [], used = 0;
@@ -890,15 +892,18 @@ function pdfHtml_(runs, f) {
 function pdfGrp_(t) { return '<tbody class="grp"><tr><td colspan="7">' + t + '</td></tr></tbody>'; }
 function pdfRun_(r, alt) {
   var crew = '<b>' + pdfEsc_(r.crew) + '</b>' + (r.cox ? ' <span class="cox">· St: ' + pdfEsc_(r.cox) + '</span>' : '');
-  return '<tbody class="res' + (alt ? ' alt' : '') + '"><tr class="l1"><td>' + crew + '</td><td class="bt">' + pdfEsc_(pdfBoat_(r)) + '</td>' +
-    '<td class="n">' + (r.dist ? r.dist.toLocaleString('de-DE').replace(/,/g, '.') + ' m' : '–') + '</td><td class="n">' + pdfDec_(r.sf, 1) + '</td>' +
-    '<td class="n">' + pdfDec_(r.v, 2) + '</td><td class="n t">' + pdfEsc_(r.zeit) + '</td><td class="n pct">' + (r.pct === null ? '–' : pdfDec_(r.pct, 1) + ' %') + '</td></tr>' +
-    '<tr class="l2"><td>' + pdfEsc_(r.nr) + '</td><td>' + (r.rel ? pdfDec_(r.rel, 2) + ' m/s' + (r.dist ? ' – ' + target_(r.dist, r.rel)[0] : '') : '–') + '</td>' +
-    '<td class="sp" colspan="4">' + (r.splits ? '<span class="lbl">Splits</span> ' + pdfEsc_(r.splits) : '') + '</td><td></td></tr></tbody>';
+  var boat = pdfEsc_(pdfBoat_(r)).replace(/\//g, '/<wbr>');   // gemischte Boote dürfen nach „/“ umbrechen
+  return '<tbody class="res' + (alt ? ' alt' : '') + '"><tr class="l1"><td>' + crew + '</td>' +
+    '<td class="n">' + (r.dist ? r.dist.toLocaleString('de-DE').replace(/,/g, '.') + ' m' : '–') + '</td><td class="bt">' + boat + '</td>' +
+    '<td class="n">' + pdfDec_(r.sf, 1) + '</td><td class="n">' + pdfEsc_(r.pace || '–') + '</td><td class="n t">' + pdfEsc_(r.zeit) + '</td>' +
+    '<td class="n pct">' + (r.pct === null ? '–' : pdfDec_(r.pct, 1) + ' %') + '</td></tr>' +
+    '<tr class="l2"><td>' + pdfEsc_(r.nr) + '</td><td class="n">' + (r.rel && r.dist ? target_(r.dist, r.rel)[0] : '–') + '</td>' +
+    '<td class="bt2">' + (r.rel ? pdfDec_(r.rel, 2) + ' m/s' : '–') + '</td>' +
+    '<td class="sp" colspan="3">' + pdfEsc_(r.splits) + '</td><td class="n">' + pdfDec_(r.v, 2) + ' m/s</td></tr></tbody>';
 }
-var PDF_THEAD = '<colgroup><col width="35%"><col width="17%"><col width="11%"><col width="8%"><col width="8%"><col width="10%"><col width="11%"></colgroup>' +
-  '<thead><tr><th>Mannschaft</th><th>Boot</th><th class="n">Distanz</th><th class="n">Ø SF</th><th class="n">m/s</th><th class="n">Zeit</th><th class="n">Prozent</th></tr>' +
-  '<tr class="hl2"><th>Strecke Nr.</th><th>Relation – Zielzeit</th><th></th><th></th><th></th><th class="n">Splits</th><th></th></tr></thead>';
+var PDF_THEAD = '<colgroup><col width="33%"><col width="10%"><col width="15%"><col width="8%"><col width="10%"><col width="12%"><col width="12%"></colgroup>' +
+  '<thead><tr><th>Mannschaft</th><th class="n">Distanz</th><th class="bt">Boot</th><th class="n">Ø SF</th><th class="n">/500 m</th><th class="n">Zeit</th><th class="n">Prozent</th></tr>' +
+  '<tr class="hl2"><th>Strecke Nr.</th><th class="n">Zielzeit</th><th class="bt">Relation</th><th></th><th></th><th class="n">Splits</th><th class="n">m/s</th></tr></thead>';
 var PDF_CSS =
   '@page{size:A4;margin:12mm}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#1d1d1f}' +
   '.brk{page-break-before:always}' +
@@ -912,11 +917,11 @@ var PDF_CSS =
   'table.res{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}' +
   'table.res th{font-size:9.5px;text-transform:uppercase;letter-spacing:1px;color:#6b6b70;text-align:left;padding:5px 6px 0;white-space:nowrap}' +
   'table.res tr.hl2 th{font-weight:normal;font-size:8.5px;padding:0 6px 4px;border-bottom:1.5px solid #1d1d1f}' +
-  'table.res .n{text-align:right;white-space:nowrap;padding-left:12px}table.res td{padding:5px 6px 1px;vertical-align:top}.bt{white-space:nowrap}' +
+  'table.res .n{text-align:right;white-space:nowrap;padding-left:12px}table.res td{padding:5px 6px 1px;vertical-align:top}.bt{white-space:normal;padding-left:14px!important}table.res tr.l2 td.bt2{padding-left:14px}table.res th.bt{padding-left:14px}' +
   'tbody.res{border-bottom:1px solid #d9d9dc}tbody.res tr{page-break-inside:avoid}tbody.alt{background:#f5f5f6}' +
   'tbody.grp td{padding:12px 6px 4px;font-weight:bold;font-size:12.5px;color:#1d1d1f;border-bottom:1.5px solid #e8740c}.gb{color:#6b6b70;font-weight:normal;margin-left:6px}' +
   'tr.l1 td{font-size:12.5px}tr.l2 td{padding:0 6px 5px;font-size:10.5px;color:#6b6b70;white-space:nowrap}' +
-  '.cox{color:#6b6b70}.t{font-weight:bold}.pct{font-weight:bold;color:#e8740c;font-size:13.5px}.sp{text-align:right}' +
+  '.cox{color:#6b6b70}.t{font-weight:bold}.pct{font-weight:bold;color:#e8740c;font-size:13.5px}.sp{text-align:right;white-space:normal!important}' +
   '.lbl{text-transform:uppercase;font-size:9px;letter-spacing:1px;margin-right:4px}' +
   '.foot{width:100%;border-collapse:collapse;margin-top:14px;font-size:10px;color:#6b6b70;border-top:1px solid #d9d9dc}.foot td{padding-top:6px}.foot .r{text-align:right}';
 
