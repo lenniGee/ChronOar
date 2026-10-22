@@ -37,6 +37,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 
 header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
 .top-in{max-width:760px;margin:0 auto;padding:8px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.top h1 span{color:var(--accent)}
 .top h1{font-family:var(--display);font-size:24px;font-weight:700;letter-spacing:.02em;margin:0;text-transform:uppercase}
 .top .sub{color:var(--muted);font-size:14px;margin-left:auto}
 .top .btn{min-height:42px;padding:0 12px}
@@ -228,7 +229,7 @@ textarea.codein{min-height:76px;padding:10px 12px;font-size:13px;font-family:ui-
 
 
 <header class="top" id="hdr">
-  <div class="top-in"><h1 id="hdr-title">ChronOar</h1>
+  <div class="top-in"><h1 id="hdr-title">Chron<span>Oar</span></h1>
     <div class="bar" id="hdr-tools">
       <button class="btn primary" data-act="new-watch" id="btn-new">+ Uhr</button>
       <button class="btn ghost" data-act="sel-all" id="btn-selall">Alle</button>
@@ -297,7 +298,7 @@ textarea.codein{min-height:76px;padding:10px 12px;font-size:13px;font-family:ui-
 
 <nav class="tabs"><div class="tabs-in" role="tablist">
   <button data-act="open-help" aria-label="Anleitung"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5C4.7 20 4 19.3 4 18.5z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg><span>Anleitung</span></button>
-  <button role="tab" data-tabbtn="general" aria-selected="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4.5" width="20" height="15" rx="4.5"/><g class="tf"><rect x="5.6" y="8" width="2.4" height="4" rx=".5"/><rect x="9" y="8" width="2.4" height="4" rx=".5"/><rect x="14" y="8.6" width="4.4" height="2.8" rx=".5"/><rect x="5.6" y="13.6" width="12.8" height="2.4" rx=".5"/></g></svg><span>StrokeCoach</span></button>
+  <button role="tab" data-tabbtn="general" aria-selected="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4.5" width="20" height="15" rx="4.5"/><g class="tf"><rect x="5.6" y="8" width="2.4" height="4" rx=".5"/><rect x="9" y="8" width="2.4" height="4" rx=".5"/><rect x="14" y="8.6" width="4.4" height="2.8" rx=".5"/><rect x="5.6" y="13.6" width="12.8" height="2.4" rx=".5"/></g></svg><span>Coach</span></button>
   <button role="tab" data-tabbtn="watches" aria-selected="true"><svg class="ti ti-oar" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.48 15.94A8 8 0 1 1 19.52 15.94"/><path d="M18.13 18.34A8 8 0 0 1 5.87 18.34"/><path class="tl" d="M13.06 13.76L21.71 18.36"/><path class="tl" d="M10.94 13.76L2.29 18.36"/><g class="tf"><rect x="10" y="2.4" width="4" height="2.2" rx=".3"/><rect x="4.28" y="5.39" width="3" height="1.8" rx=".3" transform="rotate(-42 5.78 6.29)"/><rect x="16.72" y="5.39" width="3" height="1.8" rx=".3" transform="rotate(42 18.22 6.29)"/><path d="M12 6.3L12.9 11.6L11.1 11.6Z"/><path d="M11.1 14.8L12.9 14.8L12 20.2Z"/></g></svg><span>ChronOar</span></button>
   <button role="tab" data-tabbtn="regatta" aria-selected="false"><svg class="ti ti-multi" viewBox="0 0 24 24" aria-hidden="true"><g transform="translate(-2.5 4.6) scale(0.7)" stroke-width="2.429"><circle class="bg" cx="12" cy="12" r="10" stroke="none"/><circle cx="12" cy="12" r="8"/><g class="tf"><rect x="10" y="2.4" width="4" height="2.2" rx=".3"/></g></g><g transform="translate(1.6 4.6) scale(0.7)" stroke-width="2.429"><circle class="bg" cx="12" cy="12" r="10" stroke="none"/><circle cx="12" cy="12" r="8"/><g class="tf"><rect x="10" y="2.4" width="4" height="2.2" rx=".3"/></g></g><g transform="translate(6.0 3.6) scale(0.82)" stroke-width="2.195"><circle class="bg" cx="12" cy="12" r="10" stroke="none"/><path d="M4.48 15.94A8 8 0 1 1 19.52 15.94"/><path d="M18.13 18.34A8 8 0 0 1 5.87 18.34"/><path d="M13.06 13.76L21.71 18.36"/><path d="M10.94 13.76L2.29 18.36"/><g class="tf"><rect x="10" y="2.4" width="4" height="2.2" rx=".3"/><rect x="4.28" y="5.39" width="3" height="1.8" rx=".3" transform="rotate(-42 5.78 6.29)"/><rect x="16.72" y="5.39" width="3" height="1.8" rx=".3" transform="rotate(42 18.22 6.29)"/><path d="M12 6.3L12.9 11.6L11.1 11.6Z"/><path d="M11.1 14.8L12.9 14.8L12 20.2Z"/></g></g></svg><span>Regatta</span></button>
   <button role="tab" data-tabbtn="athletes" aria-selected="false"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.6 2.7-6 6-6s6 2.4 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 14.3c3 .1 5.5 2.3 5.5 5.7"/></svg><span>Sportler</span></button>

@@ -7,7 +7,7 @@
  *
  * Nach Änderungen an Dateien in FILES: CACHE-Version hochzählen.
  */
-const CACHE = "chronoar-v16";
+const CACHE = "chronoar-v17";
 const FILES = ["./", "./index.html", "./config.json", "./manifest.webmanifest", "./jsqr.min.js", "./qrcode.min.js",
   "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./anleitung.html", "./relationen.csv"];
 const FRESH = ["/", "/index.html", "/config.json", "/anleitung.html", "/relationen.csv"];

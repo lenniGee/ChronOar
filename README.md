@@ -29,7 +29,7 @@ Stoppuhren mit Relationsgeschwindigkeiten für Rudertrainer – als Web-App (PWA
 ```
  GitHub Pages (dieses Repository)           Handy (ChronOar)                     Google
  ┌──────────────────────────┐  App-Dateien  ┌─────────────────────────┐ Ergebnisse,  ┌────────────────────────────┐
- │ index.html, sw.js, …     │ ────────────▶ │ Uhren, StrokeCoach      │ Sportler     │ Sheet von Trainer X        │
+ │ index.html, sw.js, …     │ ────────────▶ │ Uhren, Coach            │ Sportler     │ Sheet von Trainer X        │
  │ relationen.csv           │ ────────────▶ │ Warteschlange (offline) │ ───────────▶ │  + Skript (Code.gs)        │
  │ config.json              │  Relationen   │                         │ ◀─────────── │  Sportler, Ergebnis        │
  └──────────────────────────┘               └─────────────────────────┘ Sportlerliste│  Sportler/Mannschaft       │

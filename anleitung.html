@@ -74,7 +74,8 @@ nav.toc a{text-decoration:none}
   <li>App-Adresse in <b>Chrome</b> öffnen.</li>
   <li>Oben rechts <span class="k">⋮</span> → <span class="k">App installieren</span> (oder „Zum Startbildschirm hinzufügen“).</li>
 </ol>
-<p class="muted">Die App funktioniert danach auch ohne Netz. Ergebnisse werden nachgeschickt, sobald wieder Empfang da ist.</p>
+<div class="box"><b>ChronOar funktioniert offline.</b> Einmal installiert, laufen Stoppuhren (Tab <b>ChronOar</b>), <b>Coach</b> (Schlagzahl, GPS, Einheit), Sportlerliste und Ergebnisse auch <b>ganz ohne Internet</b> – im Motorboot, auf dem See, im Funkloch. Alle Zeiten werden auf dem Handy gemessen und gespeichert. Sobald wieder Netz da ist, schickt die App die Ergebnisse von selbst ins Sheet.<br><br>
+Internet brauchen nur: der <b>Regatta</b>-Modus (die Handys müssen sich austauschen), das <b>PDF</b> und das Abgleichen mit dem Sheet.</div>
 
 <h2 id="sheet"><span class="n">2</span>Eigenes Google Sheet anlegen</h2>
 <p>Jeder Trainer hat sein eigenes Sheet in seinem eigenen Google Drive. Niemand sonst sieht deine Daten.</p>
@@ -175,6 +176,7 @@ In der Klammer steht <b>deine eigene E-Mail-Adresse</b>: Nach dem Kopieren gehö
   <li><b>Fehler korrigieren:</b> „Stopp / Split / Start zurücknehmen“ und „Letzte SF löschen“ wirken für alle Handys. Wird ein Stopp zurückgenommen, verschwindet auch das Ergebnis wieder aus dem Sheet.</li>
   <li><b>Nächstes Rennen desselben Bootes:</b> Details öffnen → <span class="k">Neuer Lauf</span>. Das gespeicherte Ergebnis bleibt erhalten.</li>
 </ol>
+<div class="box"><b>Die gestoppten Zeiten stimmen – die Anzeige auf den anderen Handys kommt etwas später.</b> Jeder Tastendruck wird mit der genauen Uhrzeit des Moments gespeichert, in dem er gedrückt wurde. Bis ein anderes Handy davon erfährt, vergehen aber meist <b>1–4 Sekunden</b>, so lange braucht der Weg über das Google Sheet. Startet Person A ein Boot, steht die Uhr bei Person B also kurz still und springt dann auf die richtige laufende Zeit. Genauso erscheinen Splits, Frequenzen und Stopps anderer Handys mit kurzer Verzögerung. <b>Für das Ergebnis spielt diese Verzögerung keine Rolle.</b></div>
 <div class="box"><b>Wie genau ist die Zeit?</b> Jeder Tastendruck wird in Weltzeit gespeichert, nicht mit der Uhr des Handys. Jedes Handy gleicht sich dafür beim Öffnen des Regatta-Tabs und danach alle 5 Minuten mit dem Server ab, von dem die App kommt. Die Genauigkeit steht oben rechts („Zeit ±0,07 s“) und liegt meist zwischen 0,03 und 0,1 Sekunden. Klappt das nicht (z. B. sehr schlechtes Netz), nimmt ChronOar die Uhrzeit des Google Sheets – dann sind es eher ±0,3 bis 1 Sekunde. Steht oben ein großer Wert, einfach kurz in einen anderen Tab und zurück wechseln: Dann wird neu gemessen.</div>
 <p class="muted">Ohne Netz geht nichts verloren: Tastendrücke werden mit der geschätzten Serverzeit gespeichert und nachgereicht. Die anderen Handys sehen sie aber erst, wenn das Handy wieder online ist. Nach der Regatta räumt <span class="k">ChronOar → Regatta leeren</span> im Sheet die Boote ab; die Ergebnisse bleiben.</p>
 
@@ -248,6 +250,9 @@ In der Klammer steht <b>deine eigene E-Mail-Adresse</b>: Nach dem Kopieren gehö
     <tr><td>GPS-km</td><td>Summe der Strecken zwischen den GPS-Punkten seit „GPS starten“. Kleine Sprünge (unter 4 m bzw. unter der GPS-Ungenauigkeit) werden ignoriert, damit Stillstand nicht mitzählt. Läuft nur bei eingeschaltetem Display.</td></tr>
   </tbody>
 </table></div>
+<h2 id="fun">Viel Spaß!</h2>
+<p>Ich wünsche euch viel Spaß mit ChronOar, gute Trainingseinheiten, schnelle Boote und Zeiten über 100 %! Wenn euch etwas auffällt, ihr Ideen habt oder etwas nicht klappt, sagt mir gern Bescheid.</p>
+<p><b>Lennart Geerdes</b></p>
 <p class="muted" style="margin-top:32px;border-top:1px solid #3a3a3e;padding-top:12px">ChronOar – Trainings- und Regatta-App für Rudertrainer, entwickelt von <b>Lennart Geerdes</b>. © 2026 Lennart Geerdes.</p>
 </main>
 <script>
