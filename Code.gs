@@ -753,7 +753,16 @@ function clearRegatta() {
  * keine Fahrt zerrissen wird und eine Mannschaft im dritten Teil nicht über zwei Seiten läuft.
  * Das PDF wird im selben Drive-Ordner wie das Sheet gespeichert.
  */
-var PDF_PAGE = 780, PDF_FIRST = 670, PDF_ROW = 40, PDF_ROW_WRAP = 15, PDF_GRP = 36;  // Höhen in px (geschätzt, mit Reserve)
+var PDF_PAGE = 780, PDF_FIRST = 670, PDF_ROW = 40, PDF_GRP = 36, PDF_GAP = 64;  // Höhen in px (geschätzt, mit Reserve); GAP = Abstand vor jeder Gruppe (≈ 2 Einer-Zeilen)
+var PDF_CREW_W = 262;   // nutzbare Breite der Spalte Mannschaft in px (39 % von A4 abzüglich Rand)
+/* Zeichenbreiten von Arial fett in 1/100 der Schriftgröße – damit lässt sich der Zeilenumbruch der Namen exakt vorausberechnen */
+var PDF_CW = {"a":56,"b":61,"c":56,"d":61,"e":56,"f":33,"g":61,"h":61,"i":28,"j":28,"k":56,"l":28,"m":89,"n":61,"o":61,"p":61,"q":61,"r":39,"s":56,"t":33,"u":61,"v":56,"w":78,"x":56,"y":56,"z":50,"A":72,"B":72,"C":72,"D":72,"E":67,"F":61,"G":78,"H":72,"I":28,"J":56,"K":72,"L":61,"M":83,"N":72,"O":78,"P":67,"Q":78,"R":72,"S":67,"T":61,"U":72,"V":67,"W":94,"X":67,"Y":67,"Z":61,"ä":56,"ö":61,"ü":61,"Ä":72,"Ö":78,"Ü":72,"ß":61,".":28,",":28,"-":33," ":28,"'":24,"é":56,"è":56,"á":56,"à":56,"ç":56,"ñ":61};
+function pdfLines_(txt, fs, width) {
+  var w = function (t) { var n = 0; for (var i = 0; i < t.length; i++) n += (PDF_CW[t.charAt(i)] || 58); return n * fs / 100; };
+  var words = txt.split(' '), lines = 1, cur = 0, sp = w(' ');
+  words.forEach(function (x) { var ww = w(x); if (cur && cur + sp + ww > width) { lines++; cur = ww; } else cur += (cur ? sp : 0) + ww; });
+  return lines;
+}
 var PDF_LOGO = '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';
 
 function showPdf() {
@@ -847,7 +856,7 @@ function pdfHtml_(runs, f) {
   });
   var secs = [
     { title: 'Nach Prozent', keep: false, blocks: [{ title: null, runs: byPct(runs) }] },
-    { title: 'Nach Strecke Nr., dann Prozent', keep: false, blocks: nrKeys.map(function (k) { return { title: pdfEsc_(k), runs: byPct(nrs[k]) }; }) }
+    { title: 'Nach Strecke Nr., dann Prozent', keep: true, blocks: nrKeys.map(function (k) { return { title: pdfEsc_(k), runs: byPct(nrs[k]) }; }) }
   ];
   if (hasAbt) secs.push({ title: 'Nach Abteilung und Strecke Nr., dann Prozent', keep: true, blocks: abtKeys.map(function (k) {
     var x = k.split('\u0000');
@@ -857,19 +866,21 @@ function pdfHtml_(runs, f) {
         var r0 = crews[k][0];
         return { title: pdfEsc_(r0.crew) + ' <span class="gb">' + pdfEsc_(pdfBoat_(r0)) + '</span>', runs: byPct(crews[k]) }; }) }
   ]);
-  var rowH = function (r) {   // Zeile 1 bricht um bei langen Namen oder vielen Kategorien im Boot, Zeile 2 bei vielen Splits
-    var l1 = (r.crew.length + (r.cox ? r.cox.length + 6 : 0)) > 40 || pdfBoat_(r).length > 13, l2 = r.splits.length > 30;
-    return PDF_ROW + (l1 ? PDF_ROW_WRAP : 0) + (l2 ? PDF_ROW_WRAP - 2 : 0); };
+  var rowH = function (r) {
+    var c = pdfCrew_(r), b = pdfBoat_(r).length, boatLines = b > 18 ? 3 : b > 9 ? 2 : 1;
+    var l1 = Math.max(c.lines * c.lh, boatLines * 15), spl = Math.max(1, Math.ceil(r.splits.length / 31));
+    return PDF_ROW + (l1 - 15) + (spl - 1) * 13; };
   var pages = [];
   secs.forEach(function (sec) {
     var cap = pages.length ? PDF_PAGE : PDF_FIRST, cur = [], used = 0;
     var flush = function () { pages.push({ title: sec.title, rows: cur }); cur = []; used = 0; cap = PDF_PAGE; };
+    var head = function (t) { var gap = used > 0; cur.push(pdfGrp_(t, gap)); used += PDF_GRP + (gap ? PDF_GAP : 0); };
     sec.blocks.forEach(function (bl) {
-      var hs = bl.runs.map(rowH), need = (bl.title ? PDF_GRP : 0) + hs.reduce(function (a, b) { return a + b; }, 0);
-      if (sec.keep && used && used + need > cap) flush();                       // Mannschaft passt nicht mehr ganz → neue Seite
-      if (bl.title) { if (used + PDF_GRP + hs[0] > cap) flush(); cur.push(pdfGrp_(bl.title)); used += PDF_GRP; }
+      var hs = bl.runs.map(rowH), need = (bl.title ? PDF_GRP + PDF_GAP : 0) + hs.reduce(function (a, b) { return a + b; }, 0);
+      if (sec.keep && used && used + need > cap) flush();   // Gruppe passt nicht mehr ganz → neue Seite (nur zu lange Gruppen werden getrennt)
+      if (bl.title) { if (used + PDF_GRP + PDF_GAP + hs[0] > cap) flush(); head(bl.title); }
       bl.runs.forEach(function (r, i) {
-        if (used + hs[i] > cap) { flush(); if (bl.title) { cur.push(pdfGrp_(bl.title + ' <span class="gb">(Fortsetzung)</span>')); used += PDF_GRP; } }
+        if (used + hs[i] > cap) { flush(); if (bl.title) head(bl.title + ' <span class="gb">(Fortsetzung)</span>'); }
         cur.push(pdfRun_(r, i % 2)); used += hs[i];
       });
     });
@@ -889,21 +900,40 @@ function pdfHtml_(runs, f) {
   }).join('');
   return '<!doctype html><html><head><meta charset="utf-8"><style>' + PDF_CSS + '</style></head><body>' + out + '</body></html>';
 }
-function pdfGrp_(t) { return '<tbody class="grp"><tr><td colspan="7">' + t + '</td></tr></tbody>'; }
+function pdfGrp_(t, gap) { return '<tbody class="grp' + (gap ? ' gap' : '') + '"><tr><td colspan="7">' + t + '</td></tr></tbody>'; }
+/**
+ * Namen so kompakt wie nötig, damit die Mannschaft höchstens zwei Zeilen braucht:
+ * volle Namen → „L. Becker“ → kleinere Schrift → nur Nachnamen. Die Steuerperson steht in Zeile 2 neben der Strecke Nr.
+ */
+function pdfCrew_(r) {
+  var names = r.crew.split(',').map(function (x) { return x.trim(); }).filter(String);
+  var short = function (n) { var p = n.split(/\s+/); return p.length > 1 ? p[0].charAt(0) + '. ' + p.slice(1).join(' ') : n; };
+  var last = function (n) { var p = n.split(/\s+/); return p[p.length - 1]; };
+  var full = function (n) { return n; };
+  var modes = [{ f: full, fs: 12.5 }, { f: short, fs: 12.5 }, { f: short, fs: 11.5 }, { f: short, fs: 10.5 }, { f: last, fs: 11.5 }, { f: last, fs: 10.5 }];
+  var best = null;
+  for (var m = 0; m < modes.length; m++) {
+    var txt = names.map(modes[m].f).join(', '), lines = pdfLines_(txt, modes[m].fs, PDF_CREW_W - 4);   // 4 px Reserve
+    var res = { txt: txt, fs: modes[m].fs, lines: lines, lh: Math.ceil(modes[m].fs * 1.15), cox: r.cox ? (modes[m].f === full ? r.cox : modes[m].f(r.cox)) : '' };
+    if (lines <= 2) return res;
+    if (!best || lines < best.lines) best = res;
+  }
+  return best;
+}
 function pdfRun_(r, alt) {
-  var crew = '<b>' + pdfEsc_(r.crew) + '</b>' + (r.cox ? ' <span class="cox">· St: ' + pdfEsc_(r.cox) + '</span>' : '');
+  var c = pdfCrew_(r), crew = '<b' + (c.fs !== 12.5 ? ' style="font-size:' + c.fs + 'px"' : '') + '>' + pdfEsc_(c.txt) + '</b>';
   var boat = pdfEsc_(pdfBoat_(r)).replace(/\//g, '/<wbr>');   // gemischte Boote dürfen nach „/“ umbrechen
   return '<tbody class="res' + (alt ? ' alt' : '') + '"><tr class="l1"><td>' + crew + '</td>' +
     '<td class="n">' + (r.dist ? r.dist.toLocaleString('de-DE').replace(/,/g, '.') + ' m' : '–') + '</td><td class="bt">' + boat + '</td>' +
     '<td class="n">' + pdfDec_(r.sf, 1) + '</td><td class="n">' + pdfEsc_(r.pace || '–') + '</td><td class="n t">' + pdfEsc_(r.zeit) + '</td>' +
     '<td class="n pct">' + (r.pct === null ? '–' : pdfDec_(r.pct, 1) + ' %') + '</td></tr>' +
-    '<tr class="l2"><td>' + pdfEsc_(r.nr) + '</td><td class="n">' + (r.rel && r.dist ? target_(r.dist, r.rel)[0] : '–') + '</td>' +
+    '<tr class="l2"><td>' + pdfEsc_(r.nr) + (c.cox ? ' · St: ' + pdfEsc_(c.cox) : '') + '</td><td class="n">' + (r.rel && r.dist ? target_(r.dist, r.rel)[0] : '–') + '</td>' +
     '<td class="bt2">' + (r.rel ? pdfDec_(r.rel, 2) + ' m/s' : '–') + '</td>' +
     '<td class="sp" colspan="3">' + pdfEsc_(r.splits) + '</td><td class="n">' + pdfDec_(r.v, 2) + ' m/s</td></tr></tbody>';
 }
-var PDF_THEAD = '<colgroup><col width="33%"><col width="10%"><col width="15%"><col width="8%"><col width="10%"><col width="12%"><col width="12%"></colgroup>' +
+var PDF_THEAD = '<colgroup><col width="39%"><col width="10%"><col width="12%"><col width="7%"><col width="10%"><col width="11%"><col width="11%"></colgroup>' +
   '<thead><tr><th>Mannschaft</th><th class="n">Distanz</th><th class="bt">Boot</th><th class="n">Ø SF</th><th class="n">/500 m</th><th class="n">Zeit</th><th class="n">Prozent</th></tr>' +
-  '<tr class="hl2"><th>Strecke Nr.</th><th class="n">Zielzeit</th><th class="bt">Relation</th><th></th><th></th><th class="n">Splits</th><th class="n">m/s</th></tr></thead>';
+  '<tr class="hl2"><th>Strecke Nr. · Steuerperson</th><th class="n">Zielzeit</th><th class="bt">Relation</th><th></th><th></th><th class="n">Splits</th><th class="n">m/s</th></tr></thead>';
 var PDF_CSS =
   '@page{size:A4;margin:12mm}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#1d1d1f}' +
   '.brk{page-break-before:always}' +
@@ -919,7 +949,7 @@ var PDF_CSS =
   'table.res tr.hl2 th{font-weight:normal;font-size:8.5px;padding:0 6px 4px;border-bottom:1.5px solid #1d1d1f}' +
   'table.res .n{text-align:right;white-space:nowrap;padding-left:12px}table.res td{padding:5px 6px 1px;vertical-align:top}.bt{white-space:normal;padding-left:14px!important}table.res tr.l2 td.bt2{padding-left:14px}table.res th.bt{padding-left:14px}' +
   'tbody.res{border-bottom:1px solid #d9d9dc}tbody.res tr{page-break-inside:avoid}tbody.alt{background:#f5f5f6}' +
-  'tbody.grp td{padding:12px 6px 4px;font-weight:bold;font-size:12.5px;color:#1d1d1f;border-bottom:1.5px solid #e8740c}.gb{color:#6b6b70;font-weight:normal;margin-left:6px}' +
+  'tbody.grp.gap td{padding-top:76px}tbody.grp td{padding:12px 6px 4px;font-weight:bold;font-size:12.5px;color:#1d1d1f;border-bottom:1.5px solid #e8740c}.gb{color:#6b6b70;font-weight:normal;margin-left:6px}' +
   'tr.l1 td{font-size:12.5px}tr.l2 td{padding:0 6px 5px;font-size:10.5px;color:#6b6b70;white-space:nowrap}' +
   '.cox{color:#6b6b70}.t{font-weight:bold}.pct{font-weight:bold;color:#e8740c;font-size:13.5px}.sp{text-align:right;white-space:normal!important}' +
   '.lbl{text-transform:uppercase;font-size:9px;letter-spacing:1px;margin-right:4px}' +
