@@ -1196,23 +1196,59 @@ function rgState(){
   if(!S.devId)S.devId=uid();
   S.rg=S.rg||{};
   const r=S.rg; r.boats=r.boats||[];r.events=r.events||[];r.pend=r.pend||[];r.etag=r.etag||"";r.abtSel=r.abtSel||[];r.sent=r.sent||{};
-  if(r.off==null){r.off=0;r.rtt=null;r.offAt=0}
+  if(r.off==null){r.off=0;r.err=null;r.offAt=0;r.src=""}
+  r.samples=r.samples||[];
   return r;
 }
 const rgNow=()=>Date.now()+(S.rg?S.rg.off||0:0);
+/* ---- Zeitabgleich ----
+   Alle Handys rechnen in Weltzeit (UTC). Den Abstand der eigenen Handyuhr dazu („off“) bestimmen zwei Verfahren:
+   1. Web (genau, ±0,02–0,1 s): viele kurze HEAD-Anfragen an den Server, von dem die App kommt (GitHub Pages).
+      Dessen „Date“-Kopfzeile ist nur sekundengenau – aber jede Antwort grenzt den Abstand ein:
+      Abstand > Date − Empfangszeit  und  Abstand < Date + 1 s − Sendezeit. Liegen die Anfragen über einen
+      Sekundenwechsel verteilt, bleibt ein schmales Fenster übrig; dessen Mitte ist der Abstand.
+   2. Sheet (Rückfall, ±0,3–1 s): Serverzeit „now“ aus jeder Antwort des Skripts, Messung mit der kürzesten Laufzeit
+      der letzten 15 min zählt. Wird nur benutzt, wenn das Web-Verfahren nicht klappt oder älter als 30 min ist. */
+async function webTimeSync(){
+  if(!/^https?:$/.test(location.protocol))return null;
+  const base=location.href.split("#")[0].split("?")[0], N=16, out=[];
+  await Promise.all(Array.from({length:N},(_,i)=>new Promise(res=>setTimeout(async()=>{
+    try{const a=Date.now();
+      const r=await fetch(base+"?zeit="+Math.random().toString(36).slice(2),{method:"HEAD",cache:"no-store"});
+      const b=Date.now(), d=Date.parse(r.headers.get("date")||"");
+      if(isFinite(d))out.push({a,b,d});
+    }catch(e){}
+    res();
+  },i*130+Math.random()*60))));
+  if(out.length<6)return null;
+  let lo=-Infinity,hi=Infinity;
+  out.forEach(x=>{lo=Math.max(lo,x.d-x.b);hi=Math.min(hi,x.d+1000-x.a)});
+  if(!(hi>lo)||hi-lo>800)return null;          /* widersprüchlich (z. B. zwischengespeicherte Antworten) oder nicht besser */
+  return {off:Math.round((lo+hi)/2),err:(hi-lo)/2};
+}
 function rgSample(serverNow,t0,t1){
-  if(!serverNow)return;
-  const r=S.rg, rtt=t1-t0, off=serverNow-(t0+t1)/2;
-  /* bessere (kürzere) Messung gewinnt; eine alte Messung wird nach 2 min ersetzt, falls die Handyuhr driftet */
-  if(r.rtt==null||rtt<=r.rtt||Date.now()-r.offAt>120000){r.off=Math.round(off);r.rtt=rtt;r.offAt=Date.now()}
+  if(!serverNow||!S.rg)return;
+  const r=S.rg, now=Date.now();
+  r.samples=r.samples.filter(x=>now-x.at<900000).concat([{off:serverNow-(t0+t1)/2,err:(t1-t0)/2,at:now}]).slice(-60);
+  if(r.src==="web"&&now-r.offAt<1800000)return;   /* genauere Web-Messung ist noch frisch */
+  const best=r.samples.reduce((m,x)=>x.err<m.err?x:m);
+  r.off=Math.round(best.off);r.err=best.err;r.offAt=now;r.src="sheet";
 }
-async function rgTimeSync(n=4){
-  for(let i=0;i<n;i++){
-    const t0=Date.now();
-    try{const j=await apiGet({action:"time"});rgSample(j.now,t0,Date.now())}catch(e){break}
-  }
+let rgSyncing=false;
+async function rgTimeSync(){
+  if(rgSyncing)return;rgSyncing=true;
+  try{
+    let w=await webTimeSync();
+    /* Plausibilität: Web-Zeit muss zur (ungenaueren) Sheet-Zeit passen, sonst verwerfen */
+    if(w&&!S.rg.samples.length){const t0=Date.now();try{const j=await apiGet({action:"time"});rgSample(j.now,t0,Date.now())}catch(e){}}
+    if(w&&S.rg.samples.length){const b=S.rg.samples.reduce((m,x)=>x.err<m.err?x:m);if(Math.abs(w.off-b.off)>b.err+300)w=null}
+    if(w&&(S.rg.src!=="web"||w.err<=S.rg.err*1.5||Date.now()-S.rg.offAt>300000)){S.rg.off=w.off;S.rg.err=w.err;S.rg.offAt=Date.now();S.rg.src="web";save();return}
+    if(w)return;
+    if(S.rg.src==="web"&&Date.now()-S.rg.offAt<1800000)return;
+    for(let i=0;i<4;i++){const t0=Date.now();try{const j=await apiGet({action:"time"});rgSample(j.now,t0,Date.now())}catch(e){break}}
+    save();
+  }finally{rgSyncing=false}
 }
-
 /* --- Sicht: Serverstand + eigene ausstehende Änderungen --- */
 function rgMerged(){
   const r=rgState();
@@ -1363,13 +1399,13 @@ function rgSchedule(){
   const active=tab==="regatta"&&document.visibilityState==="visible";
   const waiting=S.rg&&rgView().some(w=>w.stop!=null&&w.stopper===S.devId&&!S.rg.sent[w.runId]);
   if(!S.conn||(!active&&!waiting))return;
-  rgTimer=setTimeout(async()=>{await rgPoll();rgSchedule()},active?RG_POLL:15000);
+  rgTimer=setTimeout(async()=>{await rgPoll();if(active&&Date.now()-S.rg.offAt>300000)rgTimeSync();rgSchedule()},active?RG_POLL:15000);
 }
 async function rgEnter(){
   rgState();renderRegatta();
   if(!S.conn)return;
   if((S.conn.version||0)<NEED_RG){try{const j=await apiGet({action:"ping"});S.conn.version=j.version||0;save()}catch(e){}}
-  if(Date.now()-S.rg.offAt>600000||S.rg.rtt==null)rgTimeSync().then(()=>{if(tab==="regatta")renderRegatta()});
+  if(Date.now()-S.rg.offAt>300000||S.rg.err==null||S.rg.src!=="web")rgTimeSync().then(()=>{if(tab==="regatta")renderRegatta()});
   await rgPoll();rgSchedule();
 }
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&tab==="regatta")rgEnter();else rgSchedule()});
@@ -1396,7 +1432,7 @@ function renderRegatta(){
     abts.map(a=>`<button class="chip" data-act="rg-abt" data-v="${esc(a)}" aria-pressed="${S.rg.abtSel.includes(a)}">${esc(a)}</button>`).join(""):"";
   const vis=rgVisible(all);
   const sel=vis.filter(w=>w.sel), running=vis.filter(w=>watchState(w)==="running").length;
-  const acc=S.rg.rtt==null?"":" · Zeit ±"+dec(Math.max(.1,S.rg.rtt/2000),1)+" s";
+  const e=S.rg.err==null?null:S.rg.err/1000, acc=e==null?"":" · Zeit ±"+(e<.1?dec(Math.max(.01,e),2):dec(e,1))+" s";
   $("#topsub").textContent=vis.length+" Boot"+(vis.length===1?"":"e")+(running?" · "+running+" läuft":"")+acc+(S.queue.length?" · ☁ "+S.queue.length:"");
   $("#selbar").hidden=!sel.length;
   $("#selcount").textContent=sel.length+" ✓";
