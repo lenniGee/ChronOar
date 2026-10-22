@@ -52,6 +52,7 @@ nav.toc a{text-decoration:none}
   <li><a href="#second">Weitere Trainer verbinden</a></li>
   <li><a href="#switch">Zwischen mehreren Sheets wechseln</a></li>
   <li><a href="#regatta">Regatta mit mehreren Handys</a></li>
+  <li><a href="#pdf">Ergebnisse als PDF</a></li>
   <li><a href="#data">Was wird wo gespeichert?</a></li>
   <li><a href="#help">Wenn etwas nicht klappt</a></li>
   <li><a href="#calc">So rechnet ChronOar</a></li>
@@ -175,7 +176,23 @@ In der Klammer steht <b>deine eigene E-Mail-Adresse</b>: Nach dem Kopieren gehö
 <div class="box"><b>Wie genau ist die Zeit?</b> Jeder Tastendruck wird mit der Uhrzeit des Google-Servers gespeichert, nicht mit der Uhr des Handys. Jedes Handy misst dafür laufend seinen Abstand zur Serverzeit. Die Genauigkeit steht oben rechts („Zeit ±0,2 s“) und liegt meist bei 0,1–0,3 Sekunden. Bei knappen Rennen hilft es, wenn alle Boote eines Laufs vom selben Handy gestartet und vom selben Handy gestoppt werden: Dann wirkt eine kleine Abweichung auf alle Boote gleich.</div>
 <p class="muted">Ohne Netz geht nichts verloren: Tastendrücke werden mit der geschätzten Serverzeit gespeichert und nachgereicht. Die anderen Handys sehen sie aber erst, wenn das Handy wieder online ist. Nach der Regatta räumt <span class="k">ChronOar → Regatta leeren</span> im Sheet die Boote ab; die Ergebnisse bleiben.</p>
 
-<h2 id="data"><span class="n">8</span>Was wird wo gespeichert?</h2>
+<h2 id="pdf"><span class="n">8</span>Ergebnisse als PDF</h2>
+<p>Am Computer im Sheet: <span class="k">ChronOar → Ergebnis-PDF erstellen</span>.</p>
+<ol>
+  <li><b>Tag</b> wählen. In der Liste stehen alle Tage mit Fahrten, der neueste zuerst.</li>
+  <li><b>Ort</b> eintragen (Pflicht). <b>Wind</b>, <b>Temperatur</b> und <b>Trainingsvorgabe</b> sind optional und erscheinen nur, wenn etwas drinsteht. Der Dialog merkt sich die Eingaben fürs nächste Mal.</li>
+  <li><span class="k">PDF erstellen</span>. Das PDF liegt danach im selben Google-Drive-Ordner wie dein Sheet und lässt sich direkt öffnen oder herunterladen.</li>
+</ol>
+<p>Das PDF enthält alle Fahrten des Tages aus „Ergebnis Mannschaft“, in drei Teilen. Jeder Teil beginnt auf einer neuen Seite:</p>
+<ul>
+  <li><b>Nach Prozent</b> – die Gesamtliste.</li>
+  <li><b>Nach Strecke Nr., dann Prozent</b> – alle 1. Strecken, alle 2. Strecken, …</li>
+  <li><b>Nach Mannschaft, dann Prozent</b> – jede Mannschaft steht zusammen auf einer Seite. Nur wenn eine Mannschaft mehr Fahrten hat, als auf eine Seite passen, geht es mit „(Fortsetzung)“ weiter.</li>
+</ul>
+<p>Pro Fahrt gibt es zwei Zeilen: Mannschaft mit Steuerperson, Boot (z. B. <i>JMBL1x</i>, gemischt <i>JMA/JMBL 4x</i>), Distanz, Ø SF, m/s, Zeit und Prozent – darunter Strecke Nr., Relation und Splits. Die Spaltenüberschrift steht auf jeder Seite.</p>
+<p class="muted">Beim ersten Mal fragt Google nach einer zusätzlichen Berechtigung für Google Drive, damit das Skript das PDF speichern darf. Wie in Abschnitt 3: <i>Erweitert → Zu ChronOar wechseln → Zulassen</i>.</p>
+
+<h2 id="data"><span class="n">9</span>Was wird wo gespeichert?</h2>
 <ul>
   <li><b>Im Google Sheet (dein Drive):</b> Sportler und alle Ergebnisse. Das ist dein dauerhaftes Archiv. Das Blatt <b>Ergebnis Sportler</b> hat eine Zeile pro Sportler, das Blatt <b>Ergebnis Mannschaft</b> eine Zeile pro Boot und Belastung.</li>
   <li><b>Regatta:</b> die Boote im Blatt <b>Regatta</b>, alle Tastendrücke im versteckten Blatt <b>Regatta-Log</b>. Das versteckte Blatt <b>_Listen</b> liefert die Namen für die Auswahllisten. Diese Blätter bitte nicht umbenennen.</li>
@@ -185,7 +202,7 @@ In der Klammer steht <b>deine eigene E-Mail-Adresse</b>: Nach dem Kopieren gehö
   <li><b>Relationsgeschwindigkeiten</b> pflegt zentral der Betreiber von ChronOar. Neue Werte kommen beim nächsten Öffnen mit Netz automatisch. Bereits gespeicherte Ergebnisse ändern sich dadurch nicht.</li>
 </ul>
 
-<h2 id="help"><span class="n">9</span>Wenn etwas nicht klappt</h2>
+<h2 id="help"><span class="n">10</span>Wenn etwas nicht klappt</h2>
 <div class="tw"><table>
   <thead><tr><th>Meldung</th><th>Lösung</th></tr></thead>
   <tbody>
@@ -196,11 +213,12 @@ In der Klammer steht <b>deine eigene E-Mail-Adresse</b>: Nach dem Kopieren gehö
     <tr><td>Menü „ChronOar“ fehlt im Sheet</td><td>Seite neu laden. Auf dem Handy gibt es das Menü nicht – Einrichtung am Computer machen.</td></tr>
     <tr><td>Regatta: „Skript im Sheet ist zu alt“</td><td>Neue <code>Code.gs</code> einspielen und unter <span class="k">Bereitstellen → Bereitstellungen verwalten → Bearbeiten</span> eine <b>neue Version</b> bereitstellen. Danach in der App einmal <span class="k">☁ Sheet → Jetzt abgleichen</span>.</td></tr>
     <tr><td>Regatta: Boot aus dem Sheet erscheint nicht</td><td>Zeile braucht mindestens Boot oder einen Namen. Unbekannte Namen (nicht im Blatt Sportler) werden angezeigt, zählen aber nicht zur Relation.</td></tr>
+    <tr><td>Menüpunkt „Ergebnis-PDF erstellen“ fehlt</td><td>Neue <code>Code.gs</code> einspielen und das Sheet neu laden.</td></tr>
     <tr><td>„☁ 5“ verschwindet nicht</td><td>Unter <span class="k">☁ Sheet</span> steht der Grund. <span class="k">Jetzt abgleichen</span> versucht es sofort erneut.</td></tr>
   </tbody>
 </table></div>
 
-<h2 id="calc"><span class="n">10</span>So rechnet ChronOar</h2>
+<h2 id="calc"><span class="n">11</span>So rechnet ChronOar</h2>
 <p>Alle Zeiten werden auf Zehntelsekunden <b>abgeschnitten</b> angezeigt (6:45,38 → 6:45,3), wie bei einer klassischen Stoppuhr. Gerechnet wird intern mit voller Genauigkeit.</p>
 <div class="tw"><table>
   <thead><tr><th>Wert</th><th>Berechnung</th></tr></thead>

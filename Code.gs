@@ -41,7 +41,7 @@
  * unter der Web-App-Adresse weiter die alte Version. Die Adresse bleibt gleich.
  */
 
-var SCRIPT_VERSION = 13;
+var SCRIPT_VERSION = 14;
 var CODE_PREFIX = 'CHRONOAR1:';
 var SH_ATH = 'Sportler', SH_RES = 'Ergebnis Sportler', SH_TEAM = 'Ergebnis Mannschaft';
 var OLD_NAMES = { 'Ergebnis Sportler': 'Ergebnisse', 'Ergebnis Mannschaft': 'Mannschaften' };
@@ -83,6 +83,7 @@ function onOpen() {
     .addItem('1. Einrichten', 'setup')
     .addItem('2. Mit Handy verbinden (QR-Code)', 'showConnect')
     .addItem('Ergebnis Mannschaft neu aufbauen', 'rebuildTeams')
+    .addItem('Ergebnis-PDF erstellen', 'showPdf')
     .addItem('Regatta leeren (alle Boote und Zeiten löschen)', 'clearRegatta')
     .addSeparator()
     .addItem('Neuen Schlüssel erzeugen (alte Handys trennen)', 'resetKey')
@@ -734,6 +735,198 @@ function clearRegatta() {
   if (ui.alert('Regatta leeren?', 'Alle Boote und Zeiten im Blatt „Regatta“ werden gelöscht. Die Ergebnis-Blätter bleiben erhalten.', ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) return;
   [regattaSheet_(), logSheet_()].forEach(function (sh) { if (sh.getLastRow() > 1) sh.deleteRows(2, sh.getLastRow() - 1); });
 }
+
+/* ------------------------------------------------------------------ Ergebnis-PDF */
+/*
+ * Menü „ChronOar → Ergebnis-PDF erstellen“: alle Fahrten eines Tages aus „Ergebnis Mannschaft“ als PDF (A4 hoch)
+ * in drei Teilen: nach Prozent · nach Strecke Nr., dann Prozent · nach Mannschaft, dann Prozent.
+ * Die Seiten werden hier selbst umbrochen (Zeilenhöhen geschätzt), damit Spaltenköpfe auf jeder Seite stehen,
+ * keine Fahrt zerrissen wird und eine Mannschaft im dritten Teil nicht über zwei Seiten läuft.
+ * Das PDF wird im selben Drive-Ordner wie das Sheet gespeichert.
+ */
+var PDF_PAGE = 800, PDF_FIRST = 690, PDF_ROW = 40, PDF_ROW_WRAP = 15, PDF_GRP = 36;  // Höhen in px (geschätzt, mit Reserve)
+var PDF_LOGO = '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';
+
+function showPdf() {
+  var t = HtmlService.createTemplate(PDF_DIALOG);
+  t.days = JSON.stringify(pdfDays_());
+  SpreadsheetApp.getUi().showModalDialog(t.evaluate().setWidth(440).setHeight(560), 'Ergebnis-PDF erstellen');
+}
+function pdfTz_() { return SpreadsheetApp.getActive().getSpreadsheetTimeZone() || Session.getScriptTimeZone(); }
+function pdfDayKey_(d) {
+  if (d instanceof Date) return Utilities.formatDate(d, pdfTz_(), 'yyyy-MM-dd');
+  var m = String(d || '').match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  return m ? m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2) : '';
+}
+function pdfTime_(d) {
+  if (d instanceof Date) return Utilities.formatDate(d, pdfTz_(), 'HH:mm');
+  var m = String(d || '').match(/(\d{1,2}):(\d{2})/); return m ? ('0' + m[1]).slice(-2) + ':' + m[2] : '';
+}
+function pdfRows_() {
+  var sh = SpreadsheetApp.getActive().getSheetByName(SH_TEAM);
+  if (!sh || sh.getLastRow() < 2) return [];
+  var head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0], c = {};
+  head.forEach(function (h, i) { c[h] = i; });
+  return sh.getRange(2, 1, sh.getLastRow() - 1, head.length).getValues().map(function (r) {
+    var g = function (n) { return c[n] === undefined ? '' : r[c[n]]; };
+    return { day: pdfDayKey_(g('Datum')), time: pdfTime_(g('Uhrzeit')), dist: Number(g('Strecke (m)')) || 0, nr: String(g('Strecke Nr.') || ''),
+      crew: String(g('Mannschaft') || ''), cox: String(g('Steuerperson') || ''), cats: String(g('Kategorien') || ''), boat: String(g('Boot') || ''),
+      time_s: Number(g('Zeit (s)')) || 0, zeit: String(g('Zeit') || ''), v: Number(g('m/s')) || 0, sf: g('Ø SF') === '' ? null : Number(g('Ø SF')),
+      splits: String(g('Splits') || ''), rel: g('Relation (m/s)') === '' ? null : Number(g('Relation (m/s)')),
+      pct: g('Prozent') === '' ? null : Number(g('Prozent')) * 100 };
+  }).filter(function (x) { return x.day && x.crew; });
+}
+/** Tage mit Fahrten für die Auswahl im Dialog, neueste zuerst. */
+function pdfDays_() {
+  var n = {};
+  pdfRows_().forEach(function (r) { n[r.day] = (n[r.day] || 0) + 1; });
+  return Object.keys(n).sort().reverse().map(function (k) { return { day: k, label: pdfDate_(k, false) + ' (' + n[k] + ' Fahrt' + (n[k] === 1 ? '' : 'en') + ')' }; });
+}
+function pdfDate_(key, weekday) {
+  var p = key.split('-'), d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  return (weekday ? ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][d.getDay()] + ', ' : '') + p[2] + '.' + p[1] + '.' + p[0];
+}
+function pdfEsc_(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function pdfDec_(x, n) { return x === null || x === undefined || !isFinite(x) ? '–' : x.toFixed(n).replace('.', ','); }
+/** „JM B L“ → „JMBL1x“; gemischte Boote „JMA/JMBL 4x“. */
+function pdfBoat_(r) {
+  var cats = r.cats.split(',').map(function (c) { return c.replace(/\s+/g, ''); }).filter(String);
+  cats = cats.filter(function (c, i) { return cats.indexOf(c) === i; }).sort();
+  if (!cats.length) return r.boat;
+  return cats.length === 1 ? cats[0] + r.boat : cats.join('/') + ' ' + r.boat;
+}
+function pdfNr_(s) { var m = String(s).match(/\d+/); return m ? Number(m[0]) : 9999; }
+function pdfByPct_(a, b) { return (b.pct === null ? -1 : b.pct) - (a.pct === null ? -1 : a.pct); }
+function pdfCrewKey_(r) { return r.boat + '|' + r.crew.split(',').map(function (s) { return s.trim().toLowerCase(); }).sort().join(','); }
+
+/** Dialog → PDF bauen und speichern. f = {day, ort, wind, temp, goal} */
+function makePdf(f) {
+  f = f || {};
+  if (!f.day) throw new Error('Bitte einen Tag wählen.');
+  if (!String(f.ort || '').trim()) throw new Error('Bitte den Ort eintragen.');
+  var runs = pdfRows_().filter(function (r) { return r.day === f.day; });
+  if (!runs.length) throw new Error('An diesem Tag gibt es keine Fahrten.');
+  var html = pdfHtml_(runs, f);
+  var ss = SpreadsheetApp.getActive();
+  var name = 'ChronOar ' + f.day + ' ' + String(f.ort).trim().replace(/[\\\/:*?"<>|]/g, '').slice(0, 40) + '.pdf';
+  var blob = Utilities.newBlob(html, 'text/html', 'ergebnis.html').getAs('application/pdf').setName(name);
+  var parents = DriveApp.getFileById(ss.getId()).getParents();
+  var file = parents.hasNext() ? parents.next().createFile(blob) : DriveApp.createFile(blob);
+  return { name: name, url: file.getUrl(), download: 'https://drive.google.com/uc?export=download&id=' + file.getId() };
+}
+
+function pdfHtml_(runs, f) {
+  var times = runs.map(function (r) { return r.time; }).filter(String).sort();
+  var when = pdfDate_(f.day, true), span = times.length ? times[0] + ' – ' + times[times.length - 1] + ' Uhr' : '';
+  var byPct = function (l) { return l.slice().sort(pdfByPct_); };
+  // Teil 2: Strecke Nr.
+  var nrs = {}, nrKeys = [];
+  runs.forEach(function (r) { var k = r.nr || 'ohne Nummer'; if (!nrs[k]) { nrs[k] = []; nrKeys.push(k); } nrs[k].push(r); });
+  nrKeys.sort(function (a, b) { return pdfNr_(a) - pdfNr_(b); });
+  // Teil 3: Mannschaften (gleiche Ruderer im gleichen Boot), geordnet nach ihrem besten Ergebnis
+  var crews = {}, crewKeys = [];
+  runs.forEach(function (r) { var k = pdfCrewKey_(r); if (!crews[k]) { crews[k] = []; crewKeys.push(k); } crews[k].push(r); });
+  var best = function (k) { return Math.max.apply(null, crews[k].map(function (r) { return r.pct === null ? -1 : r.pct; })); };
+  crewKeys.sort(function (a, b) { return best(b) - best(a); });
+
+  var secs = [
+    { title: 'Nach Prozent', keep: false, blocks: [{ title: null, runs: byPct(runs) }] },
+    { title: 'Nach Strecke Nr., dann Prozent', keep: false, blocks: nrKeys.map(function (k) { return { title: pdfEsc_(k), runs: byPct(nrs[k]) }; }) },
+    { title: 'Nach Mannschaft, dann Prozent', keep: true, blocks: crewKeys.map(function (k) {
+        var r0 = crews[k][0];
+        return { title: pdfEsc_(r0.crew) + ' <span class="gb">' + pdfEsc_(pdfBoat_(r0)) + '</span>', runs: byPct(crews[k]) }; }) }
+  ];
+  var rowH = function (r) { return PDF_ROW + ((r.crew.length + (r.cox ? r.cox.length + 6 : 0)) > 46 ? PDF_ROW_WRAP : 0); };
+  var pages = [];
+  secs.forEach(function (sec) {
+    var cap = pages.length ? PDF_PAGE : PDF_FIRST, cur = [], used = 0;
+    var flush = function () { pages.push({ title: sec.title, rows: cur }); cur = []; used = 0; cap = PDF_PAGE; };
+    sec.blocks.forEach(function (bl) {
+      var hs = bl.runs.map(rowH), need = (bl.title ? PDF_GRP : 0) + hs.reduce(function (a, b) { return a + b; }, 0);
+      if (sec.keep && used && used + need > cap) flush();                       // Mannschaft passt nicht mehr ganz → neue Seite
+      if (bl.title) { if (used + PDF_GRP + hs[0] > cap) flush(); cur.push(pdfGrp_(bl.title)); used += PDF_GRP; }
+      bl.runs.forEach(function (r, i) {
+        if (used + hs[i] > cap) { flush(); if (bl.title) { cur.push(pdfGrp_(bl.title + ' <span class="gb">(Fortsetzung)</span>')); used += PDF_GRP; } }
+        cur.push(pdfRun_(r, i % 2)); used += hs[i];
+      });
+    });
+    if (cur.length) flush();
+  });
+  var info = '<table class="info"><tr><td class="k">Ort</td><td>' + pdfEsc_(f.ort) + '</td>' +
+    (f.wind ? '<td class="k">Wind</td><td>' + pdfEsc_(f.wind) + '</td>' : '<td></td><td></td>') + '</tr>' +
+    (f.temp ? '<tr><td class="k">Temperatur</td><td>' + pdfEsc_(f.temp) + '</td><td></td><td></td></tr>' : '') +
+    (f.goal ? '<tr><td class="k">Vorgabe</td><td colspan="3"><div class="goal">' + pdfEsc_(f.goal).replace(/\n/g, '<br>') + '</div></td></tr>' : '') + '</table>';
+  var made = Utilities.formatDate(new Date(), pdfTz_(), "dd.MM.yyyy, HH:mm");
+  var out = pages.map(function (p, i) {
+    return '<div class="page' + (i ? ' brk' : '') + '"><table class="head"><tr><td style="width:52px"><img src="data:image/png;base64,' + PDF_LOGO + '" width="42" height="42"></td>' +
+      '<td><div class="h1"><span class="c1">CHRON</span><span class="c2">OAR</span></div><div class="sub">' + p.title + '</div></td>' +
+      '<td class="when"><b>' + when + '</b><br>' + span + '</td></tr></table>' + (i ? '' : info) +
+      '<table class="res">' + PDF_THEAD + p.rows.join('') + '</table>' +
+      '<table class="foot"><tr><td>Erstellt mit ChronOar am ' + made + '</td><td class="r">Seite ' + (i + 1) + ' / ' + pages.length + '</td></tr></table></div>';
+  }).join('');
+  return '<!doctype html><html><head><meta charset="utf-8"><style>' + PDF_CSS + '</style></head><body>' + out + '</body></html>';
+}
+function pdfGrp_(t) { return '<tbody class="grp"><tr><td colspan="7">' + t + '</td></tr></tbody>'; }
+function pdfRun_(r, alt) {
+  var crew = '<b>' + pdfEsc_(r.crew) + '</b>' + (r.cox ? ' <span class="cox">· St: ' + pdfEsc_(r.cox) + '</span>' : '');
+  return '<tbody class="res' + (alt ? ' alt' : '') + '"><tr class="l1"><td>' + crew + '</td><td class="bt">' + pdfEsc_(pdfBoat_(r)) + '</td>' +
+    '<td class="n">' + (r.dist ? r.dist.toLocaleString('de-DE').replace(/,/g, '.') + ' m' : '–') + '</td><td class="n">' + pdfDec_(r.sf, 1) + '</td>' +
+    '<td class="n">' + pdfDec_(r.v, 2) + '</td><td class="n t">' + pdfEsc_(r.zeit) + '</td><td class="n pct">' + (r.pct === null ? '–' : pdfDec_(r.pct, 1) + ' %') + '</td></tr>' +
+    '<tr class="l2"><td>' + pdfEsc_(r.nr) + '</td><td>' + (r.rel ? pdfDec_(r.rel, 2) + ' m/s' : '–') + '</td>' +
+    '<td class="sp" colspan="4">' + (r.splits ? '<span class="lbl">Splits</span> ' + pdfEsc_(r.splits) : '') + '</td><td></td></tr></tbody>';
+}
+var PDF_THEAD = '<colgroup><col width="37%"><col width="15%"><col width="11%"><col width="8%"><col width="8%"><col width="10%"><col width="11%"></colgroup>' +
+  '<thead><tr><th>Mannschaft</th><th>Boot</th><th class="n">Distanz</th><th class="n">Ø SF</th><th class="n">m/s</th><th class="n">Zeit</th><th class="n">Prozent</th></tr>' +
+  '<tr class="hl2"><th>Strecke Nr.</th><th>Relation</th><th></th><th></th><th></th><th class="n">Splits</th><th></th></tr></thead>';
+var PDF_CSS =
+  '@page{size:A4;margin:12mm}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#1d1d1f}' +
+  '.brk{page-break-before:always}' +
+  '.head{width:100%;border-collapse:collapse;border-bottom:3px solid #e8740c;margin-bottom:10px}.head td{vertical-align:middle;padding:0 0 8px}' +
+  '.h1{font-size:25px;font-weight:bold;letter-spacing:2px}.c1{color:#8a4b14}.c2{color:#e8740c}' +
+  '.sub{color:#6b6b70;font-size:12px;margin-top:4px;text-transform:uppercase;letter-spacing:1px}' +
+  '.when{text-align:right;font-size:13px;line-height:1.5}.when b{font-size:15px}' +
+  '.info{width:100%;border-collapse:collapse;margin:6px 0 14px;font-size:12.5px}.info td{padding:3px 8px 3px 0;vertical-align:top}' +
+  '.info .k{color:#6b6b70;width:92px;text-transform:uppercase;font-size:10.5px;letter-spacing:1px;padding-top:5px}' +
+  '.goal{background:#f5f5f6;border-left:3px solid #e8740c;padding:6px 10px}' +
+  'table.res{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}' +
+  'table.res th{font-size:9.5px;text-transform:uppercase;letter-spacing:1px;color:#6b6b70;text-align:left;padding:5px 6px 0;white-space:nowrap}' +
+  'table.res tr.hl2 th{font-weight:normal;font-size:8.5px;padding:0 6px 4px;border-bottom:1.5px solid #1d1d1f}' +
+  'table.res .n{text-align:right;white-space:nowrap;padding-left:12px}table.res td{padding:5px 6px 1px;vertical-align:top}.bt{white-space:nowrap}' +
+  'tbody.res{border-bottom:1px solid #d9d9dc}tbody.res tr{page-break-inside:avoid}tbody.alt{background:#f5f5f6}' +
+  'tbody.grp td{padding:12px 6px 4px;font-weight:bold;font-size:12.5px;color:#8a4b14;border-bottom:1.5px solid #e8740c}.gb{color:#6b6b70;font-weight:normal;margin-left:6px}' +
+  'tr.l1 td{font-size:12.5px}tr.l2 td{padding:0 6px 5px;font-size:10.5px;color:#6b6b70;white-space:nowrap}' +
+  '.cox{color:#6b6b70}.t{font-weight:bold}.pct{font-weight:bold;color:#e8740c;font-size:13.5px}.sp{text-align:right}' +
+  '.lbl{text-transform:uppercase;font-size:9px;letter-spacing:1px;margin-right:4px}' +
+  '.foot{width:100%;border-collapse:collapse;margin-top:14px;font-size:10px;color:#6b6b70;border-top:1px solid #d9d9dc}.foot td{padding-top:6px}.foot .r{text-align:right}';
+
+var PDF_DIALOG = '<!doctype html><html><head><base target="_blank"><style>' +
+  'body{font-family:Arial,sans-serif;font-size:14px;color:#222;margin:0;padding:2px}label{display:block;margin:10px 0 3px;font-weight:bold}' +
+  'label small{font-weight:normal;color:#777}input,select,textarea{width:100%;box-sizing:border-box;padding:7px;font-size:14px;border:1px solid #bbb;border-radius:6px;font-family:inherit}' +
+  'textarea{height:70px;resize:vertical}button{background:#ff8a1c;border:0;border-radius:6px;padding:10px 16px;font-weight:bold;font-size:14px;cursor:pointer;margin-top:14px}' +
+  'button[disabled]{opacity:.6}.err{color:#c00}.muted{color:#666;font-size:12px}a{color:#c45f00;font-weight:bold}#done p{margin:8px 0}' +
+  '</style></head><body><div id="form">' +
+  '<label for="day">Tag</label><select id="day"></select>' +
+  '<label for="ort">Ort</label><input id="ort" maxlength="80">' +
+  '<label for="wind">Wind <small>(optional)</small></label><input id="wind" maxlength="80">' +
+  '<label for="temp">Temperatur <small>(optional)</small></label><input id="temp" maxlength="40">' +
+  '<label for="goal">Trainingsvorgabe <small>(optional)</small></label><textarea id="goal" maxlength="600"></textarea>' +
+  '<button id="go" onclick="go()">PDF erstellen</button><p id="msg" class="err"></p>' +
+  '<p class="muted">Enthält alle Fahrten des Tages aus „Ergebnis Mannschaft“, dreimal sortiert: nach Prozent, nach Strecke Nr. und nach Mannschaft. Das PDF wird im selben Drive-Ordner wie dieses Sheet gespeichert.</p></div>' +
+  '<div id="done" style="display:none"><p>Fertig: <b id="fname"></b></p><p><a id="open" href="#">PDF öffnen</a></p><p><a id="dl" href="#">Herunterladen</a></p>' +
+  '<button onclick="again()">Noch eins erstellen</button></div>' +
+  '<script>var days=<?!= days ?>;function $(i){return document.getElementById(i)}' +
+  'try{var s=JSON.parse(localStorage.getItem("chronoarPdf")||"{}");["ort","wind","temp","goal"].forEach(function(k){if(s[k])$(k).value=s[k]})}catch(e){}' +
+  'if(!days.length){$("form").innerHTML="<p>Im Blatt „Ergebnis Mannschaft“ gibt es noch keine Fahrten.</p>"}' +
+  'days.forEach(function(d){var o=document.createElement("option");o.value=d.day;o.textContent=d.label;$("day").appendChild(o)});' +
+  'function go(){var f={day:$("day").value,ort:$("ort").value.trim(),wind:$("wind").value.trim(),temp:$("temp").value.trim(),goal:$("goal").value.trim()};' +
+  'if(!f.ort){$("msg").textContent="Bitte den Ort eintragen.";$("ort").focus();return}' +
+  'try{localStorage.setItem("chronoarPdf",JSON.stringify({ort:f.ort,wind:f.wind,temp:f.temp,goal:f.goal}))}catch(e){}' +
+  '$("msg").textContent="";$("go").disabled=true;$("go").textContent="Erstelle PDF…";' +
+  'google.script.run.withSuccessHandler(function(r){$("form").style.display="none";$("done").style.display="block";$("fname").textContent=r.name;$("open").href=r.url;$("dl").href=r.download})' +
+  '.withFailureHandler(function(e){$("msg").textContent=e.message;$("go").disabled=false;$("go").textContent="PDF erstellen"}).makePdf(f)}' +
+  'function again(){$("done").style.display="none";$("form").style.display="block";$("go").disabled=false;$("go").textContent="PDF erstellen"}' +
+  '</script></body></html>';
+
 
 /* ------------------------------------------------------------------ Dialog */
 
