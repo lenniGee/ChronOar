@@ -1,6 +1,8 @@
 # ChronOar
 
-**Autor:** Lennart Geerdes · © 2026 Lennart Geerdes. ChronOar wurde von Lennart Geerdes konzipiert und entwickelt.
+*Im Motorboot entwickelt, um an Land nichts mehr tun zu müssen.*
+
+**Autor:** Lennart Geerdes · © 2026 Lennart Geerdes
 
 Stoppuhren mit Relationsgeschwindigkeiten für Rudertrainer – als Web-App (PWA) für iPhone und Android, gehostet über GitHub Pages. Jeder Trainer speichert Sportler und Ergebnisse in seinem **eigenen** Google Sheet; die Relationsgeschwindigkeiten kommen **zentral** aus der Datei `relationen.csv` in diesem Repository.
 
@@ -227,7 +229,7 @@ Zeitabgleich (`webTimeSync`, `rgSample` in `index.html`): Alle Zeiten sind Weltz
 Menü **ChronOar → Ergebnis-PDF erstellen** (Funktionen `showPdf`, `makePdf`, `pdfHtml_` in `Code.gs`).
 
 - **Daten:** alle Zeilen eines Kalendertags aus „Ergebnis Mannschaft“ (Spalten werden über ihren Namen gelesen). Boot-Bezeichnung aus „Kategorien“ + „Boot“: eine Kategorie → `JMBL1x`, mehrere → `JMA/JMBL 4x` (alphabetisch).
-- **Kopf:** Wortmarke CHRON (schwarz) OAR (orange), darunter „von Lennart Geerdes“; Datum mit Wochentag, Zeitraum = früheste bis späteste „Uhrzeit“ des Tages, Ort (Pflicht), Wind, Temperatur, Vorgabe (optional, nur Seite 1). Die Eingaben merkt sich der Dialog im Browser.
+- **Kopf:** Wortmarke CHRON (schwarz) OAR (orange), darunter der Leitsatz „Im Motorboot entwickelt, um an Land nichts mehr tun zu müssen.“; Fußzeile mit © Lennart Geerdes; Datum mit Wochentag, Zeitraum = früheste bis späteste „Uhrzeit“ des Tages, Ort (Pflicht), Wind, Temperatur, Vorgabe (optional, nur Seite 1). Die Eingaben merkt sich der Dialog im Browser.
 - **Vier Teile**, jeweils ab neuer Seite: nach Prozent · nach „Strecke Nr.“, dann Prozent · nach Abteilung und „Strecke Nr.“, dann Prozent (nur wenn am Tag Abteilungen vergeben sind; jede Kombination ist eine eigene, nicht getrennte Gruppe; Fahrten ohne Abteilung am Ende) · nach Mannschaft (gleiche Ruderer im gleichen Boot, Reihenfolge egal; Mannschaften geordnet nach ihrem besten Ergebnis), dann Prozent. Fahrten ohne Prozent stehen am Ende.
 - **Seitenumbruch** wird im Skript berechnet (geschätzte Zeilenhöhen, Konstanten `PDF_PAGE`, `PDF_FIRST`, `PDF_ROW`, `PDF_ROW_WRAP`, `PDF_GRP`). Jede Seite bekommt Kopf und Spaltenüberschrift; eine Mannschaft wird im dritten Teil nicht getrennt; Zwischenüberschriften stehen nie allein am Seitenende. Sind die Seiten im fertigen PDF zu voll oder zu leer, `PDF_PAGE`/`PDF_FIRST` anpassen.
 - **Umwandlung:** HTML → PDF mit Googles eingebautem Konverter (`Utilities.newBlob(html,'text/html').getAs('application/pdf')`), gespeichert im Drive-Ordner des Sheets als `ChronOar <Datum> <Ort>.pdf`. Das Logo ist als PNG (Base64) im Skript eingebettet.

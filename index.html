@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="ChronOar">
 <title>ChronOar</title>
 <meta name="author" content="Lennart Geerdes">
-<meta name="description" content="ChronOar – Stoppuhren, Schlagzahl und Regatta-Zeitnahme für Rudertrainer. Eine App von Lennart Geerdes.">
+<meta name="description" content="ChronOar – Stoppuhren, Schlagzahl und Regatta-Zeitnahme für Rudertrainer. Im Motorboot entwickelt, um an Land nichts mehr tun zu müssen.">
 <meta name="theme-color" content="#1b1b1d">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
@@ -307,7 +307,7 @@ textarea.codein{min-height:76px;padding:10px 12px;font-size:13px;font-family:ui-
 <div class="help" id="help" hidden><div class="help-h"><h3>Anleitung</h3><button class="btn" id="help-close">Schließen</button></div><iframe id="help-frame" title="Anleitung"></iframe></div>
 
 <div id="sheet-root"></div>
-<div id="splash" aria-hidden="true"><img src="icon-192.png" alt="" onerror="this.remove()"><div class="nm">Chron<span>Oar</span></div><div class="by">eine App von <b>Lennart Geerdes</b></div></div>
+<div id="splash" aria-hidden="true"><img src="icon-192.png" alt="" onerror="this.remove()"><div class="nm">Chron<span>Oar</span></div></div>
 
 <script>
 "use strict";
@@ -1122,7 +1122,7 @@ function renderSettings(){
       <div class="muted">Noch kein Sheet? <a href="#" data-act="open-help">Anleitung: Sheet in 5 Minuten einrichten</a></div>`;
   }
   sheetShell(G.view==="scan"?"QR-Code scannen":G.view==="share"?"Weiteres Handy":G.view==="add"?"Anderes Sheet":"Google Sheet","",
-    body+(G.view==="main"?`<div class="muted relinfo">Relationsgeschwindigkeiten: ${rel}</div><div class="byline"><b>ChronOar</b> – entwickelt von <b>Lennart Geerdes</b> · © ${new Date().getFullYear()}</div>`:""),
+    body+(G.view==="main"?`<div class="muted relinfo">Relationsgeschwindigkeiten: ${rel}</div><div class="byline"><i>Im Motorboot entwickelt, um an Land nichts mehr tun zu müssen.</i><br>© ${new Date().getFullYear()} Lennart Geerdes</div>`:""),
     G.view==="main"?`<span class="sum"></span><button class="btn" data-act="close">Fertig</button>`:`<span class="sum"></span><button class="btn" data-act="g-back">Zurück</button>`);
   if(G.view==="share")showShareQR();
 }

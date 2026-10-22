@@ -132,7 +132,7 @@ function ensureSheet_(ss, name, head) {
 
 /** Menü: Über ChronOar */
 function about() {
-  SpreadsheetApp.getUi().alert('ChronOar', 'Trainings- und Regatta-App für Rudertrainer.\n\nKonzipiert und entwickelt von Lennart Geerdes.\n© ' + new Date().getFullYear() + ' Lennart Geerdes\n\nSkript-Version ' + SCRIPT_VERSION, SpreadsheetApp.getUi().ButtonSet.OK);
+  SpreadsheetApp.getUi().alert('ChronOar', 'Trainings- und Regatta-App für Rudertrainer.\n\nIm Motorboot entwickelt, um an Land nichts mehr tun zu müssen.\n\n© ' + new Date().getFullYear() + ' Lennart Geerdes\n\nSkript-Version ' + SCRIPT_VERSION, SpreadsheetApp.getUi().ButtonSet.OK);
 }
 
 /** Dialog: Web-App-Adresse eintragen, Verbindungscode + QR-Code anzeigen. */
@@ -880,10 +880,10 @@ function pdfHtml_(runs, f) {
   var made = Utilities.formatDate(new Date(), pdfTz_(), "dd.MM.yyyy, HH:mm");
   var out = pages.map(function (p, i) {
     return '<div class="page' + (i ? ' brk' : '') + '"><table class="head"><tr><td style="width:52px"><img src="data:image/png;base64,' + PDF_LOGO + '" width="42" height="42"></td>' +
-      '<td><div class="h1"><span class="c1">CHRON</span><span class="c2">OAR</span></div><div class="by">von Lennart Geerdes</div></td>' +
+      '<td><div class="h1"><span class="c1">CHRON</span><span class="c2">OAR</span></div><div class="by">Im Motorboot entwickelt, um an Land nichts mehr tun zu müssen.</div></td>' +
       '<td class="when"><b>' + when + '</b><br>' + span + '</td></tr></table>' + (i ? '' : info) + '<div class="sec">' + p.title + '</div>' +
       '<table class="res">' + PDF_THEAD + p.rows.join('') + '</table>' +
-      '<table class="foot"><tr><td>Erstellt am ' + made + ' mit <b>ChronOar</b> – Trainings- und Regatta-App von Lennart Geerdes</td><td class="r">Seite ' + (i + 1) + ' / ' + pages.length + '</td></tr></table></div>';
+      '<table class="foot"><tr><td>Erstellt am ' + made + ' mit <b>ChronOar</b> · © ' + new Date().getFullYear() + ' Lennart Geerdes</td><td class="r">Seite ' + (i + 1) + ' / ' + pages.length + '</td></tr></table></div>';
   }).join('');
   return '<!doctype html><html><head><meta charset="utf-8"><style>' + PDF_CSS + '</style></head><body>' + out + '</body></html>';
 }
@@ -934,7 +934,7 @@ var PDF_DIALOG = '<!doctype html><html><head><base target="_blank"><style>' +
   '<button id="go" onclick="go()">PDF erstellen</button><p id="msg" class="err"></p>' +
   '<p class="muted">Enthält alle Fahrten des Tages aus „Ergebnis Mannschaft“: nach Prozent, nach Strecke Nr., nach Abteilung und Strecke Nr. (falls vergeben) und nach Mannschaft. Das PDF wird im selben Drive-Ordner wie dieses Sheet gespeichert.</p></div>' +
   '<div id="done" style="display:none"><p>Fertig: <b id="fname"></b></p><p><a id="open" href="#">PDF öffnen</a></p><p><a id="dl" href="#">Herunterladen</a></p>' +
-  '<button onclick="again()">Noch eins erstellen</button></div><p class="muted" style="margin-top:16px">ChronOar · eine App von Lennart Geerdes</p>' +
+  '<button onclick="again()">Noch eins erstellen</button></div><p class="muted" style="margin-top:16px"><i>Im Motorboot entwickelt, um an Land nichts mehr tun zu müssen.</i> · © Lennart Geerdes</p>' +
   '<script>var days=<?!= days ?>;function $(i){return document.getElementById(i)}' +
   'try{var s=JSON.parse(localStorage.getItem("chronoarPdf")||"{}");["ort","wind","temp","goal"].forEach(function(k){if(s[k])$(k).value=s[k]})}catch(e){}' +
   'if(!days.length){$("form").innerHTML="<p>Im Blatt „Ergebnis Mannschaft“ gibt es noch keine Fahrten.</p>"}' +
