@@ -235,6 +235,8 @@ Jede Antwort enthält zusätzlich `now` (Serverzeit in ms).
 
 Operationen in `ops` (jede mit eindeutiger `qid`): `results` (Zeilen anhängen, doppelte IDs werden übersprungen), `resultsDel` (alle Zeilen einer Belastung löschen), `athlete` (anlegen/ändern), `athleteDel` (löschen), `rgBoat` (Regatta-Boot anlegen/ändern), `rgBoatDel`, `rgNewRun` (Lauf + 1), `rgEvent` (Tastendruck, doppelte Event-IDs werden übersprungen), `rgEventDel` (als gelöscht markieren). POST wird als `text/plain` gesendet, damit der Browser keine CORS-Vorabanfrage schickt.
 
+**Mehrere Sheets auf einem Handy:** Die App speichert pro Sheet (Schlüssel = Web-App-URL) Verbindung, Warteschlange, Sportlerliste und Regatta-Stand (`S.sheets`). Beim Wechsel wird zuerst die Warteschlange des alten Sheets abgeglichen und dann beiseitegelegt. Wartende Änderungen nicht aktiver Sheets lädt die App jede Minute und bei jedem Verbindungsaufbau im Hintergrund hoch. Lokal angelegte Sportler werden nur bei der allerersten Verbindung eines Handys ins Sheet übernommen, nie beim Wechsel.
+
 **Verbindungscode:** `CHRONOAR1:<Web-App-URL>|<Schlüssel>` – derselbe Text steckt im QR-Code.
 
 ## Sicherheit & Datenschutz

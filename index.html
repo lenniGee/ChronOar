@@ -349,7 +349,7 @@ function load(){
   REL=REL_BUILTIN;
   try{const raw=localStorage.getItem(STORE);if(raw){S=JSON.parse(raw);S.watches.forEach(w=>{w.runId=w.runId||uid()});S.results.forEach(r=>{r.run=r.run||r.watch})}}catch(e){S=null}
   if(!S)S=defaults();
-  S.conn=S.conn||null;S.queue=S.queue||[];S.devId=S.devId||uid();
+  S.conn=S.conn||null;S.queue=S.queue||[];S.devId=S.devId||uid();S.sheets=S.sheets||{};if(S.conn)S.everConn=true;
   REL=S.rel&&Object.keys(S.rel).length>=10?S.rel:REL_BUILTIN;
 }
 let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(STORE,JSON.stringify(S))}catch(e){}},150)}
@@ -929,17 +929,31 @@ async function connectWith(code){
     const j=await apiGet({action:"ping"}).catch(e=>{S.conn=old;throw e});
     conn.name=j.name;conn.version=j.version||0;
     const wasNew=!old||old.url!==conn.url;
+    if(wasNew&&old){
+      /* Wechsel: vorher noch Wartendes ins alte Sheet schicken, dann dessen Stand (Warteschlange, Sportler, Regatta) beiseitelegen */
+      S.conn=old;while(syncing)await new Promise(r=>setTimeout(r,100));await sync().catch(()=>{});while(syncing)await new Promise(r=>setTimeout(r,100));
+      S.sheets[old.url]={conn:old,queue:S.queue,rg:S.rg,athletes:S.athletes,lastSync:S.lastSync};
+    }
     S.conn=conn;
     if(wasNew){
-      S.rg=null; /* Regatta-Daten gehören zum alten Sheet */
-      S.athletes=S.athletes.filter(a=>!a.example);S.watches=S.watches.filter(w=>!w.example);
-      /* eigene, schon angelegte Sportler einmalig ins Sheet übernehmen */
-      S.athletes.forEach(a=>{if(!S.queue.some(o=>o.op==="athlete"&&o.athlete.id===a.id))S.queue.push({op:"athlete",athlete:athPayload(a),qid:uid()})});
+      const prof=S.sheets[conn.url]; delete S.sheets[conn.url];
+      S.watches=S.watches.filter(w=>!w.example);rgLocal={};lastPull=0;syncState="idle";syncErr="";
+      if(prof){S.queue=prof.queue||[];S.rg=prof.rg||null;S.athletes=prof.athletes||[];S.lastSync=prof.lastSync}
+      else if(old){S.queue=[];S.rg=null;S.athletes=[];S.lastSync=null}
+      else{
+        S.rg=null;S.athletes=S.athletes.filter(a=>!a.example);
+        /* allererste Verbindung: auf dem Handy angelegte Sportler einmalig ins Sheet übernehmen.
+           Bei späteren Verbindungen nicht – sonst würden Sportler eines anderen Sheets mitkopiert. */
+        if(!S.everConn)S.athletes.forEach(a=>{if(!S.queue.some(o=>o.op==="athlete"&&o.athlete.id===a.id))S.queue.push({op:"athlete",athlete:athPayload(a),qid:uid()})});
+      }
+      S.everConn=true;
     }
     save();toast("Verbunden mit „"+j.name+"“");
     await sync({force:true});
-    if(G)renderSettings();
+    if(G){G.view="main";renderSettings()}
+    if(tab==="athletes")renderAthletes();if(tab==="watches")renderWatches();
     if(tab==="regatta")rgEnter();
+    flushStashed();
   }catch(e){toast(e.code==="bad_key"?"Code passt nicht zum Sheet":"Sheet nicht erreichbar – Code und Internet prüfen")}
 }
 function refreshSyncUI(){
@@ -958,7 +972,28 @@ function renderTopsub(){
   const n=S.watches.length, running=S.watches.filter(w=>watchState(w)==="running").length;
   $("#topsub").textContent=n+" Uhr"+(n===1?"":"en")+(running?" · "+running+" läuft":"")+(S.conn&&S.queue.length?" · ☁ "+S.queue.length:"");
 }
-window.addEventListener("online",()=>sync());
+/* Wartende Änderungen von Sheets, mit denen das Handy gerade NICHT verbunden ist, trotzdem hochladen */
+let flushing=false;
+async function flushStashed(){
+  if(flushing||!navigator.onLine)return;flushing=true;
+  try{
+    for(const p of Object.values(S.sheets||{})){
+      while(p.queue&&p.queue.length){
+        let j;try{
+          const r=await fetch(p.conn.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"batch",ops:p.queue.slice(0,40),key:p.conn.key})});
+          j=await r.json();
+        }catch(e){break}
+        const done=new Set(j&&j.ok&&j.done||[]);if(!done.size)break;
+        p.queue=p.queue.filter(o=>!done.has(o.qid));
+        if(p.rg&&p.rg.pend)p.rg.pend.forEach(x=>{if(done.has(x.qid)&&!x.sent)x.sent=Date.now()});
+        save();
+      }
+    }
+  }finally{flushing=false;if(G&&G.view==="main")renderSettings()}
+}
+function switchSheet(url){const p=S.sheets[url];return p?connectWith(CODE_PREFIX+p.conn.url+"|"+p.conn.key):Promise.resolve()}
+setInterval(flushStashed,60000);
+window.addEventListener("online",()=>{sync();flushStashed()});
 setInterval(()=>{if(S.conn&&(S.queue.length||Date.now()-lastPull>300000))sync()},45000);
 
 /* ---------- zentrale Relationen: Datei relationen.csv im GitHub-Repository ----------
@@ -999,7 +1034,7 @@ function renderSettings(){
   }else if(G.view==="share"){
     body=`<div class="muted">Auf dem zweiten Handy: ChronOar öffnen → Sportler → ☁ Sheet → <b>QR-Code scannen</b>. Danach landen auch dessen Ergebnisse in „${esc(S.conn.name||"deinem Sheet")}“.</div>
       <div class="qrbox" id="qrbox"></div><div class="muted">Der Code ist wie ein Passwort. Zeig ihn nur Leuten, die in dein Sheet schreiben dürfen.</div>`;
-  }else if(S.conn){
+  }else if(S.conn&&G.view!=="add"){
     body=`<div class="card"><h2>Verbunden</h2>
         <div><b>„${esc(S.conn.name||"Sheet")}“</b></div>
         <div class="muted">${syncState==="busy"?"Gleicht gerade ab…":q?`${q} Änderung${q===1?"":"en"} warten auf Upload`:"Alles hochgeladen"} · zuletzt abgeglichen ${fmtDT(S.lastSync)}</div>
@@ -1008,27 +1043,45 @@ function renderSettings(){
           :`<div class="warnt">Das Skript in diesem Sheet ist veraltet${S.conn.version?` (Version ${S.conn.version})`:""}. Im Sheet: Erweiterungen → Apps Script → neuen Code einfügen → Bereitstellen → Bereitstellungen verwalten → Stift → Version „Neue Version“ → Bereitstellen.</div>`}
         <div class="bar"><button class="btn" data-act="g-sync">Jetzt abgleichen</button><button class="btn" data-act="g-share">Weiteres Handy verbinden</button></div>
       </div>
+      ${savedSheets()}
+      <div class="bar"><button class="btn ghost" data-act="g-add">Anderes Sheet verbinden</button></div>
       <div class="muted">Ergebnisse werden nach jedem Stopp automatisch ins Sheet geschrieben, ohne Netz später. Die Sportlerliste kommt aus dem Sheet; was du hier änderst, landet auch dort.</div>
       <div class="bar">${q?`<button class="btn sm ghost danger" data-act="g-drop" data-confirm="${q} Änderungen verwerfen?">Wartende verwerfen</button>`:""}
         <button class="btn sm ghost danger" data-act="g-off" data-confirm="${q?"Trotz offener Änderungen trennen?":"Wirklich trennen?"}">Verbindung trennen</button></div>`;
+  }else if(G.view==="add"){
+    body=`<div class="muted">Scanne den QR-Code des anderen Sheets. „${esc(S.conn.name||"Sheet")}“ bleibt auf diesem Handy gespeichert – du kannst jederzeit ohne neues Scannen zurückwechseln.</div>
+      <div class="bar"><button class="btn" data-act="g-scan">QR-Code scannen</button></div>
+      <label class="fld" for="g-code">Oder Verbindungscode einfügen<textarea class="txt codein" id="g-code" placeholder="CHRONOAR1:https://script.google.com/…" autocomplete="off" spellcheck="false"></textarea></label>
+      <div class="bar"><button class="btn" data-act="g-connect">Verbinden</button></div>`;
   }else{
-    body=`<div class="muted">Verbinde ChronOar mit deinem eigenen Google Sheet. Dann landen alle Ergebnisse automatisch dort, und die Sportlerliste kommt aus dem Sheet.</div>
+    body=`${savedSheets()}<div class="muted">Verbinde ChronOar mit deinem eigenen Google Sheet. Dann landen alle Ergebnisse automatisch dort, und die Sportlerliste kommt aus dem Sheet.</div>
       <div class="bar"><button class="btn" data-act="g-scan">QR-Code scannen</button></div>
       <label class="fld" for="g-code">Oder Verbindungscode einfügen<textarea class="txt codein" id="g-code" placeholder="CHRONOAR1:https://script.google.com/…" autocomplete="off" spellcheck="false"></textarea></label>
       <div class="bar"><button class="btn" data-act="g-connect">Verbinden</button></div>
       ${q?`<div class="muted">${q} Änderungen von diesem Handy warten und werden nach dem Verbinden hochgeladen. <button class="btn sm ghost danger" data-act="g-drop" data-confirm="Verwerfen?">Verwerfen</button></div>`:""}
       <div class="muted">Noch kein Sheet? <a href="#" data-act="open-help">Anleitung: Sheet in 5 Minuten einrichten</a></div>`;
   }
-  sheetShell(G.view==="scan"?"QR-Code scannen":G.view==="share"?"Weiteres Handy":"Google Sheet","",
+  sheetShell(G.view==="scan"?"QR-Code scannen":G.view==="share"?"Weiteres Handy":G.view==="add"?"Anderes Sheet":"Google Sheet","",
     body+(G.view==="main"?`<div class="muted relinfo">Relationsgeschwindigkeiten: ${rel}</div>`:""),
     G.view==="main"?`<span class="sum"></span><button class="btn" data-act="close">Fertig</button>`:`<span class="sum"></span><button class="btn" data-act="g-back">Zurück</button>`);
   if(G.view==="share")showShareQR();
 }
+/* Liste der Sheets, die auf diesem Handy gespeichert sind (ohne das gerade verbundene) */
+function savedSheets(){
+  const list=Object.entries(S.sheets||{});
+  if(!list.length)return "";
+  return `<div class="card"><h2>Weitere Sheets auf diesem Handy</h2>${list.map(([url,p])=>{const q=(p.queue||[]).length;
+    return `<div class="rowcard"><div><b>„${esc(p.conn.name||"Sheet")}“</b><div class="muted">${q?`${q} Änderung${q===1?"":"en"} warten – werden im Hintergrund hochgeladen`:"alles hochgeladen"}</div></div>
+      <div class="bar"><button class="btn sm" data-act="g-switch" data-v="${esc(url)}">Wechseln</button><button class="btn sm ghost danger" data-act="g-forget" data-v="${esc(url)}" data-confirm="${q?"Wartendes verwerfen?":"Entfernen?"}">✕</button></div></div>`}).join("")}</div>`;
+}
 async function settingsClick(act,b){
   if(!armed(b))return;
   switch(act){
-    case "g-scan": G.view="scan";renderSettings();startScan();break;
-    case "g-back": stopScan();G.view="main";renderSettings();break;
+    case "g-scan": G.from=G.view;G.view="scan";renderSettings();startScan();break;
+    case "g-back": stopScan();G.view=G.view==="scan"&&G.from==="add"?"add":"main";G.from=null;renderSettings();break;
+    case "g-add": G.view="add";renderSettings();break;
+    case "g-switch": toast("Wechsle…");await switchSheet(b.dataset.v);G.view="main";renderSettings();break;
+    case "g-forget": delete S.sheets[b.dataset.v];save();renderSettings();break;
     case "g-connect": connectWith($("#g-code").value);break;
     case "g-sync": sync({force:true});break;
     case "g-share": G.view="share";renderSettings();break;
