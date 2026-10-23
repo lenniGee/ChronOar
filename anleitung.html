@@ -37,6 +37,16 @@ th{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.05
 nav.toc{background:var(--surface);border-radius:12px;padding:10px 16px}
 nav.toc a{text-decoration:none}
 .muted{color:var(--muted);font-size:15px}
+details.rel{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin:16px 0}
+details.rel summary{cursor:pointer;padding:12px 16px;font-weight:700;list-style:none;display:flex;justify-content:space-between;align-items:center}
+details.rel summary::-webkit-details-marker{display:none}
+details.rel summary::after{content:"＋";color:var(--accent);font-size:20px}
+details.rel[open] summary::after{content:"－"}
+details.rel .in{padding:0 16px 14px}
+#rel-q{width:100%;min-height:42px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:0 10px;font-size:16px;margin:4px 0 8px}
+#rel-tab td.n,#rel-tab th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+#rel-tab{font-size:14px}#rel-tab th,#rel-tab td{padding:6px 7px}#rel-tab th{font-size:11px;letter-spacing:.02em}details.rel .in{padding:0 10px 14px}
+#rel-tab tr.g td{color:var(--accent);font-weight:700;font-size:13px;letter-spacing:.05em;background:var(--bg)}
 </style>
 </head>
 <body>
@@ -264,10 +274,50 @@ In der Klammer steht <b>deine eigene E-Mail-Adresse</b>: Nach dem Kopieren gehö
     <tr><td>GPS-km</td><td>Summe der Strecken zwischen den GPS-Punkten seit „GPS starten“. Kleine Sprünge (unter 4 m bzw. unter der GPS-Ungenauigkeit) werden ignoriert, damit Stillstand nicht mitzählt. Läuft nur bei eingeschaltetem Display.</td></tr>
   </tbody>
 </table></div>
+<details class="rel" id="relationen">
+  <summary>Relationen zum Nachschlagen</summary>
+  <div class="in">
+    <p class="muted">Werte aus der zentralen Datei <code>relationen.csv</code>, also dieselben, mit denen die App rechnet. B-Junioren über 1.500 m, alle anderen über 2.000 m. Die Zielzeit ist auf Zehntel abgeschnitten.</p>
+    <input id="rel-q" type="search" placeholder="Filtern, z. B. JMB oder 4x" aria-label="Relationen filtern" autocomplete="off">
+    <div class="tw"><table id="rel-tab"><thead><tr><th>Boot</th><th class="n">Relation</th><th class="n">Distanz</th><th class="n">Zielzeit</th></tr></thead><tbody></tbody></table></div>
+    <p class="muted" id="rel-msg"></p>
+  </div>
+</details>
 <p id="fun" style="margin-top:40px;font-size:20px;line-height:1.5"><b>Viel Spaß</b><br>Lenni</p>
 <p class="muted" style="margin-top:32px;border-top:1px solid #3a3a3e;padding-top:12px">© 2026 Lennart Geerdes</p>
 </main>
 <script>
+/* Relationstabelle: wird aus relationen.csv gebaut (gleiche Datei wie in der App), damit sie immer aktuell ist */
+(function(){
+  const ORDER=["JMA","JMAL","JFA","JFAL","JMB","JMBL","JFB","JFBL","SMA","SMAL","SFA","SFAL","SMB","SMBL","SFB","SFBL"];
+  const BOATS=["1x","2x","2-","2+","4x","4x+","4-","4+","8+"];
+  const NAMES={J:"Junioren",S:"Senioren",M:"männlich",F:"weiblich"};
+  const ft=sec=>{const t=Math.floor(sec*10+1e-6),m=Math.floor(t/600),s=Math.floor(t/10)%60;return m+":"+String(s).padStart(2,"0")+","+(t%10)};
+  const label=c=>(c[0]==="J"?"Junioren":"Senioren")+" "+(c[1]==="M"?"männlich":"weiblich")+" "+c[2]+(c[3]?" Leichtgewicht":"");
+  let rows=[];
+  function render(){
+    const q=(document.getElementById("rel-q").value||"").trim().toLowerCase();
+    let html="",last="";
+    rows.filter(r=>!q||r.key.toLowerCase().includes(q)).forEach(r=>{
+      if(r.cat!==last){html+=`<tr class="g"><td colspan="4">${r.cat} · ${label(r.cat)}</td></tr>`;last=r.cat}
+      html+=`<tr><td>${r.key}</td><td class="n">${r.v.toFixed(2).replace(".",",")} m/s</td><td class="n">${r.dist.toLocaleString("de-DE")} m</td><td class="n">${ft(r.dist/r.v)}</td></tr>`;
+    });
+    document.querySelector("#rel-tab tbody").innerHTML=html||'<tr><td colspan="4" class="muted">Keine passende Bootsklasse.</td></tr>';
+  }
+  fetch("relationen.csv",{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.text()}).then(txt=>{
+    txt.replace(/^\uFEFF/,"").split(/\r?\n/).forEach(line=>{
+      line=line.trim();if(!line)return;
+      const p=line.includes(";")?line.split(";"):line.split(",");if(p.length<2)return;
+      const key=p[0].trim(),v=parseFloat(p[1].trim().replace(",","."));
+      const m=key.match(/^([JS][MF][AB]L?)(1x|2x|2-|2\+|4x\+?|4-|4\+|8\+)$/);   /* Ergo und Kopfzeile fallen hier raus */
+      if(!m||!(v>2&&v<8))return;
+      rows.push({key,cat:m[1],boat:m[2],v,dist:/^J[MF]B/.test(m[1])?1500:2000});
+    });
+    rows.sort((a,b)=>(ORDER.indexOf(a.cat)-ORDER.indexOf(b.cat))||(BOATS.indexOf(a.boat)-BOATS.indexOf(b.boat)));
+    render();
+  }).catch(()=>{document.getElementById("rel-msg").textContent="Die Relationstabelle konnte gerade nicht geladen werden (kein Netz?). Später nochmal öffnen."});
+  document.getElementById("rel-q").addEventListener("input",render);
+})();
 fetch("config.json",{cache:"no-store"}).then(r=>r.json()).then(c=>{
   if(c.templateUrl)document.getElementById("tpl").href=c.templateUrl;  /* config.json überschreibt den eingebauten Link */
 }).catch(()=>{});
