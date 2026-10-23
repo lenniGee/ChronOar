@@ -53,6 +53,15 @@ details.rel .in{padding:0 16px 14px}
 <main>
 <h1>Chron<span>Oar</span> einrichten</h1>
 <p class="muted" style="margin-top:-6px"><i>Im Motorboot entwickelt, um an Land nichts mehr tun zu müssen.</i></p>
+<details class="rel" id="relationen">
+  <summary>Relationen zum Nachschlagen</summary>
+  <div class="in">
+    <p class="muted">Werte aus der zentralen Datei <code>relationen.csv</code>, also dieselben, mit denen die App rechnet. B-Junioren über 1.500 m, alle anderen über 2.000 m. Die Zielzeit ist auf Zehntel abgeschnitten.</p>
+    <input id="rel-q" type="search" placeholder="Filtern, z. B. JMB oder 4x" aria-label="Relationen filtern" autocomplete="off">
+    <div class="tw"><table id="rel-tab"><thead><tr><th>Boot</th><th class="n">Relation</th><th class="n">Distanz</th><th class="n">Zielzeit</th></tr></thead><tbody></tbody></table></div>
+    <p class="muted" id="rel-msg"></p>
+  </div>
+</details>
 <p class="lead">Stoppuhren mit Relationsgeschwindigkeiten für Rudertrainer. Diese Anleitung führt dich in etwa 10 Minuten von null bis zum ersten Ergebnis in deinem eigenen Google Sheet.</p>
 
 <nav class="toc"><ol>
@@ -61,8 +70,7 @@ details.rel .in{padding:0 16px 14px}
   <li><a href="#deploy">Sheet für die App freigeben</a></li>
   <li><a href="#connect">Handy verbinden</a></li>
   <li><a href="#athletes">Sportler pflegen</a></li>
-  <li><a href="#second">Weitere Trainer verbinden</a></li>
-  <li><a href="#switch">Zwischen mehreren Sheets wechseln</a></li>
+  <li><a href="#second">Weitere Trainer verbinden</a><ul style="list-style:none;padding-left:14px;margin:2px 0"><li><a href="#switch">Zwischen mehreren Sheets wechseln</a></li></ul></li>
   <li><a href="#regatta">Regatta mit mehreren Handys</a></li>
   <li><a href="#pdf">Ergebnisse als PDF</a></li>
   <li><a href="#data">Was wird wo gespeichert?</a></li>
@@ -86,6 +94,8 @@ details.rel .in{padding:0 16px 14px}
 </ol>
 <div class="box"><b>ChronOar funktioniert offline.</b> Einmal installiert, laufen Stoppuhren (Tab <b>ChronOar</b>), <b>Coach</b> (Schlagzahl, GPS, Einheit), Sportlerliste und Ergebnisse auch <b>ganz ohne Internet</b> – im Motorboot, auf dem See, im Funkloch. Alle Zeiten werden auf dem Handy gemessen und gespeichert. Sobald wieder Netz da ist, schickt die App die Ergebnisse von selbst ins Sheet.<br><br>
 Internet brauchen nur: der <b>Regatta</b>-Modus (die Handys müssen sich austauschen), das <b>PDF</b> und das Abgleichen mit dem Sheet.</div>
+<div class="box"><b>Tab Coach</b><br>
+<b>Display an:</b> Im Tab Coach bleibt das Display nur an, wenn der Schalter an ist. Startest du das GPS, schaltet ChronOar ihn selbst ein, weil GPS nur bei eingeschaltetem Display misst. In den Tabs ChronOar und Regatta bleibt das Display immer an, solange dort Uhren sind.</div>
 
 <h2 id="sheet"><span class="n">2</span>Eigenes Google Sheet anlegen</h2>
 <p>Jeder Trainer hat sein eigenes Sheet in seinem eigenen Google Drive. Niemand sonst sieht deine Daten.</p>
@@ -270,19 +280,11 @@ In der Klammer steht <b>deine eigene E-Mail-Adresse</b>: Nach dem Kopieren gehö
     <tr><td>Strecke Nr.</td><td>Die wievielte Fahrt dieser Mannschaft am selben Tag: „1. Strecke“, „2. Strecke“, … Gleiche Mannschaft = gleiche Ruderer (Reihenfolge egal) im gleichen Boot; die Steuerperson zählt nicht, jede Streckenlänge zählt mit. Am nächsten Tag beginnt die Zählung neu. Im Sheet werden die Stopps aller verbundenen Handys berücksichtigt.</td></tr>
     <tr><td>Zielzeit</td><td>Strecke ÷ Relation<br><span class="muted">2000 m ÷ 5,3419 m/s → 374,4 s → 6:14,4</span></td></tr>
     <tr><td>Prozent</td><td>m/s ÷ Relation. In der App als Prozent (96,0 %), im Sheet als Anteil (0,9600), damit man direkt damit rechnen kann. Gilt für das ganze Boot; Steuerleute bekommen keinen Wert.</td></tr>
-    <tr><td>GPS-Tempo</td><td>Zurückgelegte Strecke der letzten 5 Sekunden ÷ deren Dauer, als /500 m dargestellt</td></tr>
+    <tr><td>GPS-Tempo</td><td>Zurückgelegte Strecke der letzten 5 Sekunden ÷ deren Dauer, als /500 m, m/s und km/h (m/s × 3,6) dargestellt</td></tr>
     <tr><td>GPS-km</td><td>Summe der Strecken zwischen den GPS-Punkten seit „GPS starten“. Kleine Sprünge (unter 4 m bzw. unter der GPS-Ungenauigkeit) werden ignoriert, damit Stillstand nicht mitzählt. Läuft nur bei eingeschaltetem Display.</td></tr>
+    <tr><td>Schlagzahl (Coach)</td><td>Die letzten fünf Werte bleiben beim Wechsel der Tabs erhalten. Wird die App ganz geschlossen, sind sie weg.</td></tr>
   </tbody>
 </table></div>
-<details class="rel" id="relationen">
-  <summary>Relationen zum Nachschlagen</summary>
-  <div class="in">
-    <p class="muted">Werte aus der zentralen Datei <code>relationen.csv</code>, also dieselben, mit denen die App rechnet. B-Junioren über 1.500 m, alle anderen über 2.000 m. Die Zielzeit ist auf Zehntel abgeschnitten.</p>
-    <input id="rel-q" type="search" placeholder="Filtern, z. B. JMB oder 4x" aria-label="Relationen filtern" autocomplete="off">
-    <div class="tw"><table id="rel-tab"><thead><tr><th>Boot</th><th class="n">Relation</th><th class="n">Distanz</th><th class="n">Zielzeit</th></tr></thead><tbody></tbody></table></div>
-    <p class="muted" id="rel-msg"></p>
-  </div>
-</details>
 <p id="fun" style="margin-top:40px;font-size:20px;line-height:1.5"><b>Viel Spaß</b><br>Lenni</p>
 <p class="muted" style="margin-top:32px;border-top:1px solid #3a3a3e;padding-top:12px">© 2026 Lennart Geerdes</p>
 </main>

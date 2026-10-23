@@ -263,7 +263,7 @@ textarea.codein{min-height:76px;padding:10px 12px;font-size:13px;font-family:ui-
     <div class="card">
       <div class="rowcard nw"><h2>GPS</h2><button class="btn primary" id="gps-btn">GPS starten</button></div>
       <div class="rowcard nw"><span class="big mid" id="gps-pace">–:–<small>/500 m</small></span><span class="big mid" id="gps-km">0,00<small>km</small></span></div>
-      <div class="row muted"><span id="gps-ms">– m/s</span><span id="gps-acc"></span><span id="gps-msg"></span></div>
+      <div class="row muted"><span id="gps-ms">– m/s · – km/h</span><span id="gps-acc"></span><span id="gps-msg"></span></div>
     </div>
     <div class="card spmcard">
       <div class="rowcard"><h2>Schlagzahl</h2><span class="big spmv" id="spm">–<small>SPM</small></span></div>
@@ -359,13 +359,13 @@ function defaults(){
   ].map(([first,last,sex,age,weight])=>({id:uid(),first,last,sex,age,weight,example:true}));
   const crew=[ex[0],ex[3]];
   const w=makeWatch(2000,"2x",crew,null); w.example=true;
-  return {athletes:ex,watches:[w],results:[],spmHist:[],sess:{start:null,acc:0},conn:null,queue:[],rel:null,relAt:null,v:1};
+  return {athletes:ex,watches:[w],results:[],sess:{start:null,acc:0},conn:null,queue:[],rel:null,relAt:null,v:1};
 }
 function load(){
   REL=REL_BUILTIN;
   try{const raw=localStorage.getItem(STORE);if(raw){S=JSON.parse(raw);S.watches.forEach(w=>{w.runId=w.runId||uid()});S.results.forEach(r=>{r.run=r.run||r.watch})}}catch(e){S=null}
   if(!S)S=defaults();
-  S.conn=S.conn||null;S.queue=S.queue||[];S.devId=S.devId||uid();S.sheets=S.sheets||{};if(S.conn)S.everConn=true;
+  delete S.spmHist;S.conn=S.conn||null;S.queue=S.queue||[];S.devId=S.devId||uid();S.sheets=S.sheets||{};if(S.conn)S.everConn=true;
   REL=S.rel&&Object.keys(S.rel).length>=10?S.rel:REL_BUILTIN;
 }
 let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(STORE,JSON.stringify(S))}catch(e){}},150)}
@@ -855,14 +855,17 @@ $("#spm-tap").addEventListener("click",()=>{
   const now=performance.now(), b=$("#spm-tap");
   if(spmStart!=null&&now-spmStart<12000){
     const r=120/((now-spmStart)/1000);spmStart=null;b.classList.remove("pending");b.textContent="Tippen: Start";
-    if(r>=8&&r<=70){$("#spm").innerHTML=dec(r,1)+"<small>SPM</small>";S.spmHist.unshift(r);S.spmHist=S.spmHist.slice(0,5);save();renderSpmHist()}
+    if(r>=8&&r<=70){$("#spm").innerHTML=dec(r,1)+"<small>SPM</small>";spmHist.unshift(r);spmHist=spmHist.slice(0,5);
+      try{sessionStorage.setItem("chronoar.spm",JSON.stringify(spmHist))}catch(e){}renderSpmHist()}
     else toast("Ungültig, nochmal");
   }else{spmStart=now;b.classList.add("pending");b.textContent="Nach 2 Schlägen tippen"}
 });
-function renderSpmHist(){$("#spm-hist").innerHTML=S.spmHist.slice(0,5).map(r=>`<span>${dec(r,1)}</span>`).join("")}
+/* Schlagzahl-Verlauf nur für diese Sitzung: bleibt beim Tab-Wechsel und Neuladen, ist weg, wenn die App ganz geschlossen wird */
+let spmHist=(()=>{try{return JSON.parse(sessionStorage.getItem("chronoar.spm")||"[]")}catch(e){return []}})();
+function renderSpmHist(){if(spmHist.length&&$("#spm").textContent.startsWith("–"))$("#spm").innerHTML=dec(spmHist[0],1)+"<small>SPM</small>";$("#spm-hist").innerHTML=spmHist.slice(0,5).map(r=>`<span>${dec(r,1)}</span>`).join("")}
 
 /* ---------- general: GPS speed (avg over last 5 s) ---------- */
-let gpsWatch=null, pts=[], kmLast=null, kmDist=0;
+let gpsWatch=null, pts=[], kmLast=null, kmDist=0, wakeByGps=false;
 function renderKm(){$("#gps-km").innerHTML=dec(kmDist/1000,2)+"<small>km</small>"}
 function hav(a,b){const R=6371008.8,toR=Math.PI/180,dLa=(b.lat-a.lat)*toR,dLo=(b.lon-a.lon)*toR;
   const x=Math.sin(dLa/2)**2+Math.cos(a.lat*toR)*Math.cos(b.lat*toR)*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
@@ -879,11 +882,11 @@ function gpsUpdate(p){
   let v=null;
   if(pts.length>=2&&last-pts[0].t>=1500){let d=0;for(let i=1;i<pts.length;i++)d+=hav(pts[i-1],pts[i]);v=d/((last-pts[0].t)/1000)}
   else if(c.speed!=null)v=c.speed;
-  if(v!=null){$("#gps-ms").textContent=dec(v,2)+" m/s";$("#gps-pace").innerHTML=(v>0.3?pace(v):"–:–")+"<small>/500 m</small>"}
+  if(v!=null){$("#gps-ms").innerHTML=dec(v,2)+" m/s · <b>"+dec(v*3.6,1)+" km/h</b>";$("#gps-pace").innerHTML=(v>0.3?pace(v):"–:–")+"<small>/500 m</small>"}
 }
 $("#gps-btn").addEventListener("click",()=>{
   const b=$("#gps-btn");
-  if(gpsWatch!=null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;pts=[];b.textContent="GPS starten";updateWake();return}
+  if(gpsWatch!=null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;pts=[];b.textContent="GPS starten";if(wakeByGps){S.wakeManual=false;wakeByGps=false;save()}updateWake();return}
   if(!navigator.geolocation){$("#gps-msg").textContent="Dieses Gerät bietet kein GPS an.";return}
   $("#gps-msg").textContent="Suche Signal…";kmDist=0;kmLast=null;renderKm();
   gpsWatch=navigator.geolocation.watchPosition(gpsUpdate,err=>{
@@ -892,7 +895,9 @@ $("#gps-btn").addEventListener("click",()=>{
       if(gpsWatch!=null)navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;b.textContent="GPS starten";updateWake();
     }else $("#gps-msg").textContent="GPS-Signal kurz weg, suche weiter…"; /* keep watching: short signal losses on the water are normal */
   },{enableHighAccuracy:true,maximumAge:0});
-  b.textContent="GPS stoppen";updateWake();
+  b.textContent="GPS stoppen";
+  if(!S.wakeManual){S.wakeManual=true;wakeByGps=true;save();toast("Display bleibt an, damit GPS weitermisst")}
+  updateWake();
 });
 
 /* ---------- general: session clock ---------- */
@@ -904,7 +909,9 @@ $("#sess-reset").addEventListener("click",e=>{if(!armed(e.currentTarget))return;
 
 /* ---------- wake lock: manual switch, plus automatic whenever stopwatches are open or running ---------- */
 let wake=null,wakeBusy=false;
-function wakeNeeded(){return !!S.wakeManual||gpsWatch!=null||S.watches.some(w=>watchState(w)==="running")||(tab==="watches"&&S.watches.length>0)||tab==="regatta"}
+/* Im Tab Coach entscheidet allein der Schalter „Display an“ (GPS schaltet ihn beim Start ein, weil GPS nur bei
+   eingeschaltetem Display misst). In ChronOar und Regatta bleibt das Display automatisch an, solange Uhren da sind. */
+function wakeNeeded(){if(tab==="general")return !!S.wakeManual;return !!S.wakeManual||gpsWatch!=null||S.watches.some(w=>watchState(w)==="running")||(tab==="watches"&&S.watches.length>0)||tab==="regatta"}
 async function updateWake(){
   $("#wake-btn").setAttribute("aria-checked",!!S.wakeManual);
   if(!("wakeLock" in navigator)||wakeBusy||document.visibilityState!=="visible")return;
@@ -912,7 +919,7 @@ async function updateWake(){
   if(need&&!wake){wakeBusy=true;try{wake=await navigator.wakeLock.request("screen");wake.addEventListener("release",()=>{wake=null})}catch(e){wake=null}wakeBusy=false}
   else if(!need&&wake){const w=wake;wake=null;try{await w.release()}catch(e){}}
 }
-$("#wake-btn").addEventListener("click",()=>{S.wakeManual=!S.wakeManual;save();if(S.wakeManual&&!("wakeLock" in navigator))toast("Dieses Gerät unterstützt das nicht");updateWake()});
+$("#wake-btn").addEventListener("click",()=>{S.wakeManual=!S.wakeManual;wakeByGps=false;save();if(S.wakeManual&&!("wakeLock" in navigator))toast("Dieses Gerät unterstützt das nicht");updateWake()});
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")updateWake()});
 
 /* ==========================================================================
