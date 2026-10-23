@@ -42,7 +42,7 @@
  * unter der Web-App-Adresse weiter die alte Version. Die Adresse bleibt gleich.
  */
 
-var SCRIPT_VERSION = 16;
+var SCRIPT_VERSION = 17;
 var CODE_PREFIX = 'CHRONOAR1:';
 var SH_ATH = 'Sportler', SH_RES = 'Ergebnis Sportler', SH_TEAM = 'Ergebnis Mannschaft';
 var OLD_NAMES = { 'Ergebnis Sportler': 'Ergebnisse', 'Ergebnis Mannschaft': 'Mannschaften' };
@@ -779,12 +779,12 @@ function clearRegatta() {
 /*
  * Menü „ChronOar → Ergebnis-PDF erstellen“: alle Fahrten eines Tages aus „Ergebnis Mannschaft“ als PDF (A4 hoch)
  * in drei Teilen: nach Prozent · nach Strecke Nr., dann Prozent · nach Mannschaft, dann Prozent.
- * Die Seiten werden hier selbst umbrochen (Zeilenhöhen geschätzt), damit Spaltenköpfe auf jeder Seite stehen,
- * keine Fahrt zerrissen wird und eine Mannschaft im dritten Teil nicht über zwei Seiten läuft.
+ * Seitenumbrüche macht der PDF-Renderer (Chromium) selbst: Spaltenköpfe wiederholen sich (thead), Fahrten und
+ * Gruppen (Strecke, Abteilung, Mannschaft) werden möglichst nicht getrennt (break-inside: avoid), Seitenzahlen
+ * kommen aus @page. Das Skript schätzt keine Höhen mehr – jede Seite wird so voll wie möglich.
  * Das PDF wird im selben Drive-Ordner wie das Sheet gespeichert.
  */
-var PDF_PAGE = 855, PDF_FIRST = 770, PDF_ROW = 40, PDF_GRP = 36, PDF_GAP = 64;  // Höhen in px, kalibriert an einem echten Google-PDF (nutzbar ≈ 805 px auf Seite 1, ≈ 890 px danach; Rest = Reserve); GAP = Abstand vor jeder Gruppe (≈ 2 Einer-Zeilen)
-var PDF_CREW_W = 262;   // nutzbare Breite der Spalte Mannschaft in px (39 % von A4 abzüglich Rand)
+var PDF_CREW_W = 262;   // nutzbare Breite der Spalte Mannschaft in px (39 % von A4 abzüglich Rand) – nur für das Kürzen der Namen
 /* Zeichenbreiten von Arial fett in 1/100 der Schriftgröße – damit lässt sich der Zeilenumbruch der Namen exakt vorausberechnen */
 var PDF_CW = {"a":56,"b":61,"c":56,"d":61,"e":56,"f":33,"g":61,"h":61,"i":28,"j":28,"k":56,"l":28,"m":89,"n":61,"o":61,"p":61,"q":61,"r":39,"s":56,"t":33,"u":61,"v":56,"w":78,"x":56,"y":56,"z":50,"A":72,"B":72,"C":72,"D":72,"E":67,"F":61,"G":78,"H":72,"I":28,"J":56,"K":72,"L":61,"M":83,"N":72,"O":78,"P":67,"Q":78,"R":72,"S":67,"T":61,"U":72,"V":67,"W":94,"X":67,"Y":67,"Z":61,"ä":56,"ö":61,"ü":61,"Ä":72,"Ö":78,"Ü":72,"ß":61,".":28,",":28,"-":33," ":28,"'":24,"é":56,"è":56,"á":56,"à":56,"ç":56,"ñ":61};
 function pdfLines_(txt, fs, width) {
@@ -798,7 +798,7 @@ var PDF_LOGO = 'iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAIAAABt+uBvAAAY90lEQVR42u2ceXjd
 function showPdf() {
   var t = HtmlService.createTemplate(PDF_DIALOG);
   t.days = JSON.stringify(pdfDays_());
-  SpreadsheetApp.getUi().showModalDialog(t.evaluate().setWidth(440).setHeight(560), 'Ergebnis-PDF erstellen');
+  SpreadsheetApp.getUi().showModalDialog(t.evaluate().setWidth(460).setHeight(700), 'Ergebnis-PDF erstellen');
 }
 function pdfTz_() { return SpreadsheetApp.getActive().getSpreadsheetTimeZone() || Session.getScriptTimeZone(); }
 function pdfDayKey_(d) {
@@ -826,9 +826,9 @@ function pdfRows_() {
 }
 /** Tage mit Fahrten für die Auswahl im Dialog, neueste zuerst. */
 function pdfDays_() {
-  var n = {};
-  pdfRows_().forEach(function (r) { n[r.day] = (n[r.day] || 0) + 1; });
-  return Object.keys(n).sort().reverse().map(function (k) { return { day: k, label: pdfDate_(k, false) + ' (' + n[k] + ' Fahrt' + (n[k] === 1 ? '' : 'en') + ')' }; });
+  var n = {}, abt = {};
+  pdfRows_().forEach(function (r) { n[r.day] = (n[r.day] || 0) + 1; if (r.abt) abt[r.day] = true; });
+  return Object.keys(n).sort().reverse().map(function (k) { return { day: k, abt: !!abt[k], label: pdfDate_(k, false) + ' (' + n[k] + ' Fahrt' + (n[k] === 1 ? '' : 'en') + ')' }; });
 }
 function pdfDate_(key, weekday) {
   var p = key.split('-'), d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
@@ -847,7 +847,7 @@ function pdfNr_(s) { var m = String(s).match(/\d+/); return m ? Number(m[0]) : 9
 function pdfByPct_(a, b) { return (b.pct === null ? -1 : b.pct) - (a.pct === null ? -1 : a.pct); }
 function pdfCrewKey_(r) { return r.boat + '|' + r.crew.split(',').map(function (s) { return s.trim().toLowerCase(); }).sort().join(','); }
 
-/** Dialog → PDF bauen und speichern. f = {day, ort, wind, temp, goal} */
+/** Dialog / App → PDF bauen und speichern. f = {day, ort, wind, air, water, goal, parts: ['pct','nr','abt','crew']} */
 function makePdf(f) {
   f = f || {};
   if (!f.day) throw new Error('Bitte einen Tag wählen.');
@@ -863,77 +863,54 @@ function makePdf(f) {
   return { name: name, url: file.getUrl(), download: 'https://drive.google.com/uc?export=download&id=' + file.getId() };
 }
 
+var PDF_PARTS = { pct: 'Nach Prozent', nr: 'Nach Strecke Nr., dann Prozent', abt: 'Nach Abteilung und Strecke Nr., dann Prozent', crew: 'Nach Mannschaft, dann Prozent' };
 function pdfHtml_(runs, f) {
+  var parts = (f.parts && f.parts.length ? f.parts : ['pct']).filter(function (k) { return PDF_PARTS[k]; });
+  var hasAbt = runs.some(function (r) { return r.abt; });
+  if (!hasAbt) parts = parts.filter(function (k) { return k !== 'abt'; });
+  if (!parts.length) throw new Error('An diesem Tag wurden keine Abteilungen vergeben. Bitte eine andere Auswertung wählen.');
   var times = runs.map(function (r) { return r.time; }).filter(String).sort();
   var when = pdfDate_(f.day, true), span = times.length ? times[0] + ' – ' + times[times.length - 1] + ' Uhr' : '';
   var byPct = function (l) { return l.slice().sort(pdfByPct_); };
-  // Teil 2: Strecke Nr.
-  var nrs = {}, nrKeys = [];
-  runs.forEach(function (r) { var k = r.nr || 'ohne Nummer'; if (!nrs[k]) { nrs[k] = []; nrKeys.push(k); } nrs[k].push(r); });
-  nrKeys.sort(function (a, b) { return pdfNr_(a) - pdfNr_(b); });
-  // Teil 3: Mannschaften (gleiche Ruderer im gleichen Boot), geordnet nach ihrem besten Ergebnis
-  var crews = {}, crewKeys = [];
-  runs.forEach(function (r) { var k = pdfCrewKey_(r); if (!crews[k]) { crews[k] = []; crewKeys.push(k); } crews[k].push(r); });
-  var best = function (k) { return Math.max.apply(null, crews[k].map(function (r) { return r.pct === null ? -1 : r.pct; })); };
-  crewKeys.sort(function (a, b) { return best(b) - best(a); });
+  var group = function (keyOf) { var m = {}, keys = []; runs.forEach(function (r) { var k = keyOf(r); if (!m[k]) { m[k] = []; keys.push(k); } m[k].push(r); }); return { m: m, keys: keys }; };
+  var blocks = {};
+  blocks.pct = [{ title: null, runs: byPct(runs) }];
+  var g = group(function (r) { return r.nr || 'ohne Nummer'; });
+  g.keys.sort(function (a, b) { return pdfNr_(a) - pdfNr_(b); });
+  blocks.nr = g.keys.map(function (k) { return { title: pdfEsc_(k), runs: byPct(g.m[k]) }; });
+  var a = group(function (r) { return (r.abt || '￿') + '\u0000' + (r.nr || 'ohne Nummer'); });
+  a.keys.sort(function (x, y) { x = x.split('\u0000'); y = y.split('\u0000'); return x[0].localeCompare(y[0], 'de', { numeric: true }) || pdfNr_(x[1]) - pdfNr_(y[1]); });
+  blocks.abt = a.keys.map(function (k) { var x = k.split('\u0000');
+    return { title: pdfEsc_(x[0] === '￿' ? 'Ohne Abteilung' : x[0]) + ' <span class="gb">' + pdfEsc_(x[1]) + '</span>', runs: byPct(a.m[k]) }; });
+  var c = group(pdfCrewKey_);   // gleiche Ruderer im gleichen Boot; Mannschaften nach ihrem besten Ergebnis
+  var best = function (k) { return Math.max.apply(null, c.m[k].map(function (r) { return r.pct === null ? -1 : r.pct; })); };
+  c.keys.sort(function (x, y) { return best(y) - best(x); });
+  blocks.crew = c.keys.map(function (k) { var r0 = c.m[k][0]; return { title: pdfEsc_(r0.crew) + ' <span class="gb">' + pdfEsc_(pdfBoat_(r0)) + '</span>', runs: byPct(c.m[k]) }; });
 
-  // Teil 3: jede Abteilung und Strecke Nr. einzeln (nur wenn an diesem Tag Abteilungen vergeben wurden)
-  var abts = {}, abtKeys = [], hasAbt = runs.some(function (r) { return r.abt; });
-  runs.forEach(function (r) { var k = (r.abt || '\uffff') + '\u0000' + (r.nr || 'ohne Nummer'); if (!abts[k]) { abts[k] = []; abtKeys.push(k); } abts[k].push(r); });
-  abtKeys.sort(function (a, b) {
-    var x = a.split('\u0000'), y = b.split('\u0000');
-    return x[0].localeCompare(y[0], 'de', { numeric: true }) || pdfNr_(x[1]) - pdfNr_(y[1]);
-  });
-  var secs = [
-    { title: 'Nach Prozent', keep: false, blocks: [{ title: null, runs: byPct(runs) }] },
-    { title: 'Nach Strecke Nr., dann Prozent', keep: true, blocks: nrKeys.map(function (k) { return { title: pdfEsc_(k), runs: byPct(nrs[k]) }; }) }
-  ];
-  if (hasAbt) secs.push({ title: 'Nach Abteilung und Strecke Nr., dann Prozent', keep: true, blocks: abtKeys.map(function (k) {
-    var x = k.split('\u0000');
-    return { title: pdfEsc_(x[0] === '\uffff' ? 'Ohne Abteilung' : x[0]) + ' <span class="gb">' + pdfEsc_(x[1]) + '</span>', runs: byPct(abts[k]) }; }) });
-  secs = secs.concat([
-    { title: 'Nach Mannschaft, dann Prozent', keep: true, blocks: crewKeys.map(function (k) {
-        var r0 = crews[k][0];
-        return { title: pdfEsc_(r0.crew) + ' <span class="gb">' + pdfEsc_(pdfBoat_(r0)) + '</span>', runs: byPct(crews[k]) }; }) }
-  ]);
-  var rowH = function (r) {
-    var c = pdfCrew_(r), b = pdfBoat_(r).length, boatLines = b > 18 ? 3 : b > 9 ? 2 : 1;
-    var l1 = Math.max(c.lines * c.lh, boatLines * 15), spl = Math.max(1, Math.ceil(r.splits.length / 31));
-    return PDF_ROW + (l1 - 15) + (spl - 1) * 13; };
-  /* Seite 1: lange Trainingsvorgabe braucht mehr Platz (≈ 95 Zeichen pro Zeile), fehlende Angaben geben keinen Platz frei (Reserve) */
-  var goalLines = String(f.goal || '').split('\n').reduce(function (n, l) { return n + Math.max(1, Math.ceil(l.length / 95)); }, 0);
-  var first = PDF_FIRST - Math.max(0, goalLines - 1) * 17;
-  var pages = [];
-  secs.forEach(function (sec) {
-    var cap = pages.length ? PDF_PAGE : first, cur = [], used = 0;
-    var flush = function () { pages.push({ title: sec.title, rows: cur }); cur = []; used = 0; cap = PDF_PAGE; };
-    var head = function (t) { var gap = used > 0; cur.push(pdfGrp_(t, gap)); used += PDF_GRP + (gap ? PDF_GAP : 0); };
-    sec.blocks.forEach(function (bl) {
-      var hs = bl.runs.map(rowH), need = (bl.title ? PDF_GRP + PDF_GAP : 0) + hs.reduce(function (a, b) { return a + b; }, 0);
-      if (sec.keep && used && used + need > cap) flush();   // Gruppe passt nicht mehr ganz → neue Seite (nur zu lange Gruppen werden getrennt)
-      if (bl.title) { if (used + PDF_GRP + PDF_GAP + hs[0] > cap) flush(); head(bl.title); }
-      bl.runs.forEach(function (r, i) {
-        if (used + hs[i] > cap) { flush(); if (bl.title) head(bl.title + ' <span class="gb">(Fortsetzung)</span>'); }
-        cur.push(pdfRun_(r, i % 2)); used += hs[i];
-      });
-    });
-    if (cur.length) flush();
-  });
-  var info = '<table class="info"><tr><td class="k">Ort</td><td>' + pdfEsc_(f.ort) + '</td>' +
-    (f.wind ? '<td class="k">Wind</td><td>' + pdfEsc_(f.wind) + '</td>' : '<td></td><td></td>') + '</tr>' +
-    (f.temp ? '<tr><td class="k">Temperatur</td><td>' + pdfEsc_(f.temp) + '</td><td></td><td></td></tr>' : '') +
+  var row = function (label, val) { return val ? '<td class="k">' + label + '</td><td>' + pdfEsc_(val) + '</td>' : '<td></td><td></td>'; };
+  var air = f.air || f.temp || '', water = f.water || '';
+  var info = '<table class="info"><tr>' + row('Ort', f.ort) + row('Wind', f.wind) + '</tr>' +
+    (air || water ? '<tr>' + row('Lufttemperatur', air) + row('Wassertemperatur', water) + '</tr>' : '') +
     (f.goal ? '<tr><td class="k">Vorgabe</td><td colspan="3"><div class="goal">' + pdfEsc_(f.goal).replace(/\n/g, '<br>') + '</div></td></tr>' : '') + '</table>';
-  var made = Utilities.formatDate(new Date(), pdfTz_(), "dd.MM.yyyy, HH:mm");
-  var out = pages.map(function (p, i) {
-    return '<div class="page' + (i ? ' brk' : '') + '"><table class="head"><tr><td style="width:52px"><img src="data:image/png;base64,' + PDF_LOGO + '" width="42" height="42"></td>' +
-      '<td><div class="h1"><span class="c1">CHRON</span><span class="c2">OAR</span></div><div class="by">Im Motorboot entwickelt, um an Land nichts mehr tun zu müssen.</div></td>' +
-      '<td class="when"><b>' + when + '</b><br>' + span + '</td></tr></table>' + (i ? '' : info) + '<div class="sec">' + p.title + '</div>' +
-      '<table class="res">' + PDF_THEAD + p.rows.join('') + '</table>' +
-      '<table class="foot"><tr><td>Erstellt am ' + made + ' mit <b>ChronOar</b> · © ' + new Date().getFullYear() + ' Lennart Geerdes</td><td class="r">Seite ' + (i + 1) + ' / ' + pages.length + '</td></tr></table></div>';
+  var body = parts.map(function (k, i) {
+    var rows = blocks[k].map(function (bl, bi) {
+      if (!bl.title) return bl.runs.map(function (r, ri) { return '<tbody class="run">' + pdfRun_(r, ri % 2) + '</tbody>'; }).join('');
+      /* Abstand hängt am Ende der Gruppe (nicht davor), damit oben auf einer neuen Seite keine Lücke entsteht */
+      var last = bi === blocks[k].length - 1;
+      return '<tbody class="grp"><tr class="gh"><td colspan="7">' + bl.title + '</td></tr>' + bl.runs.map(function (r, ri) { return pdfRun_(r, ri % 2); }).join('') +
+        (last ? '' : '<tr class="gap"><td colspan="7"></td></tr>') + '</tbody>';
+    }).join('');
+    return '<section' + (i ? ' class="brk"' : '') + '><h2>' + PDF_PARTS[k] + '</h2><table class="res">' + PDF_THEAD + rows + '</table></section>';
   }).join('');
-  return '<!doctype html><html><head><meta charset="utf-8"><style>' + PDF_CSS + '</style></head><body>' + out + '</body></html>';
+  var made = Utilities.formatDate(new Date(), pdfTz_(), "dd.MM.yyyy, HH:mm");
+  /* „Erstellt am …“ als letzte Zeile der letzten Fahrt bzw. Gruppe: steht so nur auf der letzten Seite und nie allein auf einer leeren Seite */
+  var cut = body.lastIndexOf('</tbody>');
+  body = body.slice(0, cut) + '<tr class="made"><td colspan="7">Erstellt am ' + made + ' mit <b>ChronOar</b> · © ' + new Date().getFullYear() + ' Lennart Geerdes</td></tr>' + body.slice(cut);
+  return '<!doctype html><html><head><meta charset="utf-8"><style>' + PDF_CSS + '</style></head><body>' +
+    '<table class="head"><tr><td style="width:74px"><img src="data:image/png;base64,' + PDF_LOGO + '" width="62" height="62"></td>' +
+    '<td><div class="h1"><span class="c1">CHRON</span><span class="c2">OAR</span></div><div class="by">Im Motorboot entwickelt, um an Land nichts mehr tun zu müssen.</div></td>' +
+    '<td class="when"><b>' + when + '</b><br>' + span + '</td></tr></table>' + info + body + '</body></html>';
 }
-function pdfGrp_(t, gap) { return '<tbody class="grp' + (gap ? ' gap' : '') + '"><tr><td colspan="7">' + t + '</td></tr></tbody>'; }
 /**
  * Namen so kompakt wie nötig, damit die Mannschaft höchstens zwei Zeilen braucht:
  * volle Namen → „L. Becker“ → kleinere Schrift → nur Nachnamen. Die Steuerperson steht in Zeile 2 neben der Strecke Nr.
@@ -956,66 +933,79 @@ function pdfCrew_(r) {
 function pdfRun_(r, alt) {
   var c = pdfCrew_(r), crew = '<b' + (c.fs !== 12.5 ? ' style="font-size:' + c.fs + 'px"' : '') + '>' + pdfEsc_(c.txt) + '</b>';
   var boat = pdfEsc_(pdfBoat_(r)).replace(/\//g, '/<wbr>');   // gemischte Boote dürfen nach „/“ umbrechen
-  return '<tbody class="res' + (alt ? ' alt' : '') + '"><tr class="l1"><td>' + crew + '</td>' +
+  return '<tr class="l1' + (alt ? ' alt' : '') + '"><td>' + crew + '</td>' +
     '<td class="n">' + (r.dist ? r.dist.toLocaleString('de-DE').replace(/,/g, '.') + ' m' : '–') + '</td><td class="bt">' + boat + '</td>' +
     '<td class="n">' + pdfDec_(r.sf, 1) + '</td><td class="n">' + pdfEsc_(r.pace || '–') + '</td><td class="n t">' + pdfEsc_(r.zeit) + '</td>' +
     '<td class="n pct">' + (r.pct === null ? '–' : pdfDec_(r.pct, 1) + ' %') + '</td></tr>' +
-    '<tr class="l2"><td>' + pdfEsc_(r.nr) + (c.cox ? ' · St: ' + pdfEsc_(c.cox) : '') + '</td><td class="n">' + (r.rel && r.dist ? target_(r.dist, r.rel)[0] : '–') + '</td>' +
+    '<tr class="l2' + (alt ? ' alt' : '') + '"><td>' + pdfEsc_(r.nr) + (c.cox ? ' · St: ' + pdfEsc_(c.cox) : '') + '</td><td class="n">' + (r.rel && r.dist ? target_(r.dist, r.rel)[0] : '–') + '</td>' +
     '<td class="bt2">' + (r.rel ? pdfDec_(r.rel, 2) + ' m/s' : '–') + '</td>' +
-    '<td class="sp" colspan="3">' + pdfEsc_(r.splits) + '</td><td class="n">' + pdfDec_(r.v, 2) + ' m/s</td></tr></tbody>';
+    '<td class="sp" colspan="3">' + pdfEsc_(r.splits) + '</td><td class="n">' + pdfDec_(r.v, 2) + ' m/s</td></tr>';
 }
 var PDF_THEAD = '<colgroup><col width="39%"><col width="10%"><col width="12%"><col width="7%"><col width="10%"><col width="11%"><col width="11%"></colgroup>' +
   '<thead><tr><th>Mannschaft</th><th class="n">Distanz</th><th class="bt">Boot</th><th class="n">Ø SF</th><th class="n">/500 m</th><th class="n">Zeit</th><th class="n">Prozent</th></tr>' +
   '<tr class="hl2"><th>Strecke Nr. · Steuerperson</th><th class="n">Zielzeit</th><th class="bt">Relation</th><th></th><th></th><th class="n">Splits</th><th class="n">m/s</th></tr></thead>';
 var PDF_CSS =
-  '@page{size:A4;margin:12mm}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#1d1d1f}' +
-  '.brk{page-break-before:always}' +
-  '.head{width:100%;border-collapse:collapse;border-bottom:3px solid #e8740c;margin-bottom:10px}.head td{vertical-align:middle;padding:0 0 8px}' +
-  '.h1{font-size:25px;font-weight:bold;letter-spacing:2px}.c1{color:#1d1d1f}.c2{color:#e8740c}' +
-  '.by{color:#6b6b70;font-size:11px;margin-top:3px;letter-spacing:.5px}.sec{font-size:12px;font-weight:bold;color:#e8740c;text-transform:uppercase;letter-spacing:1.5px;margin:2px 0 4px}' +
+  '@page{size:A4;margin:12mm 12mm 15mm;@bottom-right{content:"Seite " counter(page) " / " counter(pages);font:9.5px Arial,Helvetica,sans-serif;color:#6b6b70;vertical-align:top;padding-top:4mm}}' +
+  'body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#1d1d1f}' +
+  'section.brk{break-before:page}' +
+  '.head{width:100%;border-collapse:collapse;border-bottom:3px solid #e8740c;margin-bottom:10px}.head td{vertical-align:middle;padding:0 0 10px}' +
+  '.h1{font-size:32px;font-weight:bold;letter-spacing:2.5px;line-height:1}.c1{color:#1d1d1f}.c2{color:#e8740c}' +
+  '.by{color:#6b6b70;font-size:11.5px;margin-top:6px;letter-spacing:.5px}' +
   '.when{text-align:right;font-size:13px;line-height:1.5}.when b{font-size:15px}' +
-  '.info{width:100%;border-collapse:collapse;margin:6px 0 14px;font-size:12.5px}.info td{padding:3px 8px 3px 0;vertical-align:top}' +
-  '.info .k{color:#6b6b70;width:92px;text-transform:uppercase;font-size:10.5px;letter-spacing:1px;padding-top:5px}' +
+  '.info{width:100%;border-collapse:collapse;margin:6px 0 16px;font-size:12.5px}.info td{padding:3px 8px 3px 0;vertical-align:top}' +
+  '.info .k{color:#6b6b70;width:118px;text-transform:uppercase;font-size:10.5px;letter-spacing:1px;padding-top:5px;white-space:nowrap}' +
   '.goal{background:#f5f5f6;border-left:3px solid #e8740c;padding:6px 10px}' +
+  'h2{font-size:17px;font-weight:bold;color:#e8740c;text-transform:uppercase;letter-spacing:1.5px;margin:4px 0 8px;break-after:avoid}' +
   'table.res{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}' +
   'table.res th{font-size:9.5px;text-transform:uppercase;letter-spacing:1px;color:#6b6b70;text-align:left;padding:5px 6px 0;white-space:nowrap}' +
   'table.res tr.hl2 th{font-weight:normal;font-size:8.5px;padding:0 6px 4px;border-bottom:1.5px solid #1d1d1f}' +
   'table.res .n{text-align:right;white-space:nowrap;padding-left:12px}table.res td{padding:5px 6px 1px;vertical-align:top}.bt{white-space:normal;padding-left:14px!important}table.res tr.l2 td.bt2{padding-left:14px}table.res th.bt{padding-left:14px}' +
-  'tbody.res{border-bottom:1px solid #d9d9dc}tbody.res tr{page-break-inside:avoid}tbody.alt{background:#f5f5f6}' +
-  'tbody.grp.gap td{padding-top:76px}tbody.grp td{padding:12px 6px 4px;font-weight:bold;font-size:12.5px;color:#1d1d1f;border-bottom:1.5px solid #e8740c}.gb{color:#6b6b70;font-weight:normal;margin-left:6px}' +
+  'tr{break-inside:avoid}tr.l1{break-after:avoid}tr.l2 td{border-bottom:1px solid #d9d9dc}tr.alt td{background:#f5f5f6}' +
+  'tbody.run,tbody.grp{break-inside:avoid}tr.gh{break-after:avoid}' +
+  'tr.gap td{height:64px;padding:0!important;border:0!important;background:none!important}' +
+  'tr.gh td{padding:12px 6px 4px;font-weight:bold;font-size:12.5px;color:#1d1d1f;border-bottom:1.5px solid #e8740c}.gb{color:#6b6b70;font-weight:normal;margin-left:6px}' +
   'tr.l1 td{font-size:12.5px}tr.l2 td{padding:0 6px 5px;font-size:10.5px;color:#6b6b70;white-space:nowrap}' +
-  '.cox{color:#6b6b70}.t{font-weight:bold}.pct{font-weight:bold;color:#e8740c;font-size:13.5px}.sp{text-align:right;white-space:normal!important}' +
-  '.lbl{text-transform:uppercase;font-size:9px;letter-spacing:1px;margin-right:4px}' +
-  '.foot{width:100%;border-collapse:collapse;margin-top:14px;font-size:10px;color:#6b6b70;border-top:1px solid #d9d9dc}.foot td{padding-top:6px}.foot .r{text-align:right}';
+  '.t{font-weight:bold}.pct{font-weight:bold;color:#e8740c;font-size:13.5px}.sp{text-align:right;white-space:normal!important}' +
+  'table.res tr.made td{padding:22px 0 0!important;font-size:10px;color:#6b6b70;background:none!important;border:0!important;white-space:normal}';
 
 var PDF_DIALOG = '<!doctype html><html><head><base target="_blank"><style>' +
   'body{font-family:Arial,sans-serif;font-size:14px;color:#222;margin:0;padding:2px}label{display:block;margin:10px 0 3px;font-weight:bold}' +
   'label small{font-weight:normal;color:#777}input,select,textarea{width:100%;box-sizing:border-box;padding:7px;font-size:14px;border:1px solid #bbb;border-radius:6px;font-family:inherit}' +
-  'textarea{height:70px;resize:vertical}button{background:#ff8a1c;border:0;border-radius:6px;padding:10px 16px;font-weight:bold;font-size:14px;cursor:pointer;margin-top:14px}' +
+  'textarea{height:64px;resize:vertical}button{background:#ff8a1c;border:0;border-radius:6px;padding:10px 16px;font-weight:bold;font-size:14px;cursor:pointer;margin-top:14px}' +
   'button[disabled]{opacity:.6}.err{color:#c00}.muted{color:#666;font-size:12px}a{color:#c45f00;font-weight:bold}#done p{margin:8px 0}' +
+  '.two{display:flex;gap:10px}.two>div{flex:1}.parts label{display:flex;align-items:center;gap:8px;font-weight:normal;margin:5px 0}.parts input{width:auto;margin:0}.parts label.off{color:#aaa}' +
   '</style></head><body><div id="form">' +
   '<label for="day">Tag</label><select id="day"></select>' +
   '<label for="ort">Ort</label><input id="ort" maxlength="80">' +
   '<label for="wind">Wind <small>(optional)</small></label><input id="wind" maxlength="80">' +
-  '<label for="temp">Temperatur <small>(optional)</small></label><input id="temp" maxlength="40">' +
+  '<div class="two"><div><label for="air">Lufttemperatur <small>(opt.)</small></label><input id="air" maxlength="20"></div>' +
+  '<div><label for="water">Wassertemperatur <small>(opt.)</small></label><input id="water" maxlength="20"></div></div>' +
   '<label for="goal">Trainingsvorgabe <small>(optional)</small></label><textarea id="goal" maxlength="600"></textarea>' +
+  '<label>Auswertungen im PDF</label><div class="parts">' +
+  '<label><input type="checkbox" value="pct" checked> Nach Prozent</label>' +
+  '<label><input type="checkbox" value="nr"> Nach Strecke Nr., dann Prozent</label>' +
+  '<label id="abtl"><input type="checkbox" value="abt"> Nach Abteilung und Strecke Nr., dann Prozent</label>' +
+  '<label><input type="checkbox" value="crew"> Nach Mannschaft, dann Prozent</label></div>' +
   '<button id="go" onclick="go()">PDF erstellen</button><p id="msg" class="err"></p>' +
-  '<p class="muted">Enthält alle Fahrten des Tages aus „Ergebnis Mannschaft“: nach Prozent, nach Strecke Nr., nach Abteilung und Strecke Nr. (falls vergeben) und nach Mannschaft. Das PDF wird im selben Drive-Ordner wie dieses Sheet gespeichert.</p></div>' +
+  '<p class="muted">Enthält alle Fahrten des Tages aus „Ergebnis Mannschaft“. Das PDF wird im selben Drive-Ordner wie dieses Sheet gespeichert.</p></div>' +
   '<div id="done" style="display:none"><p>Fertig: <b id="fname"></b></p><p><a id="open" href="#">PDF öffnen</a></p><p><a id="dl" href="#">Herunterladen</a></p>' +
   '<button onclick="again()">Noch eins erstellen</button></div><p class="muted" style="margin-top:16px"><i>Im Motorboot entwickelt, um an Land nichts mehr tun zu müssen.</i> · © Lennart Geerdes</p>' +
   '<script>var days=<?!= days ?>;function $(i){return document.getElementById(i)}' +
-  'try{var s=JSON.parse(localStorage.getItem("chronoarPdf")||"{}");["ort","wind","temp","goal"].forEach(function(k){if(s[k])$(k).value=s[k]})}catch(e){}' +
+  'try{var s=JSON.parse(localStorage.getItem("chronoarPdf")||"{}");["ort","wind","air","water","goal"].forEach(function(k){if(s[k])$(k).value=s[k]})}catch(e){}' +
   'if(!days.length){$("form").innerHTML="<p>Im Blatt „Ergebnis Mannschaft“ gibt es noch keine Fahrten.</p>"}' +
   'days.forEach(function(d){var o=document.createElement("option");o.value=d.day;o.textContent=d.label;$("day").appendChild(o)});' +
-  'function go(){var f={day:$("day").value,ort:$("ort").value.trim(),wind:$("wind").value.trim(),temp:$("temp").value.trim(),goal:$("goal").value.trim()};' +
+  'function abtState(){var d=days.filter(function(x){return x.day===$("day").value})[0],b=$("abtl").querySelector("input"),ok=!!(d&&d.abt);b.disabled=!ok;if(!ok)b.checked=false;$("abtl").className=ok?"":"off";$("abtl").title=ok?"":"An diesem Tag wurden keine Abteilungen vergeben"}' +
+  '$("day").onchange=abtState;if(days.length)abtState();' +
+  'function go(){var parts=[].slice.call(document.querySelectorAll(".parts input:checked")).map(function(x){return x.value});' +
+  'var f={day:$("day").value,ort:$("ort").value.trim(),wind:$("wind").value.trim(),air:$("air").value.trim(),water:$("water").value.trim(),goal:$("goal").value.trim(),parts:parts};' +
   'if(!f.ort){$("msg").textContent="Bitte den Ort eintragen.";$("ort").focus();return}' +
-  'try{localStorage.setItem("chronoarPdf",JSON.stringify({ort:f.ort,wind:f.wind,temp:f.temp,goal:f.goal}))}catch(e){}' +
+  'if(!parts.length){$("msg").textContent="Bitte mindestens eine Auswertung wählen.";return}' +
+  'try{localStorage.setItem("chronoarPdf",JSON.stringify({ort:f.ort,wind:f.wind,air:f.air,water:f.water,goal:f.goal}))}catch(e){}' +
   '$("msg").textContent="";$("go").disabled=true;$("go").textContent="Erstelle PDF…";' +
   'google.script.run.withSuccessHandler(function(r){$("form").style.display="none";$("done").style.display="block";$("fname").textContent=r.name;$("open").href=r.url;$("dl").href=r.download})' +
   '.withFailureHandler(function(e){$("msg").textContent=e.message;$("go").disabled=false;$("go").textContent="PDF erstellen"}).makePdf(f)}' +
   'function again(){$("done").style.display="none";$("form").style.display="block";$("go").disabled=false;$("go").textContent="PDF erstellen"}' +
   '</script></body></html>';
-
 
 /* ------------------------------------------------------------------ Dialog */
 

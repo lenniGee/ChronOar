@@ -207,6 +207,9 @@ textarea.codein{min-height:76px;padding:10px 12px;font-size:13px;font-family:ui-
 .qrbox{background:#fff;border-radius:12px;padding:12px;width:min(100%,320px);margin:0 auto}
 .qrbox svg{display:block;width:100%;height:auto}
 .relinfo{border-top:1px solid var(--line);padding-top:10px}
+.pdf2{display:flex;gap:10px}.pdf2 .fld{flex:1;min-width:0}
+.pdfparts{display:flex;flex-direction:column;gap:2px;margin-top:4px}.pdfparts label{display:flex;align-items:center;gap:10px;min-height:40px;color:var(--ink);font-size:15px}
+.pdfparts input{width:22px;height:22px;accent-color:var(--accent);flex:none}
 .byline{text-align:center;color:var(--muted);font-size:13px;padding-top:4px}.byline b{color:var(--ink)}
 #splash{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .45s}
 #splash img{width:112px;height:112px;border-radius:24px}
@@ -771,14 +774,17 @@ $("#tab-athletes").addEventListener("click",e=>{
 
 /* ---------- results ---------- */
 /* ---------- Ergebnis-PDF für heute: das Sheet erstellt es (gleiches Layout wie Menü „Ergebnis-PDF erstellen“) ---------- */
-const NEED_PDF=14;
+const NEED_PDF=17;
 let P=null;
 function todayKey(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function openPdfSheet(){
   if(!S.conn){toast("Dafür mit einem Sheet verbinden (☁ Sheet)");return}
-  P={busy:false,err:"",res:null,...(S.pdfForm||{})};renderPdfSheet();
+  const f=S.pdfForm||{};
+  P={busy:false,err:"",res:null,...f,air:f.air||f.temp||"",parts:["pct"]};renderPdfSheet();   /* Auswertungen: jedes Mal „Nach Prozent“ vorgewählt */
 }
-function pdfKeep(){["ort","wind","temp","goal"].forEach(k=>{const f=$("#p-"+k);if(f)P[k]=f.value.trim()})}
+const PDF_PARTS=[["pct","Nach Prozent"],["nr","Nach Strecke Nr., dann Prozent"],["abt","Nach Abteilung und Strecke Nr., dann Prozent"],["crew","Nach Mannschaft, dann Prozent"]];
+function pdfKeep(){["ort","wind","air","water","goal"].forEach(k=>{const f=$("#p-"+k);if(f)P[k]=f.value.trim()});
+  const boxes=document.querySelectorAll("[data-part]");if(boxes.length)P.parts=[...boxes].filter(b=>b.checked).map(b=>b.dataset.part)}
 function renderPdfSheet(){
   const old=(S.conn.version||0)<NEED_PDF;
   let body,foot;
@@ -787,12 +793,15 @@ function renderPdfSheet(){
       <div class="bar"><a class="btn" href="${esc(P.res.url)}" target="_blank" rel="noopener">PDF öffnen</a><a class="btn ghost" href="${esc(P.res.download)}" target="_blank" rel="noopener">Herunterladen</a></div>`;
     foot=`<span class="sum"></span><button class="btn" data-act="close">Fertig</button>`;
   }else{
-    body=`<div class="muted">Alle Fahrten von <b>heute (${new Date().toLocaleDateString("de-DE")})</b> aus dem Sheet „${esc(S.conn.name||"Sheet")}“ – sortiert nach Prozent, nach Strecke Nr., nach Abteilung und Strecke Nr. (bei Regatta-Abteilungen) und nach Mannschaft. Für andere Tage im Sheet: ChronOar → Ergebnis-PDF erstellen.</div>
+    body=`<div class="muted">Alle Fahrten von <b>heute (${new Date().toLocaleDateString("de-DE")})</b> aus dem Sheet „${esc(S.conn.name||"Sheet")}“. Für andere Tage im Sheet: ChronOar → Ergebnis-PDF erstellen.</div>
       ${old?`<div class="warnt">Das Skript im Sheet ist zu alt (nötig: Version ${NEED_PDF}). Bitte Code.gs aktualisieren und eine neue Version bereitstellen.</div>`:""}
       <label class="fld" for="p-ort">Ort<input class="txt" id="p-ort" maxlength="80" autocomplete="off" value="${esc(P.ort||"")}"></label>
       <label class="fld" for="p-wind">Wind (optional)<input class="txt" id="p-wind" maxlength="80" autocomplete="off" value="${esc(P.wind||"")}"></label>
-      <label class="fld" for="p-temp">Temperatur (optional)<input class="txt" id="p-temp" maxlength="40" autocomplete="off" value="${esc(P.temp||"")}"></label>
+      <div class="pdf2"><label class="fld" for="p-air">Lufttemperatur (opt.)<input class="txt" id="p-air" maxlength="20" autocomplete="off" inputmode="decimal" value="${esc(P.air||"")}"></label>
+      <label class="fld" for="p-water">Wassertemp. (opt.)<input class="txt" id="p-water" maxlength="20" autocomplete="off" inputmode="decimal" value="${esc(P.water||"")}"></label></div>
       <label class="fld" for="p-goal">Trainingsvorgabe (optional)<textarea class="txt codein" id="p-goal" maxlength="600" style="font-family:inherit;font-size:16px">${esc(P.goal||"")}</textarea></label>
+      <div class="fld">Auswertungen im PDF<div class="pdfparts">${PDF_PARTS.map(([k,t])=>`<label><input type="checkbox" data-part="${k}" ${P.parts.includes(k)?"checked":""}> ${t}</label>`).join("")}</div>
+        <div class="muted">„Nach Abteilung“ gibt es nur, wenn heute im Regatta-Modus Abteilungen vergeben wurden.</div></div>
       ${P.err?`<div class="warnt">${esc(P.err)}</div>`:""}`;
     foot=`<span class="sum">${P.busy?"Wird erstellt – das dauert ein paar Sekunden…":""}</span><button class="btn" data-act="p-make" ${P.busy||old?"disabled":""}>${P.busy?"Erstelle…":"PDF erstellen"}</button>`;
   }
@@ -802,12 +811,13 @@ async function pdfClick(act){
   if(act!=="p-make"||P.busy)return;
   pdfKeep();
   if(!P.ort){P.err="Bitte den Ort eintragen.";renderPdfSheet();$("#p-ort").focus();return}
-  S.pdfForm={ort:P.ort,wind:P.wind,temp:P.temp,goal:P.goal};save();
+  if(!P.parts.length){P.err="Bitte mindestens eine Auswertung wählen.";renderPdfSheet();return}
+  S.pdfForm={ort:P.ort,wind:P.wind,air:P.air,water:P.water,goal:P.goal};save();
   P.busy=true;P.err="";renderPdfSheet();
   try{
     await sync();                                   /* erst alle wartenden Ergebnisse hochladen */
     if(S.queue.some(o=>o.op==="results"))throw new ApiError("Noch nicht alle Ergebnisse sind im Sheet (kein Netz?). Bitte gleich nochmal versuchen.");
-    const j=await apiPost({action:"pdf",form:{day:todayKey(),ort:P.ort,wind:P.wind,temp:P.temp,goal:P.goal}});
+    const j=await apiPost({action:"pdf",form:{day:todayKey(),ort:P.ort,wind:P.wind,air:P.air,water:P.water,goal:P.goal,parts:P.parts}});
     if(P){P.res=j;P.busy=false;renderPdfSheet()}
   }catch(e){
     if(!P)return;
