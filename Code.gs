@@ -104,7 +104,10 @@ function setup() {
   var res = ensureSheet_(ss, SH_RES, RES_HEAD);
   var team = teamSheet_();
   if (team.getLastRow() < 2 && res.getLastRow() > 1) rebuildTeams_();
-  var demoAdded = ath.getLastRow() < 2 ? addDemo_(true) : 0;   // leeres Blatt Sportler: Beispiel-Sportler zum Ausprobieren
+  /* Noch keine Sportler (keine Zeile mit Vor- oder Nachname – übrig gebliebene IDs, Formate oder Auswahllisten zählen nicht):
+     Beispiel-Sportler zum Ausprobieren eintragen */
+  var hasNames = ath.getLastRow() > 1 && ath.getRange(2, 2, ath.getLastRow() - 1, 2).getValues().some(function (r) { return String(r[0]).trim() || String(r[1]).trim(); });
+  var demoAdded = hasNames ? 0 : addDemo_(true);
   regattaSheet_(); logSheet_(); refreshNameList_();
 
   // Auswahllisten für die Sportler-Spalten D–F
@@ -123,7 +126,7 @@ function setup() {
     if (s && s.getLastRow() === 0 && ss.getSheets().length > 3) ss.deleteSheet(s);
   });
   getKey_();
-  SpreadsheetApp.getUi().alert('ChronOar ist eingerichtet.\n\n' + (demoAdded ? demoAdded + ' Beispiel-Sportler zum Ausprobieren sind eingetragen. Später entfernen: ChronOar → Beispiel-Sportler entfernen.\n\n' : '') + 'Nächster Schritt: Erweiterungen → Apps Script → Bereitstellen → Neue Bereitstellung (siehe Anleitung). Danach "ChronOar → Mit Handy verbinden".');
+  SpreadsheetApp.getUi().alert('ChronOar ist eingerichtet.\n\n' + (demoAdded ? demoAdded + ' Beispiel-Sportler zum Ausprobieren sind eingetragen. Später entfernen: ChronOar → Beispiel-Sportler entfernen.\n\n' : 'Im Blatt „Sportler“ stehen schon Sportler, deshalb wurden keine Beispiel-Sportler eingetragen. Zum Ausprobieren: ChronOar → Beispiel-Sportler einfügen.\n\n') + 'Nächster Schritt: Erweiterungen → Apps Script → Bereitstellen → Neue Bereitstellung (siehe Anleitung). Danach "ChronOar → Mit Handy verbinden".');
 }
 
 function ensureSheet_(ss, name, head) {
@@ -142,6 +145,11 @@ function demoKey_(first, last) { return (String(first).trim() + ' ' + String(las
 /** Fehlende Beispiel-Sportler anhängen. Gibt die Anzahl zurück. */
 function addDemo_(quiet) {
   var sh = ensureSheet_(SpreadsheetApp.getActive(), SH_ATH, ATH_HEAD), have = {};
+  /* Zeilen ohne Namen (z. B. nur noch eine alte ID in Spalte A) vorher leeren, damit die Liste nicht weit unten beginnt */
+  if (sh.getLastRow() > 1) {
+    var all = sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues(), keep = all.filter(function (r) { return String(r[1]).trim() || String(r[2]).trim(); });
+    if (keep.length < all.length) { sh.getRange(2, 1, all.length, 6).clearContent(); if (keep.length) sh.getRange(2, 1, keep.length, 6).setValues(keep); }
+  }
   if (sh.getLastRow() > 1) sh.getRange(2, 2, sh.getLastRow() - 1, 2).getValues().forEach(function (r) { have[demoKey_(r[0], r[1])] = true; });
   var add = DEMO_ATHLETES.filter(function (a) { return !have[demoKey_(a[0], a[1])]; }).map(function (a) { return [newId_()].concat(a); });
   if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, 6).setValues(add);
