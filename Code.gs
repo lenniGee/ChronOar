@@ -87,6 +87,9 @@ function onOpen() {
     .addItem('Ergebnis-PDF erstellen', 'showPdf')
     .addItem('Regatta leeren (alle Boote und Zeiten löschen)', 'clearRegatta')
     .addSeparator()
+    .addItem('Beispiel-Sportler einfügen', 'addDemo')
+    .addItem('Beispiel-Sportler entfernen', 'removeDemo')
+    .addSeparator()
     .addItem('Neuen Schlüssel erzeugen (alte Handys trennen)', 'resetKey')
     .addSeparator()
     .addItem('Über ChronOar', 'about')
@@ -101,6 +104,7 @@ function setup() {
   var res = ensureSheet_(ss, SH_RES, RES_HEAD);
   var team = teamSheet_();
   if (team.getLastRow() < 2 && res.getLastRow() > 1) rebuildTeams_();
+  var demoAdded = ath.getLastRow() < 2 ? addDemo_(true) : 0;   // leeres Blatt Sportler: Beispiel-Sportler zum Ausprobieren
   regattaSheet_(); logSheet_(); refreshNameList_();
 
   // Auswahllisten für die Sportler-Spalten D–F
@@ -119,7 +123,7 @@ function setup() {
     if (s && s.getLastRow() === 0 && ss.getSheets().length > 3) ss.deleteSheet(s);
   });
   getKey_();
-  SpreadsheetApp.getUi().alert('ChronOar ist eingerichtet.\n\nNächster Schritt: Erweiterungen → Apps Script → Bereitstellen → Neue Bereitstellung (siehe Anleitung). Danach "ChronOar → Mit Handy verbinden".');
+  SpreadsheetApp.getUi().alert('ChronOar ist eingerichtet.\n\n' + (demoAdded ? demoAdded + ' Beispiel-Sportler zum Ausprobieren sind eingetragen. Später entfernen: ChronOar → Beispiel-Sportler entfernen.\n\n' : '') + 'Nächster Schritt: Erweiterungen → Apps Script → Bereitstellen → Neue Bereitstellung (siehe Anleitung). Danach "ChronOar → Mit Handy verbinden".');
 }
 
 function ensureSheet_(ss, name, head) {
@@ -128,6 +132,35 @@ function ensureSheet_(ss, name, head) {
   sh.getRange(1, 1, 1, head.length).setFontWeight('bold');
   sh.setFrozenRows(1);
   return sh;
+}
+
+/* ------------------------------------------------------------------ Beispiel-Sportler */
+/* 65 Sportler zum Ausprobieren (Figuren aus Hörspielen, Boybands, Girlgroups …):
+   10 JMA, 10 JMAL, 10 JMB, 5 JMBL, 10 JFA, 5 JFAL, 10 JFB, 5 JFBL. Werden beim Einrichten in ein leeres Blatt „Sportler“ geschrieben. */
+var DEMO_ATHLETES = [["Justus", "Jonas", "m", "Junior A", "Offen"], ["Peter", "Shaw", "m", "Junior A", "Offen"], ["Bob", "Andrews", "m", "Junior A", "Offen"], ["Tim", "Carsten", "m", "Junior A", "Offen"], ["Julian", "Kirrin", "m", "Junior A", "Offen"], ["Nick", "Carter", "m", "Junior A", "Offen"], ["Bill", "Kaulitz", "m", "Junior A", "Offen"], ["Tom", "Kaulitz", "m", "Junior A", "Offen"], ["Justin", "Timberlake", "m", "Junior A", "Offen"], ["Robbie", "Williams", "m", "Junior A", "Offen"], ["Karl", "Vierstein", "m", "Junior A", "Leicht"], ["Dick", "Kirrin", "m", "Junior A", "Leicht"], ["Brian", "Littrell", "m", "Junior A", "Leicht"], ["AJ", "McLean", "m", "Junior A", "Leicht"], ["Howie", "Dorough", "m", "Junior A", "Leicht"], ["Georg", "Listing", "m", "Junior A", "Leicht"], ["Lance", "Bass", "m", "Junior A", "Leicht"], ["JC", "Chasez", "m", "Junior A", "Leicht"], ["Daniel", "Küblböck", "m", "Junior A", "Leicht"], ["Jay", "Khan", "m", "Junior A", "Leicht"], ["Skinny", "Norris", "m", "Junior B", "Offen"], ["Kevin", "Richardson", "m", "Junior B", "Offen"], ["Gustav", "Schäfer", "m", "Junior B", "Offen"], ["Joey", "Fatone", "m", "Junior B", "Offen"], ["Chris", "Kirkpatrick", "m", "Junior B", "Offen"], ["Dieter", "Bohlen", "m", "Junior B", "Offen"], ["Thomas", "Anders", "m", "Junior B", "Offen"], ["David", "Hasselhoff", "m", "Junior B", "Offen"], ["Angelo", "Kelly", "m", "Junior B", "Offen"], ["Richie", "Stringini", "m", "Junior B", "Offen"], ["Willi", "Sauerlich", "m", "Junior B", "Leicht"], ["Titus", "Jonas", "m", "Junior B", "Leicht"], ["Timmy", "Kirrin", "m", "Junior B", "Leicht"], ["Rob", "Pilatus", "m", "Junior B", "Leicht"], ["Fab", "Morvan", "m", "Junior B", "Leicht"], ["Gaby", "Glockner", "w", "Junior A", "Offen"], ["George", "Kirrin", "w", "Junior A", "Offen"], ["Victoria", "Adams", "w", "Junior A", "Offen"], ["Melanie", "Brown", "w", "Junior A", "Offen"], ["Emma", "Bunton", "w", "Junior A", "Offen"], ["Melanie", "Chisholm", "w", "Junior A", "Offen"], ["Geri", "Halliwell", "w", "Junior A", "Offen"], ["Sarah", "Connor", "w", "Junior A", "Offen"], ["Jeanette", "Biedermann", "w", "Junior A", "Offen"], ["Yvonne", "Catterfeld", "w", "Junior A", "Offen"], ["Anne", "Kirrin", "w", "Junior A", "Leicht"], ["Mandy", "Capristo", "w", "Junior A", "Leicht"], ["Bahar", "Kizil", "w", "Junior A", "Leicht"], ["Senna", "Guemmour", "w", "Junior A", "Leicht"], ["Jasmin", "Wagner", "w", "Junior A", "Leicht"], ["Nadja", "Benaissa", "w", "Junior B", "Offen"], ["Lucy", "Diakovska", "w", "Junior B", "Offen"], ["Sandy", "Mölling", "w", "Junior B", "Offen"], ["Jessica", "Wahls", "w", "Junior B", "Offen"], ["Vanessa", "Petruo", "w", "Junior B", "Offen"], ["Britney", "Spears", "w", "Junior B", "Offen"], ["Christina", "Aguilera", "w", "Junior B", "Offen"], ["Kathy", "Kelly", "w", "Junior B", "Offen"], ["Patricia", "Kelly", "w", "Junior B", "Offen"], ["Maite", "Kelly", "w", "Junior B", "Offen"], ["Mathilda", "Jonas", "w", "Junior B", "Leicht"], ["Barby", "Kelly", "w", "Junior B", "Leicht"], ["Daniela", "Katzenberger", "w", "Junior B", "Leicht"], ["Verona", "Feldbusch", "w", "Junior B", "Leicht"], ["Michelle", "Hunziker", "w", "Junior B", "Leicht"]];
+function demoKey_(first, last) { return (String(first).trim() + ' ' + String(last).trim()).toLowerCase(); }
+/** Fehlende Beispiel-Sportler anhängen. Gibt die Anzahl zurück. */
+function addDemo_(quiet) {
+  var sh = ensureSheet_(SpreadsheetApp.getActive(), SH_ATH, ATH_HEAD), have = {};
+  if (sh.getLastRow() > 1) sh.getRange(2, 2, sh.getLastRow() - 1, 2).getValues().forEach(function (r) { have[demoKey_(r[0], r[1])] = true; });
+  var add = DEMO_ATHLETES.filter(function (a) { return !have[demoKey_(a[0], a[1])]; }).map(function (a) { return [newId_()].concat(a); });
+  if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, 6).setValues(add);
+  if (!quiet) { refreshNameList_(); SpreadsheetApp.getUi().alert(add.length ? add.length + ' Beispiel-Sportler eingefügt. Die Handys sehen sie beim nächsten Abgleich.' : 'Die Beispiel-Sportler sind schon alle da.'); }
+  return add.length;
+}
+function addDemo() { addDemo_(false); }
+/** Menü: alle Beispiel-Sportler (nach Vor- und Nachname) aus dem Blatt Sportler löschen. Ergebnisse bleiben. */
+function removeDemo() {
+  var ui = SpreadsheetApp.getUi(), sh = SpreadsheetApp.getActive().getSheetByName(SH_ATH);
+  if (!sh || sh.getLastRow() < 2) { ui.alert('Im Blatt „Sportler“ steht niemand.'); return; }
+  var demo = {}; DEMO_ATHLETES.forEach(function (a) { demo[demoKey_(a[0], a[1])] = true; });
+  var v = sh.getRange(2, 2, sh.getLastRow() - 1, 2).getValues(), rows = [];
+  v.forEach(function (r, i) { if (demo[demoKey_(r[0], r[1])]) rows.push(i + 2); });
+  if (!rows.length) { ui.alert('Es sind keine Beispiel-Sportler mehr im Blatt.'); return; }
+  if (ui.alert('Beispiel-Sportler entfernen?', rows.length + ' Beispiel-Sportler werden aus dem Blatt „Sportler“ gelöscht. Eigene Sportler und alle Ergebnisse bleiben erhalten.', ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) return;
+  for (var i = rows.length - 1; i >= 0; i--) sh.deleteRow(rows[i]);
+  refreshNameList_();
+  ui.alert(rows.length + ' Beispiel-Sportler entfernt. Die Handys übernehmen das beim nächsten Abgleich.');
 }
 
 /** Menü: Über ChronOar */
